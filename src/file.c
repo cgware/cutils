@@ -11,6 +11,7 @@
 #include <string.h>
 
 #if defined(C_WIN)
+	#include <Windows.h>
 #else
 	#include <dirent.h>
 	#include <sys/stat.h>
