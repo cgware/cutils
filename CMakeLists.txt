@@ -31,6 +31,7 @@ ExternalProject_Add(ctest_project
   GIT_REPOSITORY    https://github.com/cgware/ctest.git
   GIT_TAG           main
   SOURCE_DIR        "${CMAKE_SOURCE_DIR}/deps/ctest"
+  UPDATE_COMMAND    ""
   INSTALL_COMMAND   ""
   TEST_COMMAND      ""
   CMAKE_ARGS        "-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}"
