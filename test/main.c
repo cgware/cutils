@@ -40,6 +40,8 @@ TEST(cutils)
 
 int main()
 {
+	c_print_init();
+
 	log_t log = {0};
 	log_set(&log);
 	log_add_callback(log_std_cb, PRINT_DST_FILE(stderr), LOG_WARN, 1, 1);
