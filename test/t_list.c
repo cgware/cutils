@@ -304,6 +304,8 @@ TEST(list_set_cnt)
 	list_set_cnt(NULL, 0);
 	list_set_cnt(&list, 1);
 
+	data = list_get_data(&list, root);
+
 	lnode_t *next = data - 1;
 
 	EXPECT_EQ(*next, LIST_END);

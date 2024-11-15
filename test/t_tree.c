@@ -306,6 +306,8 @@ TEST(tree_set_cnt)
 	tree_set_cnt(NULL, 0);
 	tree_set_cnt(&tree, 1);
 
+	data = tree_get_data(&tree, root);
+
 	tnode_t *child = data - 1;
 
 	EXPECT_EQ(*child, TREE_END);
