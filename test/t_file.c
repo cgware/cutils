@@ -7,6 +7,11 @@
 
 #include <string.h>
 
+#if defined(C_LINUX)
+	#include <errno.h>
+	#include <unistd.h>
+#endif
+
 #define TEST_FILE "t_file.txt"
 
 TEST(file_open_close)
@@ -35,21 +40,21 @@ TEST(file_open_f)
 	START;
 
 	log_set_quiet(0, 1);
-	#if defined(C_WIN)
-		EXPECT_EQ(file_open_f("%s",
+#if defined(C_WIN)
+	EXPECT_EQ(file_open_f("%s",
 			      "w+",
 			      "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678"
 			      "901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456"
 			      "78901234567890123456789012345678901234"),
 		  NULL);
-	#else
-		EXPECT_EQ(file_open_f("%s",
+#else
+	EXPECT_EQ(file_open_f("%s",
 			      "w+",
 			      "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678"
 			      "901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456"
 			      "78901234567890123456789012345678901234abcde"),
 		  NULL);
-	#endif
+#endif
 	log_set_quiet(0, 0);
 
 	FILE *file = file_open_f("%s", "w+", TEST_FILE);
@@ -217,19 +222,19 @@ TEST(file_exists)
 	EXPECT_EQ(file_exists(NULL), 0);
 	EXPECT_EQ(file_exists(TEST_FILE), 0);
 	log_set_quiet(0, 1);
-	#if defined(C_WIN)
-		EXPECT_EQ(file_exists_f("%s",
+#if defined(C_WIN)
+	EXPECT_EQ(file_exists_f("%s",
 				"1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456"
 				"7890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012"
 				"345678901234567890123456789012345678901234"),
 		  0);
-	#else
-		EXPECT_EQ(file_exists_f("%s",
+#else
+	EXPECT_EQ(file_exists_f("%s",
 				"1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456"
 				"7890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012"
 				"345678901234567890123456789012345678901234abcde"),
 		  0);
-	#endif
+#endif
 	log_set_quiet(0, 0);
 
 	FILE *file = file_open(TEST_FILE, "w+");
@@ -349,6 +354,12 @@ TEST(files_foreach)
 	file_close(file_open("tmp/e.txt", "w"));
 	file_close(file_open("tmp/f.txt", "w"));
 
+#if defined(C_LINUX)
+	if (symlink("tmp", "tmp/link") == -1) {
+		log_error("test", "file", NULL, "failed to create smylink: %s", strerror(errno));
+	}
+#endif
+
 	int index = 0;
 
 	EXPECT_EQ(files_foreach(NULL, NULL, NULL, NULL), 1);
@@ -358,6 +369,9 @@ TEST(files_foreach)
 	EXPECT_EQ(files_foreach(&path, file_cb, file_err_cb, NULL), -1);
 	EXPECT_EQ(files_foreach(&path, folder_cnt_cb, file_cnt_cb, &index), 0);
 
+#if defined(C_LINUX)
+	file_delete("tmp/link");
+#endif
 	file_delete("tmp/f.txt");
 	file_delete("tmp/e.txt");
 	file_delete("tmp/d.txt");

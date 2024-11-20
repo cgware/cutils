@@ -29,7 +29,7 @@ FILE *file_open(const char *path, const char *mode)
 #if defined(C_WIN)
 	fopen_s(&file, path, mode);
 #else
-	file = fopen(path, mode);
+	file  = fopen(path, mode);
 #endif
 	if (file == NULL) {
 		int errnum = errno;
@@ -71,7 +71,7 @@ FILE *file_reopen(const char *path, const char *mode, FILE *file)
 	}
 	freopen_s(&file, path, mode, file);
 #else
-	file = freopen(path, mode, file);
+	file  = freopen(path, mode, file);
 #endif
 	if (file == NULL) {
 		int errnum = errno;
@@ -99,7 +99,7 @@ size_t file_read(FILE *file, size_t size, char *data, size_t data_size)
 #if defined(C_WIN)
 	cnt = fread_s(data, data_size, size, 1, file);
 #else
-	cnt = fread(data, size, 1, file);
+	cnt   = fread(data, size, 1, file);
 #endif
 	if (cnt != 1) {
 		return 0;
@@ -369,10 +369,13 @@ int files_foreach(const path_t *path, files_foreach_cb on_folder, files_foreach_
 
 		arr_t *arr = file.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ? &dirs : &files;
 
-		if (arr != NULL) {
-			char *dest = arr_get(arr, arr_add(arr));
-			mem_cpy(dest, C_MAX_PATH, (char *)file.cFileName, cstr_len((char *)file.cFileName) + 1);
+		if (arr == NULL) {
+			continue;
 		}
+
+		char *dest = arr_add(arr, NULL);
+		mem_cpy(dest, C_MAX_PATH, (char *)file.cFileName, cstr_len((char *)file.cFileName) + 1);
+
 	} while (FindNextFileA(find, (LPWIN32_FIND_DATAA)&file));
 
 	FindClose(find);
@@ -396,12 +399,11 @@ int files_foreach(const path_t *path, files_foreach_cb on_folder, files_foreach_
 		switch (dp->d_type) {
 		case 4: arr = &dirs; break;
 		case 8: arr = &files; break;
+		default: continue;
 		}
 
-		if (arr != NULL) {
-			char *dest = arr_get(arr, arr_add(arr));
-			mem_cpy(dest, C_MAX_PATH, dp->d_name, cstr_len(dp->d_name) + 1);
-		}
+		char *dest = arr_add(arr, NULL);
+		mem_cpy(dest, C_MAX_PATH, dp->d_name, cstr_len(dp->d_name) + 1);
 	}
 
 	closedir(dir);

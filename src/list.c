@@ -30,8 +30,8 @@ lnode_t list_add(list_t *list)
 		return LIST_END;
 	}
 
-	lnode_t node = arr_add(list);
-	if (node >= list->cnt) {
+	lnode_t node;
+	if (arr_add(list, &node) == NULL) {
 		log_error("cutils", "list", NULL, "failed to add element");
 		return LIST_END;
 	}

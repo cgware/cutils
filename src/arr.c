@@ -59,21 +59,25 @@ static inline int arr_resize(arr_t *arr)
 	return 0;
 }
 
-uint arr_add(arr_t *arr)
+void *arr_add(arr_t *arr, uint *index)
 {
 	if (arr == NULL) {
-		return ARR_END;
+		return NULL;
 	}
 
 	if (arr_resize(arr)) {
 		log_error("cutils", "arr", NULL, "failed to add element");
-		return ARR_END;
+		return NULL;
 	}
 
-	uint index = arr->cnt;
+	uint i = arr->cnt;
 	arr->cnt++;
 
-	return index;
+	if (index) {
+		*index = i;
+	}
+
+	return (byte *)arr->data + i * arr->size;
 }
 
 void *arr_get(const arr_t *arr, uint index)
@@ -101,20 +105,21 @@ void *arr_set(arr_t *arr, uint index, const void *value)
 		return NULL;
 	}
 
-	return mem_cpy(dst, arr->size, value, arr->size);
+	if (value) {
+		mem_cpy(dst, arr->size, value, arr->size);
+	}
+
+	return dst;
 }
 
-uint arr_app(arr_t *arr, const void *value)
+uint arr_addv(arr_t *arr, const void *value)
 {
-	if (value == NULL) {
+	uint index;
+	if (arr_add(arr, &index) == NULL) {
 		return ARR_END;
 	}
 
-	uint index = arr_add(arr);
-
-	if (arr_set(arr, index, value) == NULL) {
-		return ARR_END;
-	}
+	arr_set(arr, index, value);
 
 	return index;
 }
@@ -175,7 +180,7 @@ arr_t *arr_add_unique(arr_t *arr, const arr_t *src)
 			continue;
 		}
 
-		arr_set(arr, arr_add(arr), value);
+		arr_addv(arr, value);
 	}
 
 	return arr;

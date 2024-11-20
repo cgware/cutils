@@ -18,13 +18,13 @@ typedef struct arr_s {
 arr_t *arr_init(arr_t *arr, uint cap, size_t size, alloc_t alloc);
 void arr_free(arr_t *arr);
 
-uint arr_add(arr_t *arr);
+void *arr_add(arr_t *arr, uint *index);
 
 void *arr_get(const arr_t *arr, uint index);
 
 void *arr_set(arr_t *arr, uint index, const void *value);
 
-uint arr_app(arr_t *arr, const void *value);
+uint arr_addv(arr_t *arr, const void *value);
 
 uint arr_index(const arr_t *arr, const void *value);
 
@@ -46,13 +46,5 @@ int arr_print(const arr_t *arr, arr_print_cb cb, print_dst_t dst, const void *pr
 
 #define arr_foreach(_arr, _val)	      for (uint _i = 0; _i < (_arr)->cnt && (_val = arr_get(_arr, _i)); _i++)
 #define arr_foreach_i(_arr, _val, _i) for (; _i < (_arr)->cnt && (_val = arr_get(_arr, _i)); _i++)
-
-#define arr_add_t(_type, _arr, _val, _id)                                                                                                  \
-	uint _id     = arr_add(_arr);                                                                                                      \
-	_type *_data = arr_get(_arr, id);                                                                                                  \
-	if (_data == NULL) {                                                                                                               \
-		return ARR_END;                                                                                                            \
-	}                                                                                                                                  \
-	*_data = _val;
 
 #endif
