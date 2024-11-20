@@ -6,15 +6,6 @@
 	],
 	"settings": {
 		"editor.tabSize": 8,
-		"editor.insertSpaces": false,
-		"files.associations": {
-			"test.h": "c",
-			"platform.h": "c",
-			"type.h": "c",
-			"stdint.h": "c",
-			"stdbool.h": "c",
-			"mem.h": "c",
-			"print.h": "c"
-		}
+		"editor.insertSpaces": false
 	}
 }
