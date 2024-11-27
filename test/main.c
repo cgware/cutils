@@ -6,6 +6,7 @@
 STEST(alloc);
 STEST(args);
 STEST(arr);
+STEST(buf);
 STEST(cstr);
 STEST(ctime);
 STEST(dict);
@@ -15,6 +16,7 @@ STEST(log);
 STEST(mem);
 STEST(path);
 STEST(str);
+STEST(strbuf);
 STEST(tree);
 STEST(type);
 
@@ -24,6 +26,7 @@ TEST(cutils)
 	RUN(alloc);
 	RUN(args);
 	RUN(arr);
+	RUN(buf);
 	RUN(cstr);
 	RUN(ctime);
 	RUN(dict);
@@ -33,6 +36,7 @@ TEST(cutils)
 	RUN(mem);
 	RUN(path);
 	RUN(str);
+	RUN(strbuf);
 	RUN(tree);
 	RUN(type);
 	SEND;

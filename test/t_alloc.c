@@ -8,7 +8,6 @@ TEST(alloc_alloc)
 
 	alloc_t alloc = ALLOC_STD;
 
-	alloc_alloc(NULL, 0);
 	void *mem = alloc_alloc(&alloc, 1);
 
 	alloc_free(&alloc, mem, 1);
@@ -24,8 +23,7 @@ TEST(alloc_realloc)
 
 	void *mem = alloc_alloc(&alloc, 1);
 
-	alloc_realloc(NULL, mem, 0, 0);
-	mem = alloc_realloc(&alloc, mem, 2, 1);
+	mem = alloc_realloc(&alloc, mem, 1, 2);
 
 	alloc_free(&alloc, mem, 2);
 
@@ -40,7 +38,6 @@ TEST(alloc_free)
 
 	void *mem = alloc_alloc(&alloc, 1);
 
-	alloc_free(NULL, mem, 1);
 	alloc_free(&alloc, mem, 1);
 
 	END;

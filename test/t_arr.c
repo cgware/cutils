@@ -112,8 +112,10 @@ TEST(arr_addv)
 {
 	START;
 
-	arr_t arr = { 0 };
+	arr_t arr = {0};
+	log_set_quiet(0, 1);
 	arr_init(&arr, 0, sizeof(int), ALLOC_STD);
+	log_set_quiet(0, 0);
 
 	const int v0 = 1;
 	const int v1 = 2;
