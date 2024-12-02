@@ -26,4 +26,6 @@ int strbuf_get_index(const strbuf_t *buf, const char *str, uint8_t len, uint *in
 	    _start += sizeof(char) * _len + sizeof(uint8_t),                                                                               \
 	    _len = *(uint8_t *)((_buf)->buf.data + _i))
 
+#define STRBUFL(_str) _str, sizeof(_str) - 1
+
 #endif
