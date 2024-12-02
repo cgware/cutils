@@ -46,20 +46,19 @@ static inline int arr_resize(arr_t *arr)
 		return 0;
 	}
 
-	uint new_cap = MAX(1, arr->cap * 2);
+	size_t old_size = arr->cap * arr->size;
+	uint new_cap	= MAX(1, arr->cap * 2);
 
-	void *data = alloc_realloc(&arr->alloc, arr->data, arr->cap * arr->size, new_cap * arr->size);
-	if (data == NULL) {
+	if (alloc_realloc(&arr->alloc, &arr->data, &old_size, new_cap * arr->size)) {
 		return 1;
 	}
 
-	arr->data = data;
-	arr->cap  = new_cap;
+	arr->cap = new_cap;
 
 	return 0;
 }
 
-void *arr_add(arr_t *arr, uint *index)
+void *arr_add(arr_t *arr)
 {
 	if (arr == NULL) {
 		return NULL;
@@ -70,14 +69,7 @@ void *arr_add(arr_t *arr, uint *index)
 		return NULL;
 	}
 
-	uint i = arr->cnt;
-	arr->cnt++;
-
-	if (index) {
-		*index = i;
-	}
-
-	return (byte *)arr->data + i * arr->size;
+	return (byte *)arr->data + (arr->cnt++) * arr->size;
 }
 
 void *arr_get(const arr_t *arr, uint index)
@@ -114,12 +106,17 @@ void *arr_set(arr_t *arr, uint index, const void *value)
 
 uint arr_addv(arr_t *arr, const void *value)
 {
-	uint index;
-	if (arr_add(arr, &index) == NULL) {
+	if (arr == NULL) {
 		return ARR_END;
 	}
 
-	arr_set(arr, index, value);
+	uint index = arr->cnt;
+	void *data = arr_add(arr);
+	if (data == NULL) {
+		return ARR_END;
+	}
+
+	mem_cpy(data, arr->size, value, arr->size);
 
 	return index;
 }

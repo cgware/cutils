@@ -373,7 +373,11 @@ int files_foreach(const path_t *path, files_foreach_cb on_folder, files_foreach_
 			continue;
 		}
 
-		char *dest = arr_add(arr, NULL);
+		char *dest = arr_add(arr);
+		if (dest == NULL) {
+			return 1;
+		}
+
 		mem_cpy(dest, C_MAX_PATH, (char *)file.cFileName, cstr_len((char *)file.cFileName) + 1);
 
 	} while (FindNextFileA(find, (LPWIN32_FIND_DATAA)&file));
@@ -402,7 +406,11 @@ int files_foreach(const path_t *path, files_foreach_cb on_folder, files_foreach_
 		default: continue;
 		}
 
-		char *dest = arr_add(arr, NULL);
+		char *dest = arr_add(arr);
+		if (dest == NULL) {
+			return 1;
+		}
+
 		mem_cpy(dest, C_MAX_PATH, dp->d_name, cstr_len(dp->d_name) + 1);
 	}
 

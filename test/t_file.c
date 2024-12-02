@@ -2,6 +2,7 @@
 
 #include "cstr.h"
 #include "log.h"
+#include "mem.h"
 #include "print.h"
 #include "test.h"
 
@@ -364,6 +365,9 @@ TEST(files_foreach)
 
 	EXPECT_EQ(files_foreach(NULL, NULL, NULL, NULL), 1);
 	EXPECT_EQ(files_foreach(&not, file_cb, file_cb, NULL), 1);
+	mem_oom(1);
+	EXPECT_EQ(files_foreach(&path, file_cb, file_cb, NULL), 1);
+	mem_oom(0);
 	EXPECT_EQ(files_foreach(&path, file_cb, file_cb, NULL), 0);
 	EXPECT_EQ(files_foreach(&path, file_err_cb, file_cb, NULL), -1);
 	EXPECT_EQ(files_foreach(&path, file_cb, file_err_cb, NULL), -1);

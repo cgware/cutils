@@ -7,13 +7,6 @@ typedef struct header_s {
 	lnode_t next;
 } header_t;
 
-static inline lnode_t init_node(list_t *list, lnode_t node)
-{
-	header_t *ptr = arr_get(list, node);
-	ptr->next     = LIST_END;
-	return node;
-}
-
 list_t *list_init(list_t *list, uint cap, size_t size, alloc_t alloc)
 {
 	return arr_init(list, cap, sizeof(header_t) + size, alloc);
@@ -30,13 +23,16 @@ lnode_t list_add(list_t *list)
 		return LIST_END;
 	}
 
-	lnode_t node;
-	if (arr_add(list, &node) == NULL) {
+	lnode_t node   = list->cnt;
+	header_t *data = arr_add(list);
+	if (data == NULL) {
 		log_error("cutils", "list", NULL, "failed to add element");
 		return LIST_END;
 	}
 
-	return init_node(list, node);
+	data->next = LIST_END;
+
+	return node;
 }
 
 int list_remove(list_t *list, lnode_t node)

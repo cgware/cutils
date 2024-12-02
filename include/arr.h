@@ -5,7 +5,7 @@
 #include "print.h"
 #include "type.h"
 
-#define ARR_END ((uint) - 1)
+#define ARR_END ((uint)-1)
 
 typedef struct arr_s {
 	void *data;
@@ -18,7 +18,7 @@ typedef struct arr_s {
 arr_t *arr_init(arr_t *arr, uint cap, size_t size, alloc_t alloc);
 void arr_free(arr_t *arr);
 
-void *arr_add(arr_t *arr, uint *index);
+void *arr_add(arr_t *arr);
 
 void *arr_get(const arr_t *arr, uint index);
 
@@ -44,7 +44,7 @@ arr_t *arr_sort(arr_t *arr, arr_cmp_cb cb);
 typedef int (*arr_print_cb)(void *value, print_dst_t dst, const void *priv);
 int arr_print(const arr_t *arr, arr_print_cb cb, print_dst_t dst, const void *priv);
 
-#define arr_foreach(_arr, _val)	      for (uint _i = 0; _i < (_arr)->cnt && (_val = arr_get(_arr, _i)); _i++)
-#define arr_foreach_i(_arr, _val, _i) for (; _i < (_arr)->cnt && (_val = arr_get(_arr, _i)); _i++)
+#define arr_foreach(_arr, _val)	      for (uint _i = 0; _i < (_arr)->cnt && (_val = (void*)((byte *)(_arr)->data + _i * (_arr)->size)); _i++)
+#define arr_foreach_i(_arr, _val, _i) for (; _i < (_arr)->cnt && (_val =  (void*)((byte *)(_arr)->data + _i * (_arr)->size)); _i++)
 
 #endif

@@ -21,11 +21,13 @@ TEST(alloc_realloc)
 
 	alloc_t alloc = ALLOC_STD;
 
-	void *mem = alloc_alloc(&alloc, 1);
+	size_t size = 1;
+	void *mem   = alloc_alloc(&alloc, size);
 
-	mem = alloc_realloc(&alloc, mem, 1, 2);
+	EXPECT_EQ(alloc_realloc(&alloc, &mem, &size, 2), 0);
+	EXPECT_EQ(size, 2);
 
-	alloc_free(&alloc, mem, 2);
+	alloc_free(&alloc, mem, size);
 
 	END;
 }

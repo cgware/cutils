@@ -38,15 +38,10 @@ void buf_free(buf_t *buf)
 int buf_add(buf_t *buf, const void *data, size_t size, size_t *index)
 {
 	if (buf->used + size > buf->size) {
-		size_t new_size = (buf->used + size) * 2;
-
-		void *data = alloc_realloc(&buf->alloc, buf->data, buf->size, new_size);
-		if (data == NULL) {
+		if (alloc_realloc(&buf->alloc, (void **)&buf->data, &buf->size, (buf->used + size) * 2)) {
 			log_error("cutils", "buf", NULL, "failed to allocate memory");
 			return 1;
 		}
-		buf->data = data;
-		buf->size = new_size;
 	}
 
 	mem_cpy(buf->data + buf->used, buf->size - buf->used, data, size);

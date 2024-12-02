@@ -21,7 +21,7 @@ int strbuf_add(strbuf_t *buf, const char *str, uint8_t len, uint *index);
 int strbuf_get_index(const strbuf_t *buf, const char *str, uint8_t len, uint *index);
 
 #define strbuf_foreach(_buf, _i, _start, _len)                                                                                             \
-	for (_start = _i + sizeof(uint8_t), _len = *(uint8_t *)((_buf)->buf.data + _i); _i < (_buf)->buf.used;                             \
+	for (_start = _i + sizeof(uint8_t), _len = (_buf)->buf.used > 0 ? *(uint8_t *)((_buf)->buf.data + _i) : 0; _i < (_buf)->buf.used;  \
 	     _i += sizeof(uint8_t) + sizeof(char) * _len,                                                                                  \
 	    _start += sizeof(char) * _len + sizeof(uint8_t),                                                                               \
 	    _len = *(uint8_t *)((_buf)->buf.data + _i))
