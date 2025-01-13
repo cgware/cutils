@@ -39,14 +39,14 @@ TEST(strbuf_add_get)
 	strbuf_init(&strbuf, 0, ALLOC_STD);
 	log_set_quiet(0, 0);
 
-	EXPECT_EQ(strbuf_add(NULL, STRBUFL("abc"), NULL), 1);
+	EXPECT_EQ(strbuf_add(NULL, STRV("abc"), NULL), 1);
 	mem_oom(1);
-	EXPECT_EQ(strbuf_add(&strbuf, STRBUFL("abc"), NULL), 1);
-	EXPECT_EQ(strbuf_add(&strbuf, STRBUFL("de"), NULL), 1);
+	EXPECT_EQ(strbuf_add(&strbuf, STRV("abc"), NULL), 1);
+	EXPECT_EQ(strbuf_add(&strbuf, STRV("de"), NULL), 1);
 	mem_oom(0);
 	uint index;
-	EXPECT_EQ(strbuf_add(&strbuf, STRBUFL("abc"), NULL), 0);
-	EXPECT_EQ(strbuf_add(&strbuf, STRBUFL("de"), &index), 0);
+	EXPECT_EQ(strbuf_add(&strbuf, STRV("abc"), NULL), 0);
+	EXPECT_EQ(strbuf_add(&strbuf, STRV("de"), &index), 0);
 
 	EXPECT_EQ(index, 1);
 
@@ -75,14 +75,14 @@ TEST(strbuf_get_index)
 	strbuf_init(&strbuf, 0, ALLOC_STD);
 	log_set_quiet(0, 0);
 
-	strbuf_add(&strbuf, STRBUFL("abc"), NULL);
-	strbuf_add(&strbuf, STRBUFL("de"), NULL);
+	strbuf_add(&strbuf, STRV("abc"), NULL);
+	strbuf_add(&strbuf, STRV("de"), NULL);
 
 	uint index;
 
-	EXPECT_EQ(strbuf_get_index(NULL, STRBUFL("abc"), &index), 1);
-	EXPECT_EQ(strbuf_get_index(&strbuf, "abc", 2, &index), 1);
-	EXPECT_EQ(strbuf_get_index(&strbuf, STRBUFL("de"), &index), 0);
+	EXPECT_EQ(strbuf_get_index(NULL, STRV("abc"), &index), 1);
+	EXPECT_EQ(strbuf_get_index(&strbuf, STRVN("abc", 2), &index), 1);
+	EXPECT_EQ(strbuf_get_index(&strbuf, STRV("de"), &index), 0);
 	EXPECT_EQ(index, 1);
 
 	strbuf_free(&strbuf);
@@ -97,8 +97,8 @@ TEST(strbuf_foreach)
 	strbuf_t strbuf = {0};
 	strbuf_init(&strbuf, 1, ALLOC_STD);
 
-	strbuf_add(&strbuf, STRBUFL("abc"), NULL);
-	strbuf_add(&strbuf, "ab", 2, NULL);
+	strbuf_add(&strbuf, STRV("abc"), NULL);
+	strbuf_add(&strbuf, STRVN("ab", 2), NULL);
 
 	size_t index = 0;
 	uint start;

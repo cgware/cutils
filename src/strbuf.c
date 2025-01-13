@@ -1,7 +1,5 @@
 #include "strbuf.h"
 
-#include <memory.h>
-
 strbuf_t *strbuf_init(strbuf_t *buf, size_t size, alloc_t alloc)
 {
 	if (buf == NULL) {
@@ -27,13 +25,14 @@ void strbuf_free(strbuf_t *buf)
 	buf->cnt = 0;
 }
 
-int strbuf_add(strbuf_t *buf, const char *str, uint8_t len, uint *index)
+int strbuf_add(strbuf_t *buf, strv_t strv, uint *index)
 {
 	if (buf == NULL) {
 		return 1;
 	}
 
-	if (buf_add(&buf->buf, &len, sizeof(len), NULL) || buf_add(&buf->buf, str, sizeof(char) * len, NULL)) {
+	uint8_t len = (uint8_t)strv.len;
+	if (buf_add(&buf->buf, &len, sizeof(len), NULL) || buf_add(&buf->buf, strv.data, sizeof(char) * len, NULL)) {
 		return 1;
 	}
 
@@ -45,9 +44,9 @@ int strbuf_add(strbuf_t *buf, const char *str, uint8_t len, uint *index)
 	return 0;
 }
 
-int strbuf_get_index(const strbuf_t *buf, const char *str, uint8_t len, uint *index)
+int strbuf_get_index(const strbuf_t *buf, strv_t strv, uint *index)
 {
-	if (buf == 0) {
+	if (buf == NULL) {
 		return 1;
 	}
 
@@ -58,7 +57,7 @@ int strbuf_get_index(const strbuf_t *buf, const char *str, uint8_t len, uint *in
 
 	strbuf_foreach(buf, i, start, blen)
 	{
-		if (len == blen && memcmp(&buf->buf.data[start], str, len) == 0) {
+		if (strv_eq(strv, STRVN((char *)&buf->buf.data[start], blen))) {
 			if (index) {
 				*index = id;
 			}
