@@ -657,23 +657,6 @@ TEST(str_rreplaces)
 	END;
 }
 
-TEST(str_print)
-{
-	START;
-
-	str_t str = strc("abc\r\n\t\0", 7);
-
-	char buf[12] = {0};
-	EXPECT_EQ(str_print(str_null(), PRINT_DST_BUF(buf, sizeof(buf), 0)), 0);
-	EXPECT_EQ(str_print(str, PRINT_DST_BUF(buf, sizeof(buf), 0)), 11);
-
-	EXPECT_STR(buf, "abc\\r\\n\\t\\0");
-
-	str_free(&str);
-
-	END;
-}
-
 STEST(str)
 {
 	SSTART;
@@ -712,6 +695,5 @@ STEST(str)
 	RUN(str_replace);
 	RUN(str_replaces);
 	RUN(str_rreplaces);
-	RUN(str_print);
 	SEND;
 }

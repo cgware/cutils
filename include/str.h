@@ -55,8 +55,6 @@ int str_replace(str_t *str, str_t from, str_t to);
 int str_replaces(str_t *str, const str_t *from, const str_t *to, size_t cnt);
 int str_rreplaces(str_t *str, const str_t *from, const str_t *to, size_t cnt);
 
-int str_print(str_t str, print_dst_t dst);
-
 #define STR(_str)  strc(_str, sizeof(_str) - 1)
 #define STRS(_str) {.data = _str, .size = 0, .len = sizeof(_str) - 1, .ref = 1}
 #define STRH(_str) strn(_str, sizeof(_str) - 1, sizeof(_str))

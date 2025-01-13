@@ -17,6 +17,7 @@ STEST(mem);
 STEST(path);
 STEST(str);
 STEST(strbuf);
+STEST(strv);
 STEST(tree);
 STEST(type);
 
@@ -37,6 +38,7 @@ TEST(cutils)
 	RUN(path);
 	RUN(str);
 	RUN(strbuf);
+	RUN(strv);
 	RUN(tree);
 	RUN(type);
 	SEND;

@@ -1,16 +1,20 @@
 #ifndef STRV_H
 #define STRV_H
 
-#include <stddef.h>
+#include "print.h"
 
 typedef struct strv_s {
 	size_t len;
 	const char *data;
 } strv_t;
 
-#define STRVS(_str, _len) {.data = _str, .len = _len}
-#define STRVC(_str)	  (strv_t) STRVS(_str, sizeof(_str) - 1)
-#define STRV(_str, _len)  (strv_t) STRVS(_str, _len)
-#define STRV_NULL	  ((strv_t){0})
+int strv_eq(strv_t l, strv_t r);
+int strv_print(strv_t str, print_dst_t dst);
+
+#define STRVSN(_str, _len) {.data = _str, .len = _len}
+#define STRVS(_str)	   STRVSN(_str, sizeof(_str) - 1)
+#define STRVN(_str, _len)  (strv_t) STRVSN(_str, _len)
+#define STRV(_str)	   (strv_t) STRVS(_str)
+#define STRV_NULL	   ((strv_t){0})
 
 #endif

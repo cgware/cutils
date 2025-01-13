@@ -420,25 +420,3 @@ int str_rreplaces(str_t *str, const str_t *from, const str_t *to, size_t cnt)
 	} while (found);
 	return ret;
 }
-
-int str_print(str_t str, print_dst_t dst)
-{
-	if (str.data == NULL) {
-		return 0;
-	}
-
-	int off = dst.off;
-
-	for (size_t i = 0; i < str.len; i++) {
-		const char c = str.data[i];
-		switch (c) {
-		case '\t': dst.off += c_dprintf(dst, "\\t"); break;
-		case '\n': dst.off += c_dprintf(dst, "\\n"); break;
-		case '\r': dst.off += c_dprintf(dst, "\\r"); break;
-		case '\0': dst.off += c_dprintf(dst, "\\0"); break;
-		default: dst.off += c_dprintf(dst, "%c", c); break;
-		}
-	}
-
-	return dst.off - off;
-}
