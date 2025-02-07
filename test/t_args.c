@@ -1,197 +1,415 @@
 #include "args.h"
 
+#include "log.h"
 #include "test.h"
 
-#define NAME "test_cutils"
-#define DESC "cutils tests"
-
-TEST(args_usage)
+TEST(args_parse_no_opts_short)
 {
 	START;
 
-	char buf[128] = {0};
-	EXPECT_EQ(args_usage(NAME, DESC, PRINT_DST_BUF(buf, sizeof(buf), 0)), 91);
+	char buf[256] = {0};
 
-	EXPECT_STR(buf,
-		   "cutils tests\n"
-		   "\n"
-		   "Usage\n"
-		   "  test_cutils [options]\n"
-		   "\n"
-		   "Run 'test_cutils --help' for more information\n");
+	{
+		const char *argv[] = {"test"};
+		EXPECT_EQ(args_parse(1, argv, NULL, 0, PRINT_DST_BUF(buf, sizeof(buf), 0)), 0);
+	}
+
+	{
+		const char *argv[] = {"test", "a"};
+		EXPECT_EQ(args_parse(2, argv, NULL, 0, PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_STR(buf,
+			   "Usage: test [options]\n"
+			   "\n"
+			   "Options\n"
+			   "  -h, --help                        Print usage information and exit\n");
+	}
+
+	{
+		const char *argv[] = {"test", "-"};
+		EXPECT_EQ(args_parse(2, argv, NULL, 0, PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_STR(buf, "Unknown option: -\n");
+	}
+
+	{
+		const char *argv[] = {"test", "-a"};
+		EXPECT_EQ(args_parse(2, argv, NULL, 0, PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_STR(buf, "Unknown option: -a\n");
+	}
+
+	{
+		const char *argv[] = {"test", "-h"};
+		EXPECT_EQ(args_parse(2, argv, NULL, 0, PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_STR(buf,
+			   "Usage: test [options]\n"
+			   "\n"
+			   "Options\n"
+			   "  -h, --help                        Print usage information and exit\n");
+	}
+
+	{
+		opt_t opts[] = {
+			OPT('a', NULL, OPT_NONE, NULL, NULL, NULL, {0}, OPT_OPT),
+		};
+		const char *argv[] = {"test", "-h"};
+		EXPECT_EQ(args_parse(2, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_STR(buf,
+			   "Usage: test [options]\n"
+			   "\n"
+			   "Options\n"
+			   "  -h, --help                        Print usage information and exit\n"
+			   "  -a                                \n");
+	}
 
 	END;
 }
 
-static int handle_dir(const char *param, void *ret)
-{
-	(void)param;
-	(void)ret;
-	return 0;
-}
-
-TEST(args_handle)
+TEST(args_parse_no_opts_long)
 {
 	START;
 
-	arg_t args[] = {
-		[0] = ARG('T', "test", PARAM_NONE, "", "Run tests", NULL),
-		[1] = ARG('B', "dir", PARAM_STR, "<dir>", "Set directory", handle_dir),
-		[2] = ARG('S', "dir", PARAM_STR, "<dir>", "Set directory", NULL),
-		[3] = ARG('D', "debug", PARAM_SWITCH, "<0/1>", "Turn on/off debug messages (default: 0)", NULL),
-		[4] = ARG('M', "mode", PARAM_MODE, "<mode>", "Set mode (default: A)", NULL),
+	char buf[256] = {0};
+
+	{
+		const char *argv[] = {"test", "--"};
+		EXPECT_EQ(args_parse(2, argv, NULL, 0, PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_STR(buf, "Unknown option: --\n");
+	}
+
+	{
+		const char *argv[] = {"test", "--a"};
+		EXPECT_EQ(args_parse(2, argv, NULL, 0, PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_STR(buf, "Unknown option: --a\n");
+	}
+
+	{
+		const char *argv[] = {"test", "--help"};
+		EXPECT_EQ(args_parse(2, argv, NULL, 0, PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_STR(buf,
+			   "Usage: test [options]\n"
+			   "\n"
+			   "Options\n"
+			   "  -h, --help                        Print usage information and exit\n");
+	}
+
+	{
+		opt_t opts[] = {
+			OPT(0, "a", OPT_NONE, NULL, NULL, NULL, {0}, OPT_OPT),
+		};
+		const char *argv[] = {"test", "-h"};
+		EXPECT_EQ(args_parse(2, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_STR(buf,
+			   "Usage: test [options]\n"
+			   "\n"
+			   "Options\n"
+			   "  -h, --help                        Print usage information and exit\n"
+			   "      --a                           \n");
+	}
+	END;
+}
+
+TEST(args_parse_no_param)
+{
+	START;
+
+	char buf[256] = {0};
+
+	const char *val = "";
+	opt_t opts[]	= {
+		   OPT('a', "a", OPT_STR, "<a>", "A", &val, {0}, OPT_OPT),
+	   };
+
+	{
+		const char *argv[] = {"test", "-a"};
+		EXPECT_EQ(args_parse(2, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_STR(buf, "No <a> specified for -a\n");
+	}
+
+	{
+		const char *argv[] = {"test", "-a", "-b"};
+		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_STR(buf, "No <a> specified for -a\n");
+	}
+
+	{
+		const char *argv[] = {"test", "--a"};
+		EXPECT_EQ(args_parse(2, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_STR(buf, "No <a> specified for --a\n");
+	}
+
+	END;
+}
+
+TEST(args_parse_none)
+{
+	START;
+
+	char buf[256] = {0};
+
+	opt_t opts[] = {
+		OPT('a', "a", OPT_NONE, NULL, NULL, NULL, {0}, OPT_OPT),
 	};
 
-	mode_t mode_modes[] = {
-		[0] = {.c = 'A', .desc = "A mode"},
-		[1] = {.c = 'B', .desc = "B mode"},
+	{
+		const char *argv[] = {"test", "-a"};
+		EXPECT_EQ(args_parse(2, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 0);
+	}
+
+	{
+		const char *argv[] = {"test", "--a"};
+		EXPECT_EQ(args_parse(2, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 0);
+	}
+
+	{
+		const char *val;
+		opt_t optsv[] = {
+			OPT('a', "a", OPT_NONE, NULL, NULL, &val, {0}, OPT_OPT),
+		};
+		const char *argv[] = {"test", "-a", "val"};
+		EXPECT_EQ(args_parse(3, argv, optsv, sizeof(optsv), PRINT_DST_BUF(buf, sizeof(buf), 0)), 0);
+	}
+
+	{
+		const char *argv[] = {"test", "-h"};
+		EXPECT_EQ(args_parse(2, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_STR(buf,
+			   "Usage: test [options]\n"
+			   "\n"
+			   "Options\n"
+			   "  -h, --help                        Print usage information and exit\n"
+			   "  -a, --a                           \n");
+	}
+
+	END;
+}
+
+TEST(args_parse_str)
+{
+	START;
+
+	char buf[256] = {0};
+
+	const char *val = "";
+
+	opt_t opts[] = {
+		OPT('a', "a", OPT_STR, "<a>", "A", &val, {0}, OPT_OPT),
 	};
 
-	mode_desc_t modes[] = {
-		{.name = "Modes", .modes = mode_modes, .len = 2},
+	{
+		const char *argv[] = {"test", "-a", "val"};
+		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 0);
+		EXPECT_STR(val, "val");
+		val = "";
+	}
+
+	{
+		const char *argv[] = {"test", "--a", "val"};
+		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 0);
+		EXPECT_STR(val, "val");
+		val = "";
+	}
+
+	{
+		const char *argv[] = {"test", "-h"};
+		EXPECT_EQ(args_parse(2, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_STR(buf,
+			   "Usage: test [options]\n"
+			   "\n"
+			   "Options\n"
+			   "  -h, --help                        Print usage information and exit\n"
+			   "  -a, --a          <a>              A (default: )\n");
+	}
+
+	END;
+}
+
+TEST(args_parse_int)
+{
+	START;
+
+	char buf[256] = {0};
+
+	int val = 1;
+
+	opt_t opts[] = {
+		OPT('a', "a", OPT_INT, "<a>", "A", &val, {0}, OPT_OPT),
 	};
 
-	char *dir = NULL;
-	int debug = 0;
+	{
+		const char *argv[] = {"test", "-a", "2"};
+		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 0);
+		EXPECT_EQ(val, 2);
+		val = 1;
+	}
 
-	void *params[] = {
-		[2] = &dir,
-		[3] = &debug,
+	{
+		const char *argv[] = {"test", "--a", "2"};
+		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 0);
+		EXPECT_EQ(val, 2);
+		val = 1;
+	}
+
+	{
+		const char *argv[] = {"test", "-h"};
+		EXPECT_EQ(args_parse(2, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_STR(buf,
+			   "Usage: test [options]\n"
+			   "\n"
+			   "Options\n"
+			   "  -h, --help                        Print usage information and exit\n"
+			   "  -a, --a          <a>              A (default: 1)\n");
+	}
+
+	END;
+}
+
+TEST(args_parse_bool)
+{
+	START;
+
+	char buf[256] = {0};
+
+	int val = 1;
+
+	opt_t opts[] = {
+		OPT('a', "a", OPT_BOOL, "<a>", "A", &val, {0}, OPT_OPT),
 	};
 
-	char buf[512] = {0};
+	{
+		const char *argv[] = {"test", "-a", "0"};
+		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 0);
+		EXPECT_EQ(val, 0);
+		val = 1;
+	}
 
-	const char *argv[] = {NAME, "-T", "-B", "./", "-S", "./", "-M", "B", "--debug", "1"};
+	{
+		const char *argv[] = {"test", "--a", "0"};
+		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 0);
+		EXPECT_EQ(val, 0);
+		val = 1;
+	}
 
-	EXPECT_EQ(args_handle(NAME,
-			      DESC,
-			      args,
-			      sizeof(args),
-			      modes,
-			      sizeof(modes),
-			      sizeof(argv) / sizeof(char *),
-			      argv,
-			      params,
-			      PRINT_DST_BUF(buf, sizeof(buf), 0)),
-		  0);
-	EXPECT_STR(buf, "");
+	{
+		const char *argv[] = {"test", "-h"};
+		EXPECT_EQ(args_parse(2, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_STR(buf,
+			   "Usage: test [options]\n"
+			   "\n"
+			   "Options\n"
+			   "  -h, --help                        Print usage information and exit\n"
+			   "  -a, --a          <a>              A (default: 1)\n");
+	}
 
-	EXPECT_EQ(debug, 1);
+	END;
+}
 
-	const char *argv_err[] = {NAME, "-D", "0", "-D", "2", "-G", "1"};
+TEST(args_parse_enum)
+{
+	START;
 
-	EXPECT_EQ(args_handle(NAME,
-			      DESC,
-			      args,
-			      sizeof(args),
-			      modes,
-			      sizeof(modes),
-			      sizeof(argv_err) / sizeof(char *),
-			      argv_err,
-			      params,
-			      PRINT_DST_BUF(buf, sizeof(buf), 0)),
-		  1);
+	char buf[256] = {0};
 
-	EXPECT_STR(buf,
-		   "cutils tests\n"
-		   "\n"
-		   "Usage\n"
-		   "  test_cutils [options]\n"
-		   "\n"
-		   "Run 'test_cutils --help' for more information\n");
+	int val = 1;
 
-	const char *argv_help[] = {NAME, "--help"};
+	const opt_enum_val_t enums[] = {
+		[0] = {"a", "A"},
+		[1] = {"b", "B"},
+		[2] = {"c", "C"},
+	};
 
-	EXPECT_EQ(args_handle(NAME,
-			      DESC,
-			      args,
-			      sizeof(args),
-			      modes,
-			      sizeof(modes),
-			      sizeof(argv_help) / sizeof(char *),
-			      argv_help,
-			      params,
-			      PRINT_DST_BUF(buf, sizeof(buf), 0)),
-		  2);
+	const opt_enum_t enums_desc = {
+		.name	   = "Enums",
+		.vals	   = enums,
+		.vals_size = sizeof(enums),
+	};
 
-	EXPECT_STR(buf,
-		   "cutils tests\n"
-		   "\n"
-		   "Usage\n"
-		   "  test_cutils [options]\n"
-		   "\n"
-		   "Options\n"
-		   "  -T --test                    Run tests\n"
-		   "  -B --dir          <dir>      Set directory\n"
-		   "  -S --dir          <dir>      Set directory\n"
-		   "  -D --debug        <0/1>      Turn on/off debug messages (default: 0)\n"
-		   "  -M --mode         <mode>     Set mode (default: A)\n"
-		   "\n"
-		   "Modes\n"
-		   "  A = A mode\n"
-		   "  B = B mode\n");
+	opt_t opts[] = {
+		OPT('a', "a", OPT_ENUM, "<a>", "A", &val, enums_desc, OPT_OPT),
+	};
 
-	const char *argv_d[] = {NAME, "-D"};
+	{
+		const char *argv[] = {"test", "-a", "d"};
+		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_STR(buf, "Unknown <a> specified for -a: 'd'\n");
+	}
 
-	EXPECT_EQ(args_handle(NAME,
-			      DESC,
-			      args,
-			      sizeof(args),
-			      modes,
-			      sizeof(modes),
-			      sizeof(argv_d) / sizeof(char *),
-			      argv_d,
-			      params,
-			      PRINT_DST_BUF(buf, sizeof(buf), 0)),
-		  2);
+	{
+		const char *argv[] = {"test", "-a", "c"};
+		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 0);
+		EXPECT_EQ(val, 2);
+		val = 1;
+	}
 
-	EXPECT_STR(buf,
-		   "cutils tests\n"
-		   "\n"
-		   "Usage\n"
-		   "  test_cutils [options]\n"
-		   "\n"
-		   "Options\n"
-		   "  -T --test                    Run tests\n"
-		   "  -B --dir          <dir>      Set directory\n"
-		   "  -S --dir          <dir>      Set directory\n"
-		   "  -D --debug        <0/1>      Turn on/off debug messages (default: 0)\n"
-		   "  -M --mode         <mode>     Set mode (default: A)\n"
-		   "\n"
-		   "Modes\n"
-		   "  A = A mode\n"
-		   "  B = B mode\n");
+	{
+		const char *argv[] = {"test", "--a", "d"};
+		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_STR(buf, "Unknown <a> specified for --a: 'd'\n");
+	}
 
-	const char *argv_h[] = {NAME, "-H"};
+	{
+		const char *argv[] = {"test", "--a", "c"};
+		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 0);
+		EXPECT_EQ(val, 2);
+		val = 1;
+	}
 
-	EXPECT_EQ(args_handle(NAME,
-			      DESC,
-			      args,
-			      sizeof(args),
-			      modes,
-			      sizeof(modes),
-			      sizeof(argv_h) / sizeof(char *),
-			      argv_h,
-			      params,
-			      PRINT_DST_BUF(buf, sizeof(buf), 0)),
-		  2);
+	{
+		const char *argv[] = {"test", "-h"};
+		EXPECT_EQ(args_parse(2, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_STR(buf,
+			   "Usage: test [options]\n"
+			   "\n"
+			   "Options\n"
+			   "  -h, --help                        Print usage information and exit\n"
+			   "  -a, --a          <a>              A (default: b)\n"
+			   "\n"
+			   "Enums\n"
+			   "  a          = A\n"
+			   "  b          = B\n"
+			   "  c          = C\n");
+	}
 
-	EXPECT_STR(buf,
-		   "cutils tests\n"
-		   "\n"
-		   "Usage\n"
-		   "  test_cutils [options]\n"
-		   "\n"
-		   "Options\n"
-		   "  -T --test                    Run tests\n"
-		   "  -B --dir          <dir>      Set directory\n"
-		   "  -S --dir          <dir>      Set directory\n"
-		   "  -D --debug        <0/1>      Turn on/off debug messages (default: 0)\n"
-		   "  -M --mode         <mode>     Set mode (default: A)\n"
-		   "\n"
-		   "Modes\n"
-		   "  A = A mode\n"
-		   "  B = B mode\n");
+	END;
+}
+
+TEST(args_parse_other)
+{
+	START;
+
+	char buf[256] = {0};
+
+	const char *val = "";
+
+	opt_t opts[] = {
+		OPT('a', "a", OPT_STR, "<a>", "A", &val, {0}, OPT_REQ),
+	};
+
+	{
+		const char *argv[] = {"test"};
+		EXPECT_EQ(args_parse(1, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_STR(buf, "Missing required option: -a / --a\n");
+	}
+
+	{
+		const char *argv[] = {"test", "-h"};
+		EXPECT_EQ(args_parse(2, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_STR(buf,
+			   "Usage: test [options]\n"
+			   "\n"
+			   "Options\n"
+			   "  -h, --help                        Print usage information and exit\n"
+			   "  -a, --a          <a>              A (required)\n");
+	}
+
+	{
+		const char *val;
+		opt_t optsv[] = {
+			OPT('a', "a", -1, NULL, NULL, &val, {0}, OPT_OPT),
+		};
+		const char *argv[] = {"test", "-a", "val"};
+		log_set_quiet(0, 1);
+		EXPECT_EQ(args_parse(3, argv, optsv, sizeof(optsv), PRINT_DST_BUF(buf, sizeof(buf), 0)), 0);
+		log_set_quiet(0, 0);
+	}
 
 	END;
 }
@@ -200,8 +418,15 @@ STEST(args)
 {
 	SSTART;
 
-	RUN(args_usage);
-	RUN(args_handle);
+	RUN(args_parse_no_opts_short);
+	RUN(args_parse_no_opts_long);
+	RUN(args_parse_no_param);
+	RUN(args_parse_none);
+	RUN(args_parse_str);
+	RUN(args_parse_int);
+	RUN(args_parse_bool);
+	RUN(args_parse_enum);
+	RUN(args_parse_other);
 
 	SEND;
 }

@@ -75,8 +75,8 @@ test: cutils_test
 
 .PHONY: coverage
 coverage: test
-	@lcov -q -c -o $(BUILDDIR)/bin/lcov.info -d $(INTDIR)/cutils/src
+	@lcov -q -c -o $(BUILDDIR)bin/lcov.info -d $(INTDIR)/cutils/src
 ifeq ($(SHOW), true)
-	@genhtml -q -o $(BUILDDIR)/report/coverage $(BUILDDIR)/bin/lcov.info 
-	@open $(BUILDDIR)/report/coverage/index.html
+	@genhtml -q -o $(BUILDDIR)report/coverage $(BUILDDIR)bin/lcov.info 
+	@open $(BUILDDIR)report/coverage/index.html
 endif

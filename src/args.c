@@ -1,164 +1,231 @@
-// TODO: Return error message instead of help when wrong args are passed:
-//   test_cutils: invalid option: 'h'
-//   test_cutils: 'h' requires parameter
-
 #include "args.h"
 
+#include "log.h"
+
+#include <stdlib.h>
 #include <string.h>
 
-static inline int switch_int(char c)
+static int print_usage_line(const opt_t *opt, print_dst_t dst)
 {
-	switch (c) {
-	case '0': return 0;
-	case '1': return 1;
-	default: return -1;
+	int off = dst.off;
+
+	if (opt->short_opt) {
+		dst.off += c_dprintf(dst, "  -%c", opt->short_opt);
+	} else {
+		dst.off += c_dprintf(dst, "    ");
 	}
+
+	if (opt->long_opt) {
+		dst.off += c_dprintf(dst, opt->short_opt ? ", " : "  ");
+		dst.off += c_dprintf(dst, "--%-10s", opt->long_opt);
+	} else {
+		dst.off += c_dprintf(dst, "    %-10s", "");
+	}
+
+	dst.off += c_dprintf(dst, " %-16s %s", opt->placeholder ? opt->placeholder : "", opt->desc ? opt->desc : "");
+
+	if (opt->required) {
+		dst.off += c_dprintf(dst, " (required)\n");
+	} else {
+		switch (opt->type) {
+		case OPT_STR: dst.off += c_dprintf(dst, " (default: %s)\n", *(const char **)opt->value); break;
+		case OPT_INT: dst.off += c_dprintf(dst, " (default: %d)\n", *(int *)opt->value); break;
+		case OPT_BOOL: dst.off += c_dprintf(dst, " (default: %d)\n", *(int *)opt->value ? 1 : 0); break;
+		case OPT_ENUM: dst.off += c_dprintf(dst, " (default: %s)\n", opt->enums.vals[*(int *)opt->value].param); break;
+		default: dst.off += c_dprintf(dst, "\n"); break;
+		}
+	}
+
+	return dst.off - off;
 }
 
-static int handle_string(const char *param, void *ret)
+static int print_usage(const char *name, const opt_t *opts, size_t opts_size, print_dst_t dst)
 {
-	*(const char **)ret = param;
+	int off = dst.off;
+
+	dst.off += c_dprintf(dst,
+			     "Usage: %s [options]\n"
+			     "\n"
+			     "Options\n",
+			     name);
+
+	opt_t help = OPT('h', "help", OPT_NONE, NULL, "Print usage information and exit", NULL, {0}, OPT_OPT);
+	dst.off += print_usage_line(&help, dst);
+
+	size_t opts_len = opts_size / sizeof(opt_t);
+	for (size_t i = 0; i < opts_len; i++) {
+		dst.off += print_usage_line(&opts[i], dst);
+	}
+
+	for (size_t i = 0; i < opts_len; i++) {
+		if (opts[i].type != OPT_ENUM) {
+			continue;
+		}
+
+		dst.off += c_dprintf(dst, "\n%s\n", opts[i].enums.name);
+		size_t vals_len = opts[i].enums.vals_size / sizeof(opt_enum_val_t);
+		for (size_t j = 0; j < vals_len; j++) {
+			dst.off += c_dprintf(dst, "  %-10s = %s\n", opts[i].enums.vals[j].param, opts[i].enums.vals[j].desc);
+		}
+	}
+
+	return dst.off - off;
+}
+
+static int print_no_param(const opt_t *opt, int opt_long, print_dst_t dst)
+{
+	int off = dst.off;
+
+	if (opt_long) {
+		dst.off += c_dprintf(dst, "No %s specified for --%s\n", opt->placeholder, opt->long_opt);
+
+	} else {
+		dst.off += c_dprintf(dst, "No %s specified for -%c\n", opt->placeholder, opt->short_opt);
+	}
+
+	return dst.off - off;
+}
+
+static int print_unknown_param(const opt_t *opt, int opt_long, const char *param, print_dst_t dst)
+{
+	int off = dst.off;
+
+	if (opt_long) {
+		dst.off += c_dprintf(dst, "Unknown %s specified for --%s: '%s'\n", opt->placeholder, opt->long_opt, param);
+
+	} else {
+		dst.off += c_dprintf(dst, "Unknown %s specified for -%c: '%s'\n", opt->placeholder, opt->short_opt, param);
+	}
+
+	return dst.off - off;
+}
+
+static opt_t *find_short_opt(opt_t *opts, size_t opts_size, char opt)
+{
+	size_t opts_len = opts_size / sizeof(opt_t);
+	for (size_t i = 0; i < opts_len; i++) {
+		if (opts[i].short_opt && opts[i].short_opt == opt) {
+			return &opts[i];
+		}
+	}
+
+	return NULL;
+}
+
+static opt_t *find_long_opt(opt_t *opts, size_t opts_size, const char *opt)
+{
+	size_t opts_len = opts_size / sizeof(opt_t);
+	for (size_t i = 0; i < opts_len; i++) {
+		if (opts[i].long_opt && strcmp(opts[i].long_opt, opt) == 0) {
+			return &opts[i];
+		}
+	}
+
+	return NULL;
+}
+
+static int find_enum_val(const opt_enum_val_t *vals, size_t vals_size, const char *param)
+{
+	size_t vals_len = vals_size / sizeof(opt_enum_val_t);
+	for (size_t i = 0; i < vals_len; i++) {
+		if (strcmp(vals[i].param, param) == 0) {
+			return (int)i;
+		}
+	}
+
+	return -1;
+}
+
+static int parse_param(opt_t *opt, int opt_long, const char *param, print_dst_t dst)
+{
+	switch (opt->type) {
+	case OPT_NONE:
+		*(const char **)opt->value = param;
+		opt->set		   = 1;
+		break;
+	case OPT_STR:
+		*(const char **)opt->value = param;
+		opt->set		   = 1;
+		break;
+	case OPT_INT:
+		*(int *)opt->value = strtol(param, NULL, 10);
+		opt->set	   = 1;
+		break;
+	case OPT_BOOL:
+		*(int *)opt->value = strtol(param, NULL, 10) ? 1 : 0;
+		opt->set	   = 1;
+		break;
+	case OPT_ENUM:
+		*(int *)opt->value = find_enum_val(opt->enums.vals, opt->enums.vals_size, param);
+		if (*(int *)opt->value == -1) {
+			dst.off += print_unknown_param(opt, opt_long, param, dst);
+			return 1;
+		}
+		opt->set = 1;
+		break;
+	default: log_error("cutils", "args", NULL, "unknown type: %d", opt->type); break;
+	}
+
 	return 0;
 }
 
-static int handle_switch(const char *param, void *ret)
+int args_parse(int argc, const char **argv, opt_t *opts, size_t opts_size, print_dst_t dst)
 {
-	if (param[1] != '\0' || (*(int *)ret = switch_int(param[0])) == -1) {
+	opt_t *opt   = NULL;
+	int opt_long = 0;
+
+	for (int i = 1; i < argc; i++) {
+		if (opt && opt->value) {
+			if (opt_long || argv[i][0] != '-') {
+				if (parse_param(opt, opt_long, argv[i], dst)) {
+					return 1;
+				}
+				opt = NULL;
+				continue;
+			}
+
+			dst.off += print_no_param(opt, opt_long, dst);
+			return 1;
+		}
+
+		if (argv[i][0] != '-') {
+			dst.off += print_usage(argv[0], opts, opts_size, dst);
+			return 1;
+		}
+
+		if (argv[i][1] == '-') {
+			if (strcmp(&argv[i][2], "help") == 0) {
+				dst.off += print_usage(argv[0], opts, opts_size, dst);
+				return 1;
+			}
+			opt	 = find_long_opt(opts, opts_size, &argv[i][2]);
+			opt_long = 1;
+		} else if (argv[i][1] == 'h') {
+			dst.off += print_usage(argv[0], opts, opts_size, dst);
+			return 1;
+		} else {
+			opt	 = find_short_opt(opts, opts_size, argv[i][1]);
+			opt_long = 0;
+		}
+
+		if (opt == NULL) {
+			dst.off += c_dprintf(dst, "Unknown option: %s\n", argv[i]);
+			return 1;
+		}
+	}
+
+	if (opt && opt->value) {
+		dst.off += print_no_param(opt, opt_long, dst);
 		return 1;
 	}
+
+	size_t opts_len = opts_size / sizeof(opt_t);
+	for (size_t i = 0; i < opts_len; i++) {
+		if (opts[i].required && !opts[i].set) {
+			dst.off += c_dprintf(dst, "Missing required option: -%c / --%s\n", opts[i].short_opt, opts[i].long_opt);
+			return 1;
+		}
+	}
+
 	return 0;
-}
-
-// clang-format off
-static param_handler_fn s_handlers[] = {
-	[PARAM_NONE] = NULL,
-	[PARAM_INT] = NULL,
-	[PARAM_STR] = handle_string,
-	[PARAM_MODE] = NULL,
-	[PARAM_SWITCH] = handle_switch,
-};
-// clang-format on
-
-static inline int header(const char *name, const char *description, print_dst_t dst)
-{
-	int off = dst.off;
-	dst.off += c_dprintf(dst,
-			   "%s\n\n"
-			   "Usage\n"
-			   "  %s [options]\n\n",
-			   description,
-			   name);
-	return dst.off - off;
-}
-
-int args_usage(const char *name, const char *description, print_dst_t dst)
-{
-	int off = dst.off;
-	dst.off += header(name, description, dst);
-	dst.off += c_dprintf(dst, "Run '%s --help' for more information\n", name);
-	return dst.off - off;
-}
-
-static inline int help(const char *name, const char *description, const arg_t *args, size_t args_size, const mode_desc_t *modes,
-		       size_t modes_size, print_dst_t dst)
-{
-	int off = 0;
-	dst.off += header(name, description, dst);
-	dst.off += c_dprintf(dst, "Options\n");
-
-	size_t args_len = args_size / sizeof(arg_t);
-	for (size_t i = 0; i < args_len; i++) {
-		dst.off += c_dprintf(dst, "  -%c --%-12s %-10s %s\n", args[i].c, args[i].l, args[i].name, args[i].desc);
-	}
-
-	size_t modes_len = modes_size / sizeof(mode_desc_t);
-	for (size_t mode = 0; mode < modes_len; mode++) {
-		dst.off += c_dprintf(dst, "\n%s\n", modes[mode].name);
-		for (size_t i = 0; i < modes[mode].len; i++) {
-			dst.off += c_dprintf(dst, "  %c = %s\n", modes[mode].modes[i].c, modes[mode].modes[i].desc);
-		}
-	}
-	return dst.off - off;
-}
-
-static inline int get_arg(const arg_t *args, size_t args_size, int argc, const char **argv, int *index, const char **param)
-{
-	int arg = -2;
-
-	size_t args_len = args_size / sizeof(arg_t);
-	if (argv[*index][0] == '-') {
-		if (argv[*index][1] == '-') {
-			for (size_t i = 0; i < args_len; i++) {
-				if (strcmp(&argv[*index][2], args[i].l) == 0) {
-					arg = (int)i;
-					break;
-				} else if (strcmp(&argv[*index][2], "help") == 0) {
-					arg = -1;
-					break;
-				}
-			}
-		} else {
-			for (size_t i = 0; i < args_len; i++) {
-				if (argv[*index][1] == args[i].c) {
-					arg = (int)i;
-					break;
-				} else if (argv[*index][1] == 'H') {
-					arg = -1;
-					break;
-				}
-			}
-		}
-	}
-
-	(*index)++;
-
-	if (arg >= 0 && args[arg].param != PARAM_NONE) {
-		if (*index < argc) {
-			*param = argv[(*index)++];
-		} else {
-			arg = -1;
-		}
-	}
-
-	return arg;
-}
-
-static inline int handle_param(const arg_t *args, size_t arg, const char *param, void *ret)
-{
-	param_handler_fn handler = args[arg].handler ? args[arg].handler : s_handlers[args[arg].param];
-
-	if (handler == NULL) {
-		return 0;
-	}
-
-	return handler(param, ret);
-}
-
-int args_handle(const char *name, const char *description, const arg_t *args, size_t args_size, const mode_desc_t *modes, size_t modes_size,
-		int argc, const char **argv, void **params, print_dst_t dst)
-{
-	int ret = 0;
-
-	int i = 1;
-	while (i < argc) {
-		const char *param = NULL;
-
-		int arg = get_arg(args, args_size, argc, argv, &i, &param);
-		if (arg == -1) {
-			help(name, description, args, args_size, modes, modes_size, dst);
-			ret = 2;
-		} else if (arg == -2) {
-			ret = 1;
-		}
-
-		if (arg >= 0 && handle_param(args, arg, param, params[arg])) {
-			ret = 1;
-		}
-	}
-
-	if (ret == 1) {
-		args_usage(name, description, dst);
-	}
-
-	return ret;
 }
