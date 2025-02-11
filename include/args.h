@@ -19,6 +19,7 @@ typedef enum opt_opt_e {
 typedef struct opt_enum_val_s {
 	const char *param;
 	const char *desc;
+	void *priv;
 } opt_enum_val_t;
 
 typedef struct opt_enum_s {
