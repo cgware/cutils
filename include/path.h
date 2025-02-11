@@ -3,6 +3,7 @@
 
 #include "platform.h"
 #include "str.h"
+#include "strv.h"
 
 #if defined(C_WIN)
 	#define SEP "\\"
@@ -12,7 +13,7 @@
 
 typedef struct path_s {
 	size_t len;
-	char path[C_MAX_PATH];
+	char data[C_MAX_PATH];
 } path_t;
 
 typedef struct pathv_s {
@@ -20,9 +21,12 @@ typedef struct pathv_s {
 	const char *path;
 } pathv_t;
 
-path_t *path_init(path_t *path, const char *dir, size_t len);
-path_t *path_child_s(path_t *path, const char *dir, size_t len, char s);
-path_t *path_child(path_t *path, const char *dir, size_t len);
+path_t *path_init(path_t *path, strv_t str);
+path_t *path_child_s(path_t *path, strv_t child, char sep);
+path_t *path_child(path_t *path, strv_t child);
+
+int path_is_dir(const path_t *path);
+
 path_t *path_child_dir(path_t *path, const char *dir, size_t len);
 path_t *path_child_folder(path_t *path, const char *folder, size_t len);
 path_t *path_parent(path_t *path);

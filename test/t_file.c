@@ -341,9 +341,9 @@ TEST(files_foreach)
 	START;
 
 	path_t path = {0};
-	path_init(&path, CSTR("./tmp/"));
+	path_init(&path, STRV("./tmp/"));
 	path_t not = {0};
-	path_init(&not, CSTR("not/"));
+	path_init(&not, STRV("not/"));
 
 	folder_create("tmp");
 

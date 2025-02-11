@@ -354,9 +354,9 @@ int files_foreach(const path_t *path, files_foreach_cb on_folder, files_foreach_
 	WIN32_FIND_DATA file = {0};
 	HANDLE find	     = NULL;
 
-	path_child(&child_path, "*.*", 3);
+	path_child(&child_path, STRV("*.*"));
 
-	if ((find = FindFirstFileA(child_path.path, (LPWIN32_FIND_DATAA)&file)) == INVALID_HANDLE_VALUE) {
+	if ((find = FindFirstFileA(child_path.data, (LPWIN32_FIND_DATAA)&file)) == INVALID_HANDLE_VALUE) {
 		ret = 1;
 		goto exit;
 	}
@@ -386,7 +386,7 @@ int files_foreach(const path_t *path, files_foreach_cb on_folder, files_foreach_
 
 #else
 
-	DIR *dir = opendir(path->path);
+	DIR *dir = opendir(path->data);
 	if (!dir) {
 		ret = 1;
 		goto exit;
@@ -422,8 +422,7 @@ int files_foreach(const path_t *path, files_foreach_cb on_folder, files_foreach_
 		arr_sort(&files, name_cmp_cb);
 		arr_foreach(&files, name)
 		{
-			path_child_s(&child_path, SEP, cstr_len(SEP), 0);
-			path_child(&child_path, name, cstr_len(name));
+			path_child(&child_path, STRVN(name, cstr_len(name)));
 
 			ret = on_file(&child_path, name, priv);
 
@@ -438,8 +437,7 @@ int files_foreach(const path_t *path, files_foreach_cb on_folder, files_foreach_
 		arr_sort(&dirs, name_cmp_cb);
 		arr_foreach(&dirs, name)
 		{
-			path_child_s(&child_path, SEP, cstr_len(SEP), 0);
-			path_child(&child_path, name, cstr_len(name));
+			path_child(&child_path, STRVN(name, cstr_len(name)));
 
 			ret = on_folder(&child_path, name, priv);
 
