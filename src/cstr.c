@@ -58,7 +58,7 @@ size_t cstr_catn(char *cstr, size_t cstr_size, size_t cstr_len, const char *src,
 		return cstr_len;
 	}
 
-	mem_cpy(cstr + cstr_len, cstr_size - cstr_len, src, cat_len);
+	mem_copy(cstr + cstr_len, cstr_size - cstr_len, src, cat_len);
 	cstr_len += cat_len;
 	cstr[cstr_len] = '\0';
 
@@ -137,7 +137,7 @@ void *cstr_cpy(char *cstr, size_t size, const char *src, size_t len)
 		return NULL;
 	}
 
-	return mem_cpy(cstr, size, src, len * sizeof(char));
+	return mem_copy(cstr, size, src, len * sizeof(char));
 }
 
 size_t cstr_replace(char *str, size_t str_size, size_t str_len, const char *old, size_t old_len, const char *new, size_t new_len,

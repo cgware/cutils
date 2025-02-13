@@ -657,6 +657,21 @@ TEST(str_rreplaces)
 	END;
 }
 
+TEST(str_subreplace)
+{
+	START;
+
+	char buf[32] = "ab<char>de";
+
+	str_t str = strb(buf, 32, 10);
+
+	EXPECT_EQ(str_subreplace(NULL, 0, 0, STRV_NULL), 1);
+	EXPECT_EQ(str_subreplace(&str, 2, 8, STRV("c")), 0);
+	EXPECT_STRN(str.data, "abcde", str.len);
+
+	END;
+}
+
 STEST(str)
 {
 	SSTART;
@@ -695,5 +710,6 @@ STEST(str)
 	RUN(str_replace);
 	RUN(str_replaces);
 	RUN(str_rreplaces);
+	RUN(str_subreplace);
 	SEND;
 }

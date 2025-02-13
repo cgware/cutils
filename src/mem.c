@@ -153,7 +153,7 @@ void *mem_set(void *dst, int val, size_t size)
 	return memset(dst, val, size);
 }
 
-void *mem_cpy(void *dst, size_t size, const void *src, size_t len)
+void *mem_copy(void *dst, size_t size, const void *src, size_t len)
 {
 	if (len > size) {
 		log_error("cutils", "mem", NULL, "destination too small %d/%d", size, len);
@@ -163,6 +163,20 @@ void *mem_cpy(void *dst, size_t size, const void *src, size_t len)
 	memcpy_s(dst, size, src, len);
 #else
 	memcpy(dst, src, len);
+#endif
+	return dst;
+}
+
+void *mem_move(void *dst, size_t size, const void *src, size_t len)
+{
+	if (len > size) {
+		log_error("cutils", "mem", NULL, "destination too small %d/%d", size, len);
+		return NULL;
+	}
+#if defined(C_WIN)
+	memmove_s(dst, size, src, len);
+#else
+	memmove(dst, src, len);
 #endif
 	return dst;
 }

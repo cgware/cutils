@@ -121,7 +121,7 @@ TEST(mem_set)
 	END;
 }
 
-TEST(mem_cpy)
+TEST(mem_copy)
 {
 	START;
 
@@ -130,11 +130,32 @@ TEST(mem_cpy)
 	void *dst = mem_alloc(0);
 	log_set_quiet(0, 0);
 
-	EXPECT_EQ(mem_cpy(NULL, 0, NULL, 0), NULL);
+	EXPECT_EQ(mem_copy(NULL, 0, NULL, 0), NULL);
 	log_set_quiet(0, 1);
-	EXPECT_EQ(mem_cpy(dst, 0, src, 1), NULL);
+	EXPECT_EQ(mem_copy(dst, 0, src, 1), NULL);
 	log_set_quiet(0, 0);
-	EXPECT_NE(mem_cpy(dst, 0, src, 0), NULL);
+	EXPECT_NE(mem_copy(dst, 0, src, 0), NULL);
+
+	mem_free(src, 0);
+	mem_free(dst, 0);
+
+	END;
+}
+
+TEST(mem_move)
+{
+	START;
+
+	log_set_quiet(0, 1);
+	void *src = mem_alloc(0);
+	void *dst = mem_alloc(0);
+	log_set_quiet(0, 0);
+
+	EXPECT_EQ(mem_move(NULL, 0, NULL, 0), NULL);
+	log_set_quiet(0, 1);
+	EXPECT_EQ(mem_move(dst, 0, src, 1), NULL);
+	log_set_quiet(0, 0);
+	EXPECT_NE(mem_move(dst, 0, src, 0), NULL);
 
 	mem_free(src, 0);
 	mem_free(dst, 0);
@@ -201,7 +222,8 @@ STEST(mem)
 	RUN(mem_calloc);
 	RUN(mem_realloc);
 	RUN(mem_set);
-	RUN(mem_cpy);
+	RUN(mem_copy);
+	RUN(mem_move);
 	RUN(mem_cmp);
 	RUN(mem_swap);
 	RUN(mem_oom);

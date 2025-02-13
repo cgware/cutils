@@ -12,7 +12,8 @@ void *mem_calloc(size_t count, size_t size);
 void *mem_realloc(void *memory, size_t new_size, size_t old_size);
 
 void *mem_set(void *dst, int val, size_t size);
-void *mem_cpy(void *dst, size_t size, const void *src, size_t len);
+void *mem_copy(void *dst, size_t size, const void *src, size_t len);
+void *mem_move(void *dst, size_t size, const void *src, size_t len);
 int mem_cmp(const void *l, const void *r, size_t size);
 
 int mem_swap(void *ptr1, void *ptr2, size_t size);

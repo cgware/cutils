@@ -98,7 +98,7 @@ void *arr_set(arr_t *arr, uint index, const void *value)
 	}
 
 	if (value) {
-		mem_cpy(dst, arr->size, value, arr->size);
+		mem_copy(dst, arr->size, value, arr->size);
 	}
 
 	return dst;
@@ -116,7 +116,7 @@ uint arr_addv(arr_t *arr, const void *value)
 		return ARR_END;
 	}
 
-	mem_cpy(data, arr->size, value, arr->size);
+	mem_copy(data, arr->size, value, arr->size);
 
 	return index;
 }
@@ -157,7 +157,7 @@ arr_t *arr_add_all(arr_t *arr, const arr_t *src)
 		return NULL;
 	}
 
-	mem_cpy((byte *)arr->data + arr->cnt * arr->size, arr->cap * arr->size - arr->cnt * arr->size, src->data, src->cnt * src->size);
+	mem_copy((byte *)arr->data + arr->cnt * arr->size, arr->cap * arr->size - arr->cnt * arr->size, src->data, src->cnt * src->size);
 
 	arr->cnt += src->cnt;
 

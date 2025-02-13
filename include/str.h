@@ -2,6 +2,7 @@
 #define STR_H
 
 #include "print.h"
+#include "strv.h"
 
 typedef struct str_s {
 	const char *data;
@@ -55,9 +56,11 @@ int str_replace(str_t *str, str_t from, str_t to);
 int str_replaces(str_t *str, const str_t *from, const str_t *to, size_t cnt);
 int str_rreplaces(str_t *str, const str_t *from, const str_t *to, size_t cnt);
 
+int str_subreplace(str_t *dst, size_t start, size_t end, strv_t str);
+
 #define STR(_str)  strc(_str, sizeof(_str) - 1)
 #define STRS(_str) {.data = _str, .size = 0, .len = sizeof(_str) - 1, .ref = 1}
 #define STRH(_str) strn(_str, sizeof(_str) - 1, sizeof(_str))
-#define STR_NULL ((str_t){0})
+#define STR_NULL   ((str_t){0})
 
 #endif

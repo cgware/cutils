@@ -50,7 +50,7 @@ str_t strn(const char *cstr, size_t len, size_t size)
 
 	char *data = mem_alloc(size);
 	if (data != NULL) {
-		mem_cpy(data, size, cstr, len);
+		mem_copy(data, size, cstr, len);
 		data[len] = '\0';
 	}
 
@@ -419,4 +419,20 @@ int str_rreplaces(str_t *str, const str_t *from, const str_t *to, size_t cnt)
 		ret |= found = str_replaces(str, from, to, cnt);
 	} while (found);
 	return ret;
+}
+
+int str_subreplace(str_t *dst, size_t start, size_t end, strv_t str)
+{
+	if (dst == NULL || dst->data == NULL || dst->len + str.len - (end - start) > dst->size) {
+		return 1;
+	}
+
+	char *data = (char *)dst->data;
+
+	mem_move(&data[start + str.len], dst->size - (start + str.len), &data[end], dst->len - end);
+	mem_copy(&data[start], dst->size - start, str.data, str.len);
+
+	dst->len += str.len - (end - start);
+
+	return 0;
 }

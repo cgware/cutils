@@ -27,8 +27,6 @@ path_t *path_child(path_t *path, strv_t child);
 
 int path_is_dir(const path_t *path);
 
-path_t *path_child_dir(path_t *path, const char *dir, size_t len);
-path_t *path_child_folder(path_t *path, const char *folder, size_t len);
 path_t *path_parent(path_t *path);
 path_t *path_set_len(path_t *path, size_t len);
 int path_ends(const path_t *path, const char *str, size_t len);

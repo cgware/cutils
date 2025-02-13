@@ -20,7 +20,7 @@ path_t *path_init(path_t *path, strv_t str)
 		return NULL;
 	}
 
-	mem_cpy(path->data, sizeof(path->data), str.data, str.len);
+	mem_copy(path->data, sizeof(path->data), str.data, str.len);
 
 	path->len = str.len;
 
@@ -39,7 +39,7 @@ path_t *path_child_s(path_t *path, strv_t child, char sep)
 		path->data[path->len++] = sep;
 	}
 
-	mem_cpy(path->data + path->len, sizeof(path->data) - path->len, child.data, child.len);
+	mem_copy(path->data + path->len, sizeof(path->data) - path->len, child.data, child.len);
 
 	path->len += child.len;
 

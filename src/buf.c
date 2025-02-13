@@ -44,7 +44,7 @@ int buf_add(buf_t *buf, const void *data, size_t size, size_t *index)
 		}
 	}
 
-	mem_cpy(buf->data + buf->used, buf->size - buf->used, data, size);
+	mem_copy(buf->data + buf->used, buf->size - buf->used, data, size);
 	if (index) {
 		*index = buf->used;
 	}
