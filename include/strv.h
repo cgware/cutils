@@ -15,6 +15,7 @@ int strv_print(strv_t str, print_dst_t dst);
 #define STRVS(_str)	   STRVSN(_str, sizeof(_str) - 1)
 #define STRVN(_str, _len)  (strv_t) STRVSN(_str, _len)
 #define STRV(_str)	   (strv_t) STRVS(_str)
+#define STRV_STR(_str)	   STRVN((_str).data, (_str).len)
 #define STRV_NULL	   ((strv_t){0})
 
 #endif

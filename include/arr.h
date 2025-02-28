@@ -18,6 +18,8 @@ typedef struct arr_s {
 arr_t *arr_init(arr_t *arr, uint cap, size_t size, alloc_t alloc);
 void arr_free(arr_t *arr);
 
+void arr_reset(arr_t *arr, int val, uint cnt);
+
 void *arr_add(arr_t *arr);
 
 void *arr_get(const arr_t *arr, uint index);

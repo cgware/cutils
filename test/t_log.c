@@ -92,7 +92,7 @@ TEST(log_print_header_color)
 	uint y, m, d, H, M, S, U, line, x;
 
 	// clang-format off
-	EXPECT_FMT(buf, 9, "%4u-%2u-%2u %2u:%2u:%2u.%3u \033[36mDEBUG\033[0m [test:log] \033[90mtest_log_print_header_color:%u:\033[0m file test %u\n",
+	EXPECT_FMT(buf, 9, "\033[90m%4u-%2u-%2u %2u:%2u:%2u.%3u \033[36mDEBUG\033[0m [test:log] \033[90mtest_log_print_header_color:%u:\033[0m file test %u\n",
 		   &y, &m, &d, &H, &M, &S, &U, &line, &x);
 	// clang-format on
 

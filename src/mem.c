@@ -160,11 +160,10 @@ void *mem_copy(void *dst, size_t size, const void *src, size_t len)
 		return NULL;
 	}
 #if defined(C_WIN)
-	memcpy_s(dst, size, src, len);
+	return memcpy_s(dst, size, src, len) ? NULL : dst;
 #else
-	memcpy(dst, src, len);
+	return memcpy(dst, src, len);
 #endif
-	return dst;
 }
 
 void *mem_move(void *dst, size_t size, const void *src, size_t len)
@@ -174,10 +173,21 @@ void *mem_move(void *dst, size_t size, const void *src, size_t len)
 		return NULL;
 	}
 #if defined(C_WIN)
-	memmove_s(dst, size, src, len);
+	return memmove_s(dst, size, src, len) ? NULL : dst;
 #else
-	memmove(dst, src, len);
+	return memmove(dst, src, len);
 #endif
+}
+
+void *mem_replace(void *dst, size_t size, size_t len, const void *src, size_t old_len, size_t new_len)
+{
+	if (dst == NULL || src == NULL || (new_len > old_len && len + (new_len - old_len) > size)) {
+		return NULL;
+	}
+
+	mem_move((byte *)dst + new_len, size - new_len, (byte *)dst + old_len, len - old_len);
+	mem_copy(dst, new_len, src, new_len);
+
 	return dst;
 }
 

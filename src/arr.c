@@ -38,6 +38,20 @@ void arr_free(arr_t *arr)
 	arr->size = 0;
 }
 
+void arr_reset(arr_t *arr, int val, uint cnt)
+{
+	if (arr == NULL) {
+		return;
+	}
+
+	if (cnt > arr->cap) {
+		cnt = arr->cap;
+	}
+
+	mem_set(arr->data, val, arr->size * cnt);
+	arr->cnt = cnt;
+}
+
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 static inline int arr_resize(arr_t *arr)

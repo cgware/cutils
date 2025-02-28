@@ -52,6 +52,29 @@ TEST(buf_add)
 	END;
 }
 
+TEST(buf_replace)
+{
+	START;
+
+	buf_t buf = {0};
+	buf_init(&buf, 4, ALLOC_STD);
+	buf_add(&buf, "a<>c", 4, NULL);
+
+	EXPECT_EQ(buf_replace(NULL, 0, NULL, 0, 0), NULL);
+
+	mem_oom(1);
+	EXPECT_EQ(buf_replace(&buf, 1, "bbbb", 2, 4), NULL);
+	mem_oom(0);
+	EXPECT_EQ(buf_replace(&buf, 1, "b", 2, 1), &buf);
+
+	EXPECT_STRN((char *)buf.data, "abc", 3);
+	EXPECT_EQ(buf.used, 3);
+
+	buf_free(&buf);
+
+	END;
+}
+
 TEST(buf_get)
 {
 	START;
@@ -101,6 +124,7 @@ STEST(buf)
 
 	RUN(buf_init_free);
 	RUN(buf_add);
+	RUN(buf_replace);
 	RUN(buf_get);
 	RUN(buf_print);
 

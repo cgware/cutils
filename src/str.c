@@ -429,8 +429,7 @@ int str_subreplace(str_t *dst, size_t start, size_t end, strv_t str)
 
 	char *data = (char *)dst->data;
 
-	mem_move(&data[start + str.len], dst->size - (start + str.len), &data[end], dst->len - end);
-	mem_copy(&data[start], dst->size - start, str.data, str.len);
+	mem_replace(&data[start], dst->size - start, dst->len - start, str.data, end - start, str.len);
 
 	dst->len += str.len - (end - start);
 

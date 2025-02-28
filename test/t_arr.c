@@ -33,6 +33,20 @@ TEST(arr_init_free)
 	END;
 }
 
+TEST(arr_reset)
+{
+	START;
+
+	arr_t arr = {0};
+
+	arr_reset(NULL, 0, 0);
+	arr_reset(&arr, 0, 1);
+
+	EXPECT_EQ(arr.cnt, 0);
+
+	END;
+}
+
 TEST(arr_add)
 {
 	START;
@@ -429,6 +443,7 @@ STEST(arr)
 	SSTART;
 
 	RUN(arr_init_free);
+	RUN(arr_reset);
 	RUN(arr_add);
 	RUN(arr_get);
 	RUN(arr_set);

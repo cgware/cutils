@@ -29,7 +29,7 @@ int log_std_cb(log_event_t *ev)
 	if (ev->header) {
 		if (ev->colors) {
 			ev->print.off += c_dprintf(ev->print,
-						   "%s %s%-5s\033[0m [%s:%s] \033[90m%s:%d:\033[0m %s%s%s",
+						   "\033[90m%s %s%-5s\033[0m [%s:%s] \033[90m%s:%d:\033[0m %s%s%s",
 						   ev->time,
 						   level_colors[ev->level],
 						   level_strs[ev->level],

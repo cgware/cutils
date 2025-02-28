@@ -14,7 +14,7 @@ int alloc_realloc_std(alloc_t *alloc, void **ptr, size_t *old_size, size_t new_s
 	(void)alloc;
 	void *data = mem_realloc(*ptr, new_size, *old_size);
 	if (data == NULL) {
-		log_error("cutils", "buf", NULL, "failed to reallocate memory");
+		log_error("cutils", "alloc", NULL, "failed to reallocate memory");
 		return 1;
 	}
 

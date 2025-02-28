@@ -71,6 +71,30 @@ TEST(path_is_dir)
 	END;
 }
 
+TEST(path_is_rel)
+{
+	START;
+
+	path_t path = {0};
+
+	EXPECT_EQ(path_is_rel(NULL), 0);
+#if defined(C_WIN)
+	path_init(&path, STRV("C:"));
+	EXPECT_EQ(path_is_rel(&path), 0);
+	path_init(&path, STRV("a"));
+	EXPECT_EQ(path_is_rel(&path), 1);
+	path_init(&path, STRV("abc"));
+	EXPECT_EQ(path_is_rel(&path), 1);
+#else
+	path_init(&path, STRV("/"));
+	EXPECT_EQ(path_is_rel(&path), 0);
+	path_init(&path, STRV("."));
+	EXPECT_EQ(path_is_rel(&path), 1);
+#endif
+
+	END;
+}
+
 TEST(path_parent)
 {
 	START;
@@ -263,6 +287,7 @@ STEST(path)
 	RUN(path_child_s);
 	RUN(path_child);
 	RUN(path_is_dir);
+	RUN(path_is_rel);
 	RUN(path_parent);
 	RUN(path_set_len);
 	RUN(path_ends);

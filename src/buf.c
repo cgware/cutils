@@ -35,21 +35,46 @@ void buf_free(buf_t *buf)
 	buf->used = 0;
 }
 
-int buf_add(buf_t *buf, const void *data, size_t size, size_t *index)
+static int buf_grow(buf_t *buf, size_t size)
 {
 	if (buf->used + size > buf->size) {
 		if (alloc_realloc(&buf->alloc, (void **)&buf->data, &buf->size, (buf->used + size) * 2)) {
-			log_error("cutils", "buf", NULL, "failed to allocate memory");
+			log_error("cutils", "buf", NULL, "failed to grow buffer");
 			return 1;
 		}
 	}
 
+	return 0;
+}
+
+int buf_add(buf_t *buf, const void *data, size_t size, size_t *off)
+{
+	if (buf_grow(buf, size)) {
+		return 1;
+	}
+
 	mem_copy(buf->data + buf->used, buf->size - buf->used, data, size);
-	if (index) {
-		*index = buf->used;
+	if (off) {
+		*off = buf->used;
 	}
 	buf->used += size;
 	return 0;
+}
+
+buf_t *buf_replace(buf_t *buf, size_t off, const void *data, size_t old_len, size_t new_len)
+{
+	if (buf == NULL) {
+		return NULL;
+	}
+
+	if (new_len > old_len && buf_grow(buf, new_len - old_len)) {
+		return NULL;
+	}
+
+	mem_replace(&buf->data[off], buf->size - off, buf->used - off, data, old_len, new_len);
+
+	buf->used += new_len - old_len;
+	return buf;
 }
 
 int buf_print(const buf_t *buf, print_dst_t dst)

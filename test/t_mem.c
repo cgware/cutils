@@ -109,14 +109,12 @@ TEST(mem_set)
 {
 	START;
 
-	log_set_quiet(0, 1);
-	void *data = mem_alloc(0);
-	log_set_quiet(0, 0);
+	char data[] = "abc";
 
 	EXPECT_EQ(mem_set(NULL, 0, 0), NULL);
-	EXPECT_NE(mem_set(data, 0, 0), NULL);
+	EXPECT_EQ(mem_set(data, 0, 3), data);
 
-	mem_free(data, 0);
+	EXPECT_STR(data, "");
 
 	END;
 }
@@ -125,19 +123,15 @@ TEST(mem_copy)
 {
 	START;
 
-	log_set_quiet(0, 1);
-	void *src = mem_alloc(0);
-	void *dst = mem_alloc(0);
-	log_set_quiet(0, 0);
+	char dst[5] = "ab";
 
 	EXPECT_EQ(mem_copy(NULL, 0, NULL, 0), NULL);
 	log_set_quiet(0, 1);
-	EXPECT_EQ(mem_copy(dst, 0, src, 1), NULL);
+	EXPECT_EQ(mem_copy(dst, 0, dst, 1), NULL);
 	log_set_quiet(0, 0);
-	EXPECT_NE(mem_copy(dst, 0, src, 0), NULL);
+	EXPECT_EQ(mem_copy(dst + 2, 3, dst, 2), dst + 2);
 
-	mem_free(src, 0);
-	mem_free(dst, 0);
+	EXPECT_STR(dst, "abab");
 
 	END;
 }
@@ -146,19 +140,30 @@ TEST(mem_move)
 {
 	START;
 
-	log_set_quiet(0, 1);
-	void *src = mem_alloc(0);
-	void *dst = mem_alloc(0);
-	log_set_quiet(0, 0);
+	char dst[4] = "ab";
 
 	EXPECT_EQ(mem_move(NULL, 0, NULL, 0), NULL);
 	log_set_quiet(0, 1);
-	EXPECT_EQ(mem_move(dst, 0, src, 1), NULL);
+	EXPECT_EQ(mem_move(dst, 0, dst, 1), NULL);
 	log_set_quiet(0, 0);
-	EXPECT_NE(mem_move(dst, 0, src, 0), NULL);
+	EXPECT_EQ(mem_move(dst + 1, 3, dst, 2), dst + 1);
 
-	mem_free(src, 0);
-	mem_free(dst, 0);
+	EXPECT_STR(dst, "aab");
+
+	END;
+}
+
+TEST(mem_replace)
+{
+	START;
+
+	char str[10] = "ac";
+
+	EXPECT_EQ(mem_replace(NULL, 0, 0, NULL, 0, 0), NULL);
+	EXPECT_EQ(mem_replace(str, 1, 1, "ab", 1, 2), NULL);
+	EXPECT_EQ(mem_replace(str, 3, 2, "ab", 1, 2), str);
+
+	EXPECT_STR(str, "abc");
 
 	END;
 }
@@ -167,16 +172,13 @@ TEST(mem_cmp)
 {
 	START;
 
-	log_set_quiet(0, 1);
-	void *l = mem_alloc(0);
-	void *r = mem_alloc(0);
-	log_set_quiet(0, 0);
+	char l[] = "a";
+	char r[] = "b";
 
 	EXPECT_EQ(mem_cmp(NULL, NULL, 0), 0);
 	EXPECT_EQ(mem_cmp(l, r, 0), 0);
-
-	mem_free(l, 0);
-	mem_free(r, 0);
+	EXPECT_EQ(mem_cmp(l, r, 1), -1);
+	EXPECT_EQ(mem_cmp(r, l, 1), 1);
 
 	END;
 }
@@ -224,6 +226,7 @@ STEST(mem)
 	RUN(mem_set);
 	RUN(mem_copy);
 	RUN(mem_move);
+	RUN(mem_replace);
 	RUN(mem_cmp);
 	RUN(mem_swap);
 	RUN(mem_oom);
