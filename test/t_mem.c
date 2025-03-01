@@ -160,7 +160,9 @@ TEST(mem_replace)
 	char str[10] = "ac";
 
 	EXPECT_EQ(mem_replace(NULL, 0, 0, NULL, 0, 0), NULL);
+	log_set_quiet(0, 1);
 	EXPECT_EQ(mem_replace(str, 1, 1, "ab", 1, 2), NULL);
+	log_set_quiet(0, 0);
 	EXPECT_EQ(mem_replace(str, 3, 2, "ab", 1, 2), str);
 
 	EXPECT_STR(str, "abc");

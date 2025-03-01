@@ -1,6 +1,7 @@
 #include "str.h"
 
 #include "cstr.h"
+#include "log.h"
 #include "mem.h"
 
 str_t str_null()
@@ -423,7 +424,12 @@ int str_rreplaces(str_t *str, const str_t *from, const str_t *to, size_t cnt)
 
 int str_subreplace(str_t *dst, size_t start, size_t end, strv_t str)
 {
-	if (dst == NULL || dst->data == NULL || dst->len + str.len - (end - start) > dst->size) {
+	if (dst == NULL || dst->data == NULL) {
+		return 1;
+	}
+
+	if (dst->len + str.len - (end - start) > dst->size) {
+		log_error("cutils", "str", NULL, "destination too small: %d/%d", dst->size, dst->len + str.len - (end - start));
 		return 1;
 	}
 

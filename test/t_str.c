@@ -661,11 +661,14 @@ TEST(str_subreplace)
 {
 	START;
 
-	char buf[32] = "ab<char>de";
+	char buf[12] = "ab<char>de";
 
-	str_t str = strb(buf, 32, 10);
+	str_t str = strb(buf, 12, 10);
 
 	EXPECT_EQ(str_subreplace(NULL, 0, 0, STRV_NULL), 1);
+	log_set_quiet(0, 1);
+	EXPECT_EQ(str_subreplace(&str, 2, 8, STRV("ccccccccccc")), 1);
+	log_set_quiet(0, 0);
 	EXPECT_EQ(str_subreplace(&str, 2, 8, STRV("c")), 0);
 	EXPECT_STRN(str.data, "abcde", str.len);
 

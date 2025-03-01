@@ -156,7 +156,7 @@ void *mem_set(void *dst, int val, size_t size)
 void *mem_copy(void *dst, size_t size, const void *src, size_t len)
 {
 	if (len > size) {
-		log_error("cutils", "mem", NULL, "destination too small %d/%d", size, len);
+		log_error("cutils", "mem", NULL, "destination too small: %d/%d", size, len);
 		return NULL;
 	}
 #if defined(C_WIN)
@@ -169,7 +169,7 @@ void *mem_copy(void *dst, size_t size, const void *src, size_t len)
 void *mem_move(void *dst, size_t size, const void *src, size_t len)
 {
 	if (len > size) {
-		log_error("cutils", "mem", NULL, "destination too small %d/%d", size, len);
+		log_error("cutils", "mem", NULL, "destination too small: %d/%d", size, len);
 		return NULL;
 	}
 #if defined(C_WIN)
@@ -181,7 +181,12 @@ void *mem_move(void *dst, size_t size, const void *src, size_t len)
 
 void *mem_replace(void *dst, size_t size, size_t len, const void *src, size_t old_len, size_t new_len)
 {
-	if (dst == NULL || src == NULL || (new_len > old_len && len + (new_len - old_len) > size)) {
+	if (dst == NULL || src == NULL) {
+		return NULL;
+	}
+
+	if (new_len > old_len && len + (new_len - old_len) > size) {
+		log_error("cutils", "mem", NULL, "destination too small: %d/%d", size, len + (new_len - old_len));
 		return NULL;
 	}
 
