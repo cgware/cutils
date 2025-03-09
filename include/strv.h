@@ -8,6 +8,8 @@ typedef struct strv_s {
 	const char *data;
 } strv_t;
 
+size_t strv_len(strv_t str);
+
 int strv_eq(strv_t l, strv_t r);
 int strv_print(strv_t str, print_dst_t dst);
 

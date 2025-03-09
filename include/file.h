@@ -5,7 +5,7 @@
 
 #include <stdio.h>
 
-FILE *file_open(const char *path, const char *mode);
+void *file_open(const char *path, const char *mode);
 FILE *file_open_v(const char *format, const char *mode, va_list args);
 FILE *file_open_f(const char *format, const char *mode, ...);
 
@@ -17,7 +17,7 @@ size_t file_read_ft(FILE *file, char *data, size_t data_size);
 
 size_t file_size(FILE *file);
 
-int file_close(FILE *file);
+int file_close(void *file);
 
 int file_delete(const char *path);
 
@@ -45,5 +45,25 @@ int c_fprintf(FILE *file, const char *fmt, ...);
 int c_fprintv_cb(print_dst_t dst, const char *fmt, va_list args);
 
 #define PRINT_DST_FILE(_file) ((print_dst_t){.cb = c_fprintv_cb, .dst = _file})
+
+typedef struct print_dst_ex_s print_dst_ex_t;
+typedef void *(*c_dopen_fn)(print_dst_ex_t dst, const char *path, const char *mode);
+typedef int (*c_dclose_fn)(print_dst_ex_t dst);
+struct print_dst_ex_s {
+	print_dst_t dst;
+	c_dopen_fn open;
+	c_dclose_fn close;
+};
+
+void *c_fopen_cb(print_dst_ex_t dst, const char *path, const char *mode);
+int c_fclose_cb(print_dst_ex_t dst);
+
+void *c_dopen(print_dst_ex_t dst, const char *path, const char *mode);
+int c_dclose(print_dst_ex_t dst);
+
+#define PRINT_DST_NONE_EX()		    ((print_dst_ex_t){.dst = PRINT_DST_NONE()})
+#define PRINT_DST_STD_EX()		    ((print_dst_ex_t){.dst = PRINT_DST_STD()})
+#define PRINT_DST_BUF_EX(_buf, _size, _off) ((print_dst_ex_t){.dst = PRINT_DST_BUF(_buf, _size, _off)})
+#define PRINT_DST_FILE_EX()		    ((print_dst_ex_t){.dst.cb = c_fprintv_cb, .open = c_fopen_cb, .close = c_fclose_cb})
 
 #endif

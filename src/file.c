@@ -17,7 +17,7 @@
 	#include <sys/stat.h>
 #endif
 
-FILE *file_open(const char *path, const char *mode)
+void *file_open(const char *path, const char *mode)
 {
 	if (path == NULL || mode == NULL) {
 		return NULL;
@@ -29,7 +29,7 @@ FILE *file_open(const char *path, const char *mode)
 #if defined(C_WIN)
 	fopen_s(&file, path, mode);
 #else
-	file  = fopen(path, mode);
+	file = fopen(path, mode);
 #endif
 	if (file == NULL) {
 		int errnum = errno;
@@ -71,7 +71,7 @@ FILE *file_reopen(const char *path, const char *mode, FILE *file)
 	}
 	freopen_s(&file, path, mode, file);
 #else
-	file  = freopen(path, mode, file);
+	file = freopen(path, mode, file);
 #endif
 	if (file == NULL) {
 		int errnum = errno;
@@ -99,7 +99,7 @@ size_t file_read(FILE *file, size_t size, char *data, size_t data_size)
 #if defined(C_WIN)
 	cnt = fread_s(data, data_size, size, 1, file);
 #else
-	cnt   = fread(data, size, 1, file);
+	cnt = fread(data, size, 1, file);
 #endif
 	if (cnt != 1) {
 		return 0;
@@ -154,7 +154,7 @@ size_t file_size(FILE *file)
 	return size;
 }
 
-int file_close(FILE *file)
+int file_close(void *file)
 {
 	if (file == NULL) {
 		return EOF;
@@ -502,4 +502,40 @@ int c_fprintv_cb(print_dst_t dst, const char *fmt, va_list args)
 	int ret = c_fprintv((FILE *)dst.dst, fmt, args);
 	c_fflush((FILE *)dst.dst);
 	return ret;
+}
+
+void *c_fopen_cb(print_dst_ex_t dst, const char *path, const char *mode)
+{
+	(void)dst;
+	if (path == NULL || mode == NULL) {
+		return NULL;
+	}
+	return file_open(path, mode);
+}
+
+int c_fclose_cb(print_dst_ex_t dst)
+{
+	if (dst.dst.dst == NULL) {
+		return 0;
+	}
+
+	return fclose(dst.dst.dst);
+}
+
+void *c_dopen(print_dst_ex_t dst, const char *path, const char *mode)
+{
+	if (dst.open == NULL) {
+		return dst.dst.dst;
+	}
+
+	return dst.open(dst, path, mode);
+}
+
+int c_dclose(print_dst_ex_t dst)
+{
+	if (dst.close == NULL) {
+		return 0;
+	}
+
+	return dst.close(dst);
 }

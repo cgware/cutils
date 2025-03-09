@@ -5,12 +5,15 @@
 #include "platform.h"
 #include "str.h"
 
+#include <errno.h>
+
 #if defined(C_WIN)
 	#include <Windows.h>
 	#define CSEP '\\'
 #else
 	#include <dirent.h>
 	#include <sys/stat.h>
+	#include <unistd.h>
 	#define CSEP '/'
 #endif
 
@@ -79,6 +82,27 @@ int path_is_rel(const path_t *path)
 #else
 	return path->data[0] != '/';
 #endif
+}
+
+str_t *path_get_cwd(str_t *path)
+{
+#if defined(C_WIN)
+	size_t cnt = GetCurrentDirectory(path->size, path->data);
+	if (cnt > path->size) {
+		return NULL;
+	}
+	path->len = cnt;
+#else
+	errno = 0;
+	if (getcwd((char *)path->data, path->size) == NULL) {
+		int errnum = errno;
+		log_error("cutils", "path", NULL, "failed to get current working directory: %s (%d)", log_strerror(errnum), errnum);
+		return NULL;
+	}
+
+	path->len = strv_len(STRV(path->data));
+#endif
+	return path;
 }
 
 path_t *path_parent(path_t *path)
@@ -164,38 +188,26 @@ int path_calc_rel(const char *path, size_t path_len, const char *dest, size_t de
 	return 0;
 }
 
-pathv_t pathv_path(const path_t *path)
+strv_t pathv_get_dir(strv_t pathv, strv_t *child)
 {
-	if (path == NULL) {
-		return (pathv_t){0};
+	if (pathv.data == NULL) {
+		return (strv_t){0};
 	}
 
-	return (pathv_t){.path = path->data, .len = path->len};
-}
+	strv_t dir = pathv;
 
-pathv_t pathv_get_dir(pathv_t pathv, str_t *child)
-{
-	if (pathv.path == NULL) {
-		return (pathv_t){0};
-	}
-
-	pathv_t dir = {
-		.len  = pathv.len,
-		.path = pathv.path,
-	};
-
-	if (dir.len > 0 && (dir.path[dir.len - 1] == '\\' || dir.path[dir.len - 1] == '/')) {
+	if (dir.len > 0 && (dir.data[dir.len - 1] == '\\' || dir.data[dir.len - 1] == '/')) {
 		dir.len--;
 	}
 
 	size_t child_end = dir.len;
 
-	while (dir.len > 0 && dir.path[dir.len - 1] != '\\' && dir.path[dir.len - 1] != '/') {
+	while (dir.len > 0 && dir.data[dir.len - 1] != '\\' && dir.data[dir.len - 1] != '/') {
 		dir.len--;
 	}
 
 	if (child != NULL) {
-		*child = strc(&dir.path[dir.len], child_end - dir.len);
+		*child = STRVN(&dir.data[dir.len], child_end - dir.len);
 	}
 
 	return dir;

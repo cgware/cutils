@@ -10,7 +10,7 @@ strbuf_t *strbuf_init(strbuf_t *buf, uint cap, size_t size, alloc_t alloc)
 		return NULL;
 	}
 
-	if (arr_init(&buf->off, cap, sizeof(uint8_t), alloc) == NULL) {
+	if (arr_init(&buf->off, cap, sizeof(size_t), alloc) == NULL) {
 		return NULL;
 	}
 
@@ -59,12 +59,12 @@ int strbuf_add(strbuf_t *buf, strv_t strv, uint *index)
 		return 1;
 	}
 
-	uint8_t *off = arr_add(&buf->off);
+	size_t *off = arr_add(&buf->off);
 	if (off == NULL) {
 		return 1;
 	}
 
-	*off = (uint8_t)used;
+	*off = used;
 
 	return 0;
 }
@@ -75,13 +75,13 @@ strv_t strbuf_get(const strbuf_t *buf, uint index)
 		return STRV_NULL;
 	}
 
-	uint8_t *off = arr_get(&buf->off, index);
+	size_t *off = arr_get(&buf->off, index);
 	if (off == NULL) {
 		return STRV_NULL;
 	}
 
 	return (strv_t){
-		.len  = ((index + 1 < buf->off.cnt) ? (size_t)*(uint8_t *)arr_get(&buf->off, index + 1) : buf->buf.used) - *off,
+		.len  = ((index + 1 < buf->off.cnt) ? *(size_t *)arr_get(&buf->off, index + 1) : buf->buf.used) - *off,
 		.data = (const char *)buf_get(&buf->buf, *off),
 	};
 }
@@ -114,12 +114,12 @@ int strbuf_set(strbuf_t *buf, strv_t strv, uint index)
 		return 1;
 	}
 
-	uint8_t *off = arr_get(&buf->off, index);
+	size_t *off = arr_get(&buf->off, index);
 	if (off == NULL) {
 		return 1;
 	}
 
-	size_t len = ((index + 1 < buf->off.cnt) ? (size_t)*(uint8_t *)arr_get(&buf->off, index + 1) : buf->buf.used) - *off;
+	size_t len = ((index + 1 < buf->off.cnt) ? *(size_t *)arr_get(&buf->off, index + 1) : buf->buf.used) - *off;
 
 	if (buf_replace(&buf->buf, *off, strv.data, len, strv.len) == NULL) {
 		return 1;
@@ -128,7 +128,7 @@ int strbuf_set(strbuf_t *buf, strv_t strv, uint index)
 	index++;
 	arr_foreach_i(&buf->off, off, index)
 	{
-		*off += (uint8_t)(strv.len - len);
+		*off += (strv.len - len);
 	}
 
 	return 0;
@@ -140,12 +140,12 @@ int strbuf_app(strbuf_t *buf, strv_t strv, uint index)
 		return 1;
 	}
 
-	uint8_t *off = arr_get(&buf->off, index);
+	size_t *off = arr_get(&buf->off, index);
 	if (off == NULL) {
 		return 1;
 	}
 
-	size_t len = ((index + 1 < buf->off.cnt) ? (size_t)*(uint8_t *)arr_get(&buf->off, index + 1) : buf->buf.used) - *off;
+	size_t len = ((index + 1 < buf->off.cnt) ? *(size_t *)arr_get(&buf->off, index + 1) : buf->buf.used) - *off;
 
 	if (buf_replace(&buf->buf, *off + len, strv.data, 0, strv.len) == NULL) {
 		return 1;
@@ -154,7 +154,7 @@ int strbuf_app(strbuf_t *buf, strv_t strv, uint index)
 	index++;
 	arr_foreach_i(&buf->off, off, index)
 	{
-		*off += (uint8_t)strv.len;
+		*off += strv.len;
 	}
 
 	return 0;

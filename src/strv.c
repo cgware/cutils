@@ -2,6 +2,19 @@
 
 #include "mem.h"
 
+size_t strv_len(strv_t str)
+{
+	if (str.data == NULL) {
+		return 0;
+	}
+
+	size_t len = 0;
+	while (*str.data++) {
+		len++;
+	}
+	return len;
+}
+
 int strv_eq(strv_t l, strv_t r)
 {
 	if (l.data == NULL || r.data == NULL || l.len != r.len) {

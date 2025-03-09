@@ -4,6 +4,16 @@
 #include "mem.h"
 #include "test.h"
 
+TEST(strv_len)
+{
+	START;
+
+	EXPECT_EQ(strv_len(STRV_NULL), 0);
+	EXPECT_EQ(strv_len(STRV("A")), 1);
+
+	END;
+}
+
 TEST(strv_eq)
 {
 	START;
@@ -36,6 +46,7 @@ TEST(strv_print)
 STEST(strv)
 {
 	SSTART;
+	RUN(strv_len);
 	RUN(strv_eq);
 	RUN(strv_print);
 	SEND;

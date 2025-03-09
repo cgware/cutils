@@ -451,6 +451,53 @@ TESTP(c_fprintv_cb, FILE *file)
 	END;
 }
 
+TESTP(c_fopen_cb, FILE **file)
+{
+	START;
+
+	EXPECT_EQ(c_fopen_cb(PRINT_DST_NONE_EX(), NULL, NULL), NULL);
+	EXPECT_EQ(c_fopen_cb(PRINT_DST_FILE_EX(), NULL, NULL), NULL);
+
+	*file = c_fopen_cb(PRINT_DST_FILE_EX(), TEST_FILE, "r");
+
+	EXPECT_NE(*file, NULL);
+
+	END;
+}
+
+TESTP(c_fclose_cb, FILE *file)
+{
+	START;
+
+	EXPECT_EQ(c_fclose_cb(PRINT_DST_NONE_EX()), 0);
+	EXPECT_EQ(c_fclose_cb(PRINT_DST_FILE_EX()), 0);
+	print_dst_ex_t dst = PRINT_DST_FILE_EX();
+	dst.dst.dst	   = file;
+	EXPECT_EQ(c_fclose_cb(dst), 0);
+
+	END;
+}
+
+TEST(c_dopen)
+{
+	START;
+
+	EXPECT_EQ(c_dopen(PRINT_DST_NONE_EX(), NULL, NULL), NULL);
+	EXPECT_EQ(c_dopen(PRINT_DST_FILE_EX(), NULL, NULL), NULL);
+
+	END;
+}
+
+TEST(c_dclose)
+{
+	START;
+
+	EXPECT_EQ(c_dclose(PRINT_DST_NONE_EX()), 0);
+	EXPECT_EQ(c_dclose(PRINT_DST_FILE_EX()), 0);
+
+	END;
+}
+
 STEST(file)
 {
 	SSTART;
@@ -475,6 +522,12 @@ STEST(file)
 	RUNP(c_fprintv_cb, file);
 
 	file_close(file);
+
+	RUNP(c_fopen_cb, &file);
+	RUNP(c_fclose_cb, file);
+	RUN(c_dopen);
+	RUN(c_dclose);
+
 	file_delete(TEST_FILE);
 
 	SEND;
