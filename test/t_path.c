@@ -99,15 +99,8 @@ TEST(path_get_cwd)
 {
 	START;
 
-	char buf[256] = {0};
-	str_t path;
+	path_t path = {0};
 
-	path = strb(buf, 2, 0);
-	log_set_quiet(0, 1);
-	EXPECT_EQ(path_get_cwd(&path), NULL);
-	log_set_quiet(0, 0);
-
-	path = strb(buf, sizeof(buf), 0);
 	EXPECT_EQ(path_get_cwd(&path), &path);
 	EXPECT_NE(path.data, NULL);
 	EXPECT_NE(path.len, 0);
@@ -127,7 +120,8 @@ TEST(path_parent)
 	EXPECT_STR(path.data, "a/b");
 	EXPECT_EQ(path_parent(&path), &path);
 	EXPECT_STR(path.data, "a");
-	EXPECT_EQ(path_parent(&path), NULL);
+	EXPECT_EQ(path_parent(&path), &path);
+	EXPECT_STR(path.data, "");
 
 	END;
 }
@@ -273,6 +267,65 @@ TEST(pathv_get_dir)
 	END;
 }
 
+STEST(path_merge)
+{
+	START;
+
+	path_t path = {0};
+
+	EXPECT_EQ(path_merge(NULL, STRV_NULL), NULL);
+
+	path_init(&path, STRV(""));
+	EXPECT_EQ(path_merge(&path, STRV_NULL), &path);
+	EXPECT_STR(path.data, "");
+
+	path_init(&path, STRV("/home"));
+	EXPECT_EQ(path_merge(&path, STRV(".")), &path);
+	EXPECT_STR(path.data, "/home");
+
+	path_init(&path, STRV("/home/"));
+	EXPECT_EQ(path_merge(&path, STRV("./")), &path);
+	EXPECT_STR(path.data, "/home");
+
+	path_init(&path, STRV("/home"));
+	EXPECT_EQ(path_merge(&path, STRV("..")), &path);
+	EXPECT_STR(path.data, "");
+
+	path_init(&path, STRV("/home/"));
+	EXPECT_EQ(path_merge(&path, STRV("../")), &path);
+	EXPECT_STR(path.data, "");
+
+	path_init(&path, STRV("/home/user"));
+	EXPECT_EQ(path_merge(&path, STRV("..")), &path);
+	EXPECT_STR(path.data, "/home");
+
+	path_init(&path, STRV("/home/user/"));
+	EXPECT_EQ(path_merge(&path, STRV("../")), &path);
+	EXPECT_STR(path.data, "/home");
+
+	path_init(&path, STRV("/home"));
+	EXPECT_EQ(path_merge(&path, STRV("./user")), &path);
+	EXPECT_STR(path.data, "/home/user");
+
+	path_init(&path, STRV("/home/"));
+	EXPECT_EQ(path_merge(&path, STRV("./user/")), &path);
+	EXPECT_STR(path.data, "/home/user");
+
+	path_init(&path, STRV("/home/user"));
+	EXPECT_EQ(path_merge(&path, STRV("../temp")), &path);
+	EXPECT_STR(path.data, "/home/temp");
+
+	path_init(&path, STRV("/home/user/"));
+	EXPECT_EQ(path_merge(&path, STRV("../temp/")), &path);
+	EXPECT_STR(path.data, "/home/temp");
+
+	path_init(&path, STRV("/a/b/c"));
+	EXPECT_EQ(path_merge(&path, STRV("../../e/f")), &path);
+	EXPECT_STR(path.data, "/a/e/f");
+
+	END;
+}
+
 STEST(path)
 {
 	SSTART;
@@ -287,5 +340,6 @@ STEST(path)
 	RUN(path_ends);
 	RUN(path_calc_rel);
 	RUN(pathv_get_dir);
+	RUN(path_merge);
 	SEND;
 }

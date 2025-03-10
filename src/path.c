@@ -84,22 +84,14 @@ int path_is_rel(const path_t *path)
 #endif
 }
 
-str_t *path_get_cwd(str_t *path)
+path_t *path_get_cwd(path_t *path)
 {
 #if defined(C_WIN)
 	size_t cnt = GetCurrentDirectory(path->size, path->data);
-	if (cnt > path->size) {
-		return NULL;
-	}
-	path->len = cnt;
+	path->len  = cnt;
 #else
 	errno = 0;
-	if (getcwd((char *)path->data, path->size) == NULL) {
-		int errnum = errno;
-		log_error("cutils", "path", NULL, "failed to get current working directory: %s (%d)", log_strerror(errnum), errnum);
-		return NULL;
-	}
-
+	getcwd(path->data, sizeof(path->data));
 	path->len = strv_len(STRV(path->data));
 #endif
 	return path;
@@ -115,10 +107,6 @@ path_t *path_parent(path_t *path)
 
 	while (len > 0 && path->data[len] != '\\' && path->data[len] != '/') {
 		len--;
-	}
-
-	if (len == 0) {
-		return NULL;
 	}
 
 	path->len = len;
@@ -211,4 +199,41 @@ strv_t pathv_get_dir(strv_t pathv, strv_t *child)
 	}
 
 	return dir;
+}
+
+path_t *path_merge(path_t *path, strv_t child)
+{
+	if (path == NULL) {
+		return NULL;
+	}
+
+	if (child.data == NULL) {
+		return path;
+	}
+
+	if (path->len > 0 && (path->data[path->len - 1] == '/' || path->data[path->len - 1] == '\\')) {
+		path->data[--path->len] = '\0';
+	}
+
+	while (child.len > 0) {
+		strv_t folder = STRVN(child.data, 0);
+		for (size_t i = 0; i < child.len && child.data[i] != '/' && child.data[i] != '\\'; i++) {
+			folder.len++;
+		}
+
+		if (strv_eq(folder, STRV("."))) {
+		} else if (strv_eq(folder, STRV(".."))) {
+			path_parent(path);
+		} else {
+			path_child(path, folder);
+		}
+
+		if (folder.len + 1 <= child.len) {
+			folder.len++;
+		}
+
+		child = STRVN(&child.data[folder.len], child.len - folder.len);
+	}
+
+	return path;
 }
