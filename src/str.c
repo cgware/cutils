@@ -154,9 +154,9 @@ int str_resize(str_t *str, size_t size)
 	return 0;
 }
 
-str_t *str_catc(str_t *str, const char *cstr, size_t len)
+str_t *str_cat(str_t *str, strv_t src)
 {
-	if (str == NULL || cstr == NULL) {
+	if (str == NULL || src.data == NULL) {
 		return NULL;
 	}
 
@@ -164,62 +164,22 @@ str_t *str_catc(str_t *str, const char *cstr, size_t len)
 		return NULL;
 	}
 
-	if (!str->ref && str_resize(str, str->len + len + 1)) {
+	if (!str->ref && str_resize(str, str->len + src.len + 1)) {
 		return NULL;
 	}
 
-	str->len = cstr_cat((char *)str->data, str->size, str->len, cstr, len);
+	str->len = cstr_cat((char *)str->data, str->size, str->len, src.data, src.len);
 	return str;
 }
 
-str_t *str_catn(str_t *str, str_t src, size_t len)
+int str_cmpn(str_t str, strv_t src, size_t len)
 {
-	return str_catc(str, src.data, len);
+	return cstr_cmpn(str.data, str.len, src.data, src.len, len);
 }
 
-str_t *str_cat(str_t *str, str_t src)
+int str_cmp(str_t str, strv_t src)
 {
-	return str_catn(str, src, src.len);
-}
-
-int str_cmpnc(str_t str, const char *cstr, size_t cstr_len, size_t len)
-{
-	return cstr_cmpn(str.data, str.len, cstr, cstr_len, len);
-}
-
-int str_cmpc(str_t str, const char *cstr, size_t cstr_len)
-{
-	return cstr_cmp(str.data, str.len, cstr, cstr_len);
-}
-
-int str_cmpn(str_t str, str_t src, size_t len)
-{
-	return str_cmpnc(str, src.data, src.len, len);
-}
-
-int str_cmp(str_t str, str_t src)
-{
-	return str_cmpc(str, src.data, src.len);
-}
-
-int str_eqnc(str_t str, const char *cstr, size_t cstr_len, size_t len)
-{
-	return cstr_eqn(str.data, str.len, cstr, cstr_len, len);
-}
-
-int str_eqc(str_t str, const char *cstr, size_t cstr_len)
-{
-	return cstr_eq(str.data, str.len, cstr, cstr_len);
-}
-
-int str_eqn(str_t str, str_t src, size_t len)
-{
-	return str_eqnc(str, src.data, src.len, len);
-}
-
-int str_eq(str_t str, str_t src)
-{
-	return str_eqc(str, src.data, src.len);
+	return cstr_cmp(str.data, str.len, src.data, src.len);
 }
 
 int str_chr(str_t str, str_t *l, str_t *r, char c)
@@ -330,19 +290,19 @@ int str_to_upper(str_t str, str_t *dst)
 	return 0;
 }
 
-static int append(str_t *str, const char *cstr, size_t len)
+static int append(str_t *str, const char *data, size_t len)
 {
 	if (str->ref && str->size == 0) {
 		if (str->data) {
 			return 1;
 		}
 
-		str->data = cstr;
+		str->data = data;
 		str->len  = len;
 		return 0;
 	}
 
-	if (str_catc(str, cstr, len) == NULL) {
+	if (str_cat(str, STRVN(data, len)) == NULL) {
 		return 1;
 	}
 

@@ -27,19 +27,10 @@ void str_zero(str_t *str);
 
 int str_resize(str_t *str, size_t size);
 
-str_t *str_catc(str_t *str, const char *cstr, size_t len);
-str_t *str_catn(str_t *str, str_t src, size_t len);
-str_t *str_cat(str_t *str, str_t src);
+str_t *str_cat(str_t *str, strv_t src);
 
-int str_cmpnc(str_t str, const char *cstr, size_t cstr_len, size_t len);
-int str_cmpc(str_t str, const char *cstr, size_t cstr_len);
-int str_cmpn(str_t str, str_t src, size_t len);
-int str_cmp(str_t str, str_t src);
-
-int str_eqnc(str_t str, const char *cstr, size_t cstr_len, size_t len);
-int str_eqc(str_t str, const char *cstr, size_t cstr_len);
-int str_eqn(str_t str, str_t s, size_t len);
-int str_eq(str_t str, str_t s);
+int str_cmpn(str_t str, strv_t src, size_t len);
+int str_cmp(str_t str, strv_t src);
 
 int str_chr(str_t str, str_t *l, str_t *r, char c);
 int str_cstr(str_t str, str_t *l, str_t *r, const char *s, size_t s_len);
