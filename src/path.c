@@ -5,8 +5,6 @@
 #include "platform.h"
 #include "str.h"
 
-#include <errno.h>
-
 #if defined(C_WIN)
 	#include <Windows.h>
 	#define CSEP '\\'
@@ -86,15 +84,20 @@ int path_is_rel(const path_t *path)
 
 path_t *path_get_cwd(path_t *path)
 {
+	path_t *ret = NULL;
 #if defined(C_WIN)
-	size_t cnt = GetCurrentDirectory(path->size, path->data);
-	path->len  = cnt;
+	size_t cnt = GetCurrentDirectory(sizeof(path->data), path->data);
+	if (0 < cnt && cnt < sizeof(path->data)) {
+		path->len = cnt;
+		ret	  = path;
+	}
 #else
-	errno = 0;
-	getcwd(path->data, sizeof(path->data));
-	path->len = strv_len(STRV(path->data));
+	if (getcwd(path->data, sizeof(path->data)) != NULL) {
+		path->len = strv_len(STRV(path->data));
+		ret	  = path;
+	}
 #endif
-	return path;
+	return ret;
 }
 
 path_t *path_parent(path_t *path)

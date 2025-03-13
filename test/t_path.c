@@ -305,23 +305,23 @@ STEST(path_merge)
 
 	path_init(&path, STRV("/home"));
 	EXPECT_EQ(path_merge(&path, STRV("./user")), &path);
-	EXPECT_STR(path.data, "/home/user");
+	EXPECT_STR(path.data, "/home" SEP "user");
 
 	path_init(&path, STRV("/home/"));
 	EXPECT_EQ(path_merge(&path, STRV("./user/")), &path);
-	EXPECT_STR(path.data, "/home/user");
+	EXPECT_STR(path.data, "/home" SEP "user");
 
 	path_init(&path, STRV("/home/user"));
 	EXPECT_EQ(path_merge(&path, STRV("../temp")), &path);
-	EXPECT_STR(path.data, "/home/temp");
+	EXPECT_STR(path.data, "/home" SEP "temp");
 
 	path_init(&path, STRV("/home/user/"));
 	EXPECT_EQ(path_merge(&path, STRV("../temp/")), &path);
-	EXPECT_STR(path.data, "/home/temp");
+	EXPECT_STR(path.data, "/home" SEP "temp");
 
 	path_init(&path, STRV("/a/b/c"));
 	EXPECT_EQ(path_merge(&path, STRV("../../e/f")), &path);
-	EXPECT_STR(path.data, "/a/e/f");
+	EXPECT_STR(path.data, "/a" SEP "e" SEP "f");
 
 	END;
 }
