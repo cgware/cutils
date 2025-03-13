@@ -17,8 +17,12 @@ size_t strv_len(strv_t str)
 
 int strv_eq(strv_t l, strv_t r)
 {
-	if (l.data == NULL || r.data == NULL || l.len != r.len) {
+	if (!l.data != !r.data || l.len != r.len) {
 		return 0;
+	}
+
+	if (l.data == NULL && l.len == 0) {
+		return 1;
 	}
 
 	return mem_cmp(l.data, r.data, l.len) == 0;

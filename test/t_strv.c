@@ -22,7 +22,7 @@ TEST(strv_eq)
 	strv_t src = STRV("abc");
 
 	EXPECT_EQ(strv_eq(STRV_NULL, src), 0);
-	EXPECT_EQ(strv_eq(STRV_NULL, STRV_NULL), 0);
+	EXPECT_EQ(strv_eq(STRV_NULL, STRV_NULL), 1);
 	EXPECT_EQ(strv_eq(str, src), 1);
 
 	END;
