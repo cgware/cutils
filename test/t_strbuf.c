@@ -235,7 +235,7 @@ TEST(strbuf_foreach)
 	strbuf_t strbuf = {0};
 	strbuf_init(&strbuf, 1, 1, ALLOC_STD);
 
-	size_t index = 0;
+	uint index = 0;
 	strv_t strv;
 
 	strbuf_foreach(&strbuf, index, strv);

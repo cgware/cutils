@@ -92,7 +92,7 @@ int strbuf_get_index(const strbuf_t *buf, strv_t strv, uint *index)
 		return 1;
 	}
 
-	size_t i = 0;
+	uint i = 0;
 	strv_t val;
 
 	strbuf_foreach(buf, i, val)
