@@ -60,7 +60,7 @@ int log_std_cb(log_event_t *ev);
 
 const char *log_level_str(int level);
 int log_set_level(int cb, int level);
-int log_set_quiet(int cb, int enable);
+int log_set_quiet(int cb, int quiet);
 int log_set_header(int cb, int enable);
 int log_add_callback(log_cb log, print_dst_t print, int level, int header, int colors);
 int log_remove_callback(int cb);
