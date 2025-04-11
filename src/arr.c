@@ -135,6 +135,20 @@ uint arr_addv(arr_t *arr, const void *value)
 	return index;
 }
 
+uint arr_addu(arr_t *arr, const void *value)
+{
+	if (arr == NULL || value == NULL) {
+		return ARR_END;
+	}
+
+	uint index = arr_index(arr, value);
+	if (index < arr->cnt) {
+		return index;
+	}
+
+	return arr_addv(arr, value);
+}
+
 uint arr_index(const arr_t *arr, const void *value)
 {
 	if (arr == NULL || value == NULL) {
@@ -185,13 +199,9 @@ arr_t *arr_add_unique(arr_t *arr, const arr_t *src)
 	}
 
 	for (uint i = 0; i < src->cnt; i++) {
-		const void *value = arr_get(src, i);
-
-		if (arr_index(arr, value) < arr->cnt) {
-			continue;
+		if (arr_addu(arr, arr_get(src, i)) >= arr->cnt) {
+			return NULL;
 		}
-
-		arr_addv(arr, value);
 	}
 
 	return arr;
