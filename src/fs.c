@@ -36,26 +36,31 @@ static void *ofs_open(fs_t *fs, strv_t path, const char *mode)
 	(void)fs;
 	FILE *file = NULL;
 
+	if (ofs_isdir(fs, path)) {
+		errno = EISDIR;
+		return NULL;
+	}
+
 	errno = 0;
 #if defined(C_WIN)
 	fopen_s(&file, path.data, mode);
 #else
-	if (ofs_isdir(fs, path)) {
-		int errnum = EISDIR;
-		log_error("cutils", "file", NULL, "failed to open file \"%s\": %s (%d)", path.data, log_strerror(errnum), errnum);
+	if (path.len == 0) {
+		errno = EINVAL;
 		return NULL;
 	}
 	file = fopen(path.data, mode);
 #endif
-	if (file == NULL) {
-		int errnum = errno;
-		log_error("cutils", "file", NULL, "failed to open file \"%s\": %s (%d)", path.data, log_strerror(errnum), errnum);
-	}
 	return file;
 }
 
 static void *vfs_open(fs_t *fs, strv_t path, const char *mode)
 {
+	if (path.len == 0) {
+		errno = EINVAL;
+		return NULL;
+	}
+
 	uint index = -1;
 	if (strbuf_get_index(&fs->paths, path, &index)) {
 		strv_t name = {0};
@@ -65,32 +70,24 @@ static void *vfs_open(fs_t *fs, strv_t path, const char *mode)
 			strbuf_add(&fs->paths, name, &index);
 			fs_node_t *node = arr_add(&fs->nodes);
 			if (node == NULL) {
+				errno = ENOMEM;
 				return NULL;
 			}
 			node->type = FS_NODE_TYPE_FILE;
 		} else {
-			int errnum = ENOENT;
-			log_error("cutils",
-				  "file",
-				  NULL,
-				  "failed to open file \"%.*s\": %s (%d)",
-				  path.len,
-				  path.data,
-				  log_strerror(errnum),
-				  errnum);
+			errno = ENOENT;
 			return NULL;
 		}
 	}
 
 	fs_node_t *node = arr_get(&fs->nodes, index);
 	if (node == NULL) {
+		errno = EINVAL;
 		return NULL;
 	}
 
 	if (node->type != FS_NODE_TYPE_FILE) {
-		int errnum = node->type == FS_NODE_TYPE_DIR ? EISDIR : EINVAL;
-		log_error(
-			"cutils", "file", NULL, "failed to open file \"%.*s\": %s (%d)", path.len, path.data, log_strerror(errnum), errnum);
+		errno = node->type == FS_NODE_TYPE_DIR ? EISDIR : EINVAL;
 		return NULL;
 	}
 
@@ -109,7 +106,7 @@ static int ofs_close(fs_t *fs, void *file)
 
 static int vfs_close(fs_t *fs, void *file)
 {
-	uint index = (size_t)file - 1;
+	uint index = (uint)((size_t)file - 1);
 
 	fs_node_t *node = arr_get(&fs->nodes, index);
 	if (node == NULL) {
@@ -197,40 +194,34 @@ static int ofs_mkdir(fs_t *fs, strv_t path)
 {
 	(void)fs;
 
-	int ret;
 #if defined(C_WIN)
-	ret = CreateDirectoryA(path.data, NULL) == 0 ? 1 : 0;
+	if (CreateDirectoryA(path.data, NULL) == 0) {
+		DWORD err = GetLastError();
+		if (err == ERROR_ALREADY_EXISTS) {
+			return EEXIST;
+		} else {
+			return -1;
+		}
+	}
 #else
 	errno = 0;
-	ret   = mkdir(path.data, 0700);
-	if (ret != 0) {
-		int errnum = errno;
-		log_error("cutils", "file", NULL, "failed to create directory \"%s\": %s (%d)", path.data, log_strerror(errnum), errnum);
-		ret = 1;
+	if (mkdir(path.data, 0700)) {
+		return errno;
 	}
-	return ret;
 #endif
+	return 0;
 }
 
 static int vfs_mkdir(fs_t *fs, strv_t path)
 {
 	if (strbuf_get_index(&fs->paths, path, NULL) == 0) {
-		int errnum = EEXIST;
-		log_error("cutils",
-			  "file",
-			  NULL,
-			  "failed to create directory \"%.*s\": %s (%d)",
-			  path.len,
-			  path.data,
-			  log_strerror(errnum),
-			  errnum);
-		return 1;
+		return EEXIST;
 	}
 
 	strbuf_add(&fs->paths, path, NULL);
 	fs_node_t *node = arr_add(&fs->nodes);
 	if (node == NULL) {
-		return 1;
+		return ENOMEM;
 	}
 	node->type = FS_NODE_TYPE_DIR;
 
@@ -241,38 +232,40 @@ static int ofs_mkfile(fs_t *fs, strv_t path)
 {
 	(void)fs;
 
+	if (fs_isdir(fs, path)) {
+		return EEXIST;
+	}
+
 #if defined(C_WIN)
-	return CreateDirectoryA(path.data, NULL) == 0 ? 1 : 0;
+	HANDLE h = CreateFileA(path.data, GENERIC_WRITE, 0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (h == INVALID_HANDLE_VALUE) {
+		DWORD err = GetLastError();
+		if (err == ERROR_FILE_EXISTS) {
+			return EEXIST;
+		} else {
+			return -1;
+		}
+	}
+	CloseHandle(h);
 #else
 	if (ofs_isfile(fs, path)) {
-		int errnum = EEXIST;
-		log_error("cutils", "file", NULL, "failed to create file \"%s\": %s (%d)", path.data, log_strerror(errnum), errnum);
-		return 1;
+		return EEXIST;
 	}
 	ofs_close(fs, ofs_open(fs, path, "w"));
-	return 0;
 #endif
+	return 0;
 }
 
 static int vfs_mkfile(fs_t *fs, strv_t path)
 {
 	if (strbuf_get_index(&fs->paths, path, NULL) == 0) {
-		int errnum = EEXIST;
-		log_error("cutils",
-			  "file",
-			  NULL,
-			  "failed to create file \"%.*s\": %s (%d)",
-			  path.len,
-			  path.data,
-			  log_strerror(errnum),
-			  errnum);
-		return 1;
+		return EEXIST;
 	}
 
 	strbuf_add(&fs->paths, path, NULL);
 	fs_node_t *node = arr_add(&fs->nodes);
 	if (node == NULL) {
-		return 1;
+		return ENOMEM;
 	}
 	node->type = FS_NODE_TYPE_FILE;
 
@@ -283,35 +276,43 @@ static int ofs_rmdir(fs_t *fs, strv_t path)
 {
 	(void)fs;
 
-	int ret;
+	if (ofs_isfile(fs, path)) {
+		return EINVAL;
+	}
+
 #if defined(C_WIN)
-	ret = RemoveDirectoryA(path.data) == 0 ? 1 : 0;
+	if (RemoveDirectoryA(path.data) == 0) {
+		DWORD err = GetLastError();
+		if (err == ERROR_FILE_NOT_FOUND) {
+			return ENOENT;
+		} else {
+			return -1;
+		}
+	}
 #else
 	errno = 0;
-	ret   = remove(path.data);
-	if (ret != 0) {
-		int errnum = errno;
-		log_error("cutils", "file", NULL, "failed to remove directory \"%s\": %s (%d)", path.data, log_strerror(errnum), errnum);
-		ret = 1;
+	if (remove(path.data)) {
+		printf("errno=%d\n", errno);
+		return errno;
 	}
-	return ret;
 #endif
+	return 0;
 }
 
 static int vfs_rmdir(fs_t *fs, strv_t path)
 {
 	uint index = -1;
 	if (strbuf_get_index(&fs->paths, path, &index)) {
-		int errnum = ENOENT;
-		log_error("cutils",
-			  "file",
-			  NULL,
-			  "failed to remove directory \"%.*s\": %s (%d)",
-			  path.len,
-			  path.data,
-			  log_strerror(errnum),
-			  errnum);
-		return 1;
+		return ENOENT;
+	}
+
+	fs_node_t *node = arr_get(&fs->nodes, index);
+	if (node == NULL) {
+		return EINVAL;
+	}
+
+	if (node->type != FS_NODE_TYPE_DIR) {
+		return EINVAL;
 	}
 
 	strbuf_set(&fs->paths, STRV(""), index);
@@ -322,35 +323,42 @@ static int ofs_rmfile(fs_t *fs, strv_t path)
 {
 	(void)fs;
 
-	int ret;
+	if (ofs_isdir(fs, path)) {
+		return EISDIR;
+	}
+
 #if defined(C_WIN)
-	ret = DeleteFileA(path.data) == 0 ? 1 : 0;
+	if (DeleteFileA(path.data) == 0) {
+		DWORD err = GetLastError();
+		if (err == ERROR_FILE_NOT_FOUND) {
+			return ENOENT;
+		} else {
+			return -1;
+		}
+	}
 #else
 	errno = 0;
-	ret   = remove(path.data);
-	if (ret != 0) {
-		int errnum = errno;
-		log_error("cutils", "file", NULL, "failed to delete file \"%s\": %s (%d)", path.data, log_strerror(errnum), errnum);
-		ret = 1;
+	if (remove(path.data)) {
+		return errno;
 	}
 #endif
-	return ret;
+	return 0;
 }
 
 static int vfs_rmfile(fs_t *fs, strv_t path)
 {
 	uint index = -1;
 	if (strbuf_get_index(&fs->paths, path, &index)) {
-		int errnum = ENOENT;
-		log_error("cutils",
-			  "file",
-			  NULL,
-			  "failed to delete file \"%.*s\": %s (%d)",
-			  path.len,
-			  path.data,
-			  log_strerror(errnum),
-			  errnum);
-		return 1;
+		return ENOENT;
+	}
+
+	fs_node_t *node = arr_get(&fs->nodes, index);
+	if (node == NULL) {
+		return EINVAL;
+	}
+
+	if (node->type == FS_NODE_TYPE_DIR) {
+		return EISDIR;
 	}
 
 	strbuf_set(&fs->paths, STRV(""), index);
@@ -414,16 +422,26 @@ void *fs_open(fs_t *fs, strv_t path, const char *mode)
 {
 	path_t buf = {0};
 	if (fs == NULL || path.data == NULL || mode == NULL || path_init(&buf, path) == NULL) {
+		errno = EINVAL;
 		return NULL;
 	}
 
-	return fs->ops.open(fs, STRVN(buf.data, buf.len), mode);
+	void *file = fs->ops.open(fs, STRVN(buf.data, buf.len), mode);
+
+	if (file == NULL) {
+		int errnum = errno;
+		log_error("cutils", "file", NULL, "failed to open file \"%s\": %s (%d)", path.data, log_strerror(errnum), errnum);
+		errno = errnum;
+		return NULL;
+	}
+
+	return file;
 }
 
 int fs_close(fs_t *fs, void *file)
 {
 	if (fs == NULL || file == NULL) {
-		return 1;
+		return EINVAL;
 	}
 
 	return fs->ops.close(fs, file);
@@ -453,38 +471,58 @@ int fs_mkdir(fs_t *fs, strv_t path)
 {
 	path_t buf = {0};
 	if (fs == NULL || path.data == NULL || path_init(&buf, path) == NULL) {
-		return 1;
+		return EINVAL;
 	}
 
-	return fs->ops.mkdir(fs, STRVN(buf.data, buf.len));
+	int ret = fs->ops.mkdir(fs, STRVN(buf.data, buf.len));
+	if (ret != 0) {
+		log_error("cutils", "file", NULL, "failed to create directory \"%s\": %s (%d)", buf.data, log_strerror(ret), ret);
+	}
+
+	return ret;
 }
 
 int fs_mkfile(fs_t *fs, strv_t path)
 {
 	path_t buf = {0};
 	if (fs == NULL || path.data == NULL || path_init(&buf, path) == NULL) {
-		return 1;
+		return EINVAL;
 	}
 
-	return fs->ops.mkfile(fs, STRVN(buf.data, buf.len));
+	int ret = fs->ops.mkfile(fs, STRVN(buf.data, buf.len));
+	if (ret != 0) {
+		log_error("cutils", "file", NULL, "failed to create file \"%s\": %s (%d)", buf.data, log_strerror(ret), ret);
+	}
+
+	return ret;
 }
 
 int fs_rmdir(fs_t *fs, strv_t path)
 {
 	path_t buf = {0};
 	if (fs == NULL || path.data == NULL || path_init(&buf, path) == NULL) {
-		return 1;
+		return EINVAL;
 	}
 
-	return fs->ops.rmdir(fs, STRVN(buf.data, buf.len));
+	int ret = fs->ops.rmdir(fs, STRVN(buf.data, buf.len));
+	if (ret != 0) {
+		log_error("cutils", "file", NULL, "failed to remove directory \"%s\": %s (%d)", buf.data, log_strerror(ret), ret);
+	}
+
+	return ret;
 }
 
 int fs_rmfile(fs_t *fs, strv_t path)
 {
 	path_t buf = {0};
 	if (fs == NULL || path.data == NULL || path_init(&buf, path) == NULL) {
-		return 1;
+		return EINVAL;
 	}
 
-	return fs->ops.rmfile(fs, STRVN(buf.data, buf.len));
+	int ret = fs->ops.rmfile(fs, STRVN(buf.data, buf.len));
+	if (ret != 0) {
+		log_error("cutils", "file", NULL, "failed to remove file \"%s\": %s (%d)", buf.data, log_strerror(ret), ret);
+	}
+
+	return ret;
 }
