@@ -4,8 +4,8 @@
 #include <stdarg.h>
 #include <stddef.h>
 
-size_t cstrv(char *cstr, size_t size, const char *fmt, va_list args);
-size_t cstrf(char *cstr, size_t size, const char *fmt, ...);
+int cstrv(char *cstr, size_t size, const char *fmt, va_list args);
+int cstrf(char *cstr, size_t size, const char *fmt, ...);
 
 void *cstr_zero(char *cstr, size_t size);
 

@@ -66,8 +66,8 @@ str_t strn(const char *cstr, size_t len, size_t size)
 str_t strv(const char *fmt, va_list args)
 {
 	str_t str   = {0};
-	size_t size = cstrv(NULL, 0, fmt, args);
-	if (size == 0) {
+	int size = cstrv(NULL, 0, fmt, args);
+	if (size < 0) {
 		return (str_t){0};
 	}
 

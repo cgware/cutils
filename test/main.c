@@ -11,6 +11,7 @@ STEST(cstr);
 STEST(ctime);
 STEST(dict);
 STEST(file);
+STEST(fs);
 STEST(list);
 STEST(log);
 STEST(mem);
@@ -32,6 +33,7 @@ TEST(cutils)
 	RUN(ctime);
 	RUN(dict);
 	RUN(file);
+	RUN(fs);
 	RUN(list);
 	RUN(log);
 	RUN(mem);

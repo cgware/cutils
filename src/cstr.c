@@ -7,16 +7,16 @@
 #include <string.h>
 #include <wchar.h>
 
-size_t cstrv(char *cstr, size_t size, const char *fmt, va_list args)
+int cstrv(char *cstr, size_t size, const char *fmt, va_list args)
 {
 	return c_sprintv(cstr, size, 0, fmt, args);
 }
 
-size_t cstrf(char *cstr, size_t size, const char *fmt, ...)
+int cstrf(char *cstr, size_t size, const char *fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
-	size_t ret = cstrv(cstr, size, fmt, args);
+	int ret = cstrv(cstr, size, fmt, args);
 	va_end(args);
 	return ret;
 }
