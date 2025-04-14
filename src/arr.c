@@ -120,7 +120,7 @@ void *arr_set(arr_t *arr, uint index, const void *value)
 
 uint arr_addv(arr_t *arr, const void *value)
 {
-	if (arr == NULL) {
+	if (arr == NULL || value == NULL) {
 		return ARR_END;
 	}
 
@@ -199,7 +199,8 @@ arr_t *arr_add_unique(arr_t *arr, const arr_t *src)
 	}
 
 	for (uint i = 0; i < src->cnt; i++) {
-		if (arr_addu(arr, arr_get(src, i)) >= arr->cnt) {
+		uint index = arr_addu(arr, arr_get(src, i));
+		if (index >= arr->cnt) {
 			return NULL;
 		}
 	}
