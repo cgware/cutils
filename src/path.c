@@ -93,7 +93,7 @@ path_t *path_get_cwd(path_t *path)
 	}
 #else
 	if (getcwd(path->data, sizeof(path->data)) != NULL) {
-		path->len = strv_len(STRV(path->data));
+		path->len = strv_cstr(path->data).len;
 		ret	  = path;
 	}
 #endif

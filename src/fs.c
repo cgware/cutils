@@ -1,6 +1,7 @@
 #include "fs.h"
 
 #include "log.h"
+#include "mem.h"
 #include "path.h"
 #include "platform.h"
 
@@ -285,6 +286,8 @@ static int ofs_rmdir(fs_t *fs, strv_t path)
 		DWORD err = GetLastError();
 		if (err == ERROR_FILE_NOT_FOUND) {
 			return ENOENT;
+		} else if (err == ERROR_DIR_NOT_EMPTY) {
+			return ENOTEMPTY;
 		} else {
 			return -1;
 		}
@@ -292,7 +295,6 @@ static int ofs_rmdir(fs_t *fs, strv_t path)
 #else
 	errno = 0;
 	if (remove(path.data)) {
-		printf("errno=%d\n", errno);
 		return errno;
 	}
 #endif
@@ -313,6 +315,17 @@ static int vfs_rmdir(fs_t *fs, strv_t path)
 
 	if (node->type != FS_NODE_TYPE_DIR) {
 		return EINVAL;
+	}
+
+	uint i = 0;
+	strv_t s;
+	strbuf_foreach(&fs->paths, i, s)
+	{
+		strv_t parent = pathv_get_dir(s, NULL);
+		parent.len--;
+		if (strv_eq(parent, path)) {
+			return ENOTEMPTY;
+		}
 	}
 
 	strbuf_set(&fs->paths, STRV(""), index);
@@ -343,6 +356,188 @@ static int ofs_rmfile(fs_t *fs, strv_t path)
 	}
 #endif
 	return 0;
+}
+
+static int name_cmp_cb(const void *a, const void *b)
+{
+	return strv_cmp(strv_cstr(a), strv_cstr(b));
+}
+
+static int ofs_lsdir(fs_t *fs, strv_t path, fs_lsdir_cb cb, void *priv)
+{
+	(void)fs;
+
+	int ret = 0;
+
+	arr_t dirs = {0};
+
+	arr_init(&dirs, 32, sizeof(char) * C_MAX_PATH, ALLOC_STD);
+
+	path_t child_path = {0};
+	path_init(&child_path, path);
+
+#if defined(C_WIN)
+	WIN32_FIND_DATA data = {0};
+	HANDLE find	     = NULL;
+
+	path_child(&child_path, STRV("*.*"));
+
+	if ((find = FindFirstFileA(child_path.data, (LPWIN32_FIND_DATAA)&data)) == INVALID_HANDLE_VALUE) {
+		ret = 1;
+		goto exit;
+	}
+	child_path.len = path.len;
+
+	do {
+		strv_t name = strv_cstr((char *)data.cFileName);
+#else
+	DIR *dir = opendir(path.data);
+	if (!dir) {
+		ret = 1;
+		goto exit;
+	}
+
+	struct dirent *dp;
+
+	while ((dp = readdir(dir))) {
+		strv_t name = strv_cstr(dp->d_name);
+#endif
+		if (strv_eq(name, STRV(".")) || strv_eq(name, STRV(".."))) {
+			continue;
+		}
+
+#if defined(C_WIN)
+		if (!(data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+#else
+		if (dp->d_type != 4)
+#endif
+		{
+			continue;
+		}
+
+		char *dest = arr_add(&dirs);
+		if (dest == NULL) {
+			return ENOMEM;
+		}
+
+		mem_copy(dest, C_MAX_PATH, name.data, name.len + 1);
+
+	}
+#if defined(C_WIN)
+	while (FindNextFileA(find, (LPWIN32_FIND_DATAA)&data));
+	FindClose(find);
+#else
+	closedir(dir);
+#endif
+
+	const char *file;
+
+	arr_sort(&dirs, name_cmp_cb);
+	arr_foreach(&dirs, file)
+	{
+		strv_t name = strv_cstr(file);
+		path_child(&child_path, name);
+
+		ret = cb(STRV_STR(child_path), name, priv);
+
+		child_path.len = path.len;
+		if (ret < 0) {
+			goto exit;
+		}
+	}
+
+exit:
+	arr_free(&dirs);
+
+	return ret;
+}
+
+static int ofs_lsfile(fs_t *fs, strv_t path, fs_lsfile_cb cb, void *priv)
+{
+	(void)fs;
+
+	int ret = 0;
+
+	arr_t files = {0};
+
+	arr_init(&files, 32, sizeof(char) * C_MAX_PATH, ALLOC_STD);
+
+	path_t child_path = {0};
+	path_init(&child_path, path);
+
+#if defined(C_WIN)
+	WIN32_FIND_DATA data = {0};
+	HANDLE find	     = NULL;
+
+	path_child(&child_path, STRV("*.*"));
+
+	if ((find = FindFirstFileA(child_path.data, (LPWIN32_FIND_DATAA)&data)) == INVALID_HANDLE_VALUE) {
+		ret = 1;
+		goto exit;
+	}
+	child_path.len = path.len;
+
+	do {
+		strv_t name = strv_cstr((char *)data.cFileName);
+#else
+	DIR *dir = opendir(path.data);
+	if (!dir) {
+		ret = 1;
+		goto exit;
+	}
+
+	struct dirent *dp;
+
+	while ((dp = readdir(dir))) {
+		strv_t name = strv_cstr(dp->d_name);
+#endif
+		if (strv_eq(name, STRV(".")) || strv_eq(name, STRV(".."))) {
+			continue;
+		}
+
+#if defined(C_WIN)
+		if (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+#else
+		if (dp->d_type != 8)
+#endif
+		{
+			continue;
+		}
+
+		char *dest = arr_add(&files);
+		if (dest == NULL) {
+			return ENOMEM;
+		}
+
+		mem_copy(dest, C_MAX_PATH, name.data, name.len + 1);
+	}
+#if defined(C_WIN)
+	while (FindNextFileA(find, (LPWIN32_FIND_DATAA)&data));
+	FindClose(find);
+#else
+	closedir(dir);
+#endif
+
+	const char *file;
+
+	arr_sort(&files, name_cmp_cb);
+	arr_foreach(&files, file)
+	{
+		strv_t name = strv_cstr(file);
+		path_child(&child_path, name);
+
+		ret = cb(STRV_STR(child_path), name, priv);
+
+		child_path.len = path.len;
+		if (ret < 0) {
+			goto exit;
+		}
+	}
+
+exit:
+	arr_free(&files);
+
+	return ret;
 }
 
 static int vfs_rmfile(fs_t *fs, strv_t path)
@@ -376,6 +571,8 @@ static const fs_ops_t s_fs_ops[] = {
 			.mkfile = ofs_mkfile,
 			.rmdir	= ofs_rmdir,
 			.rmfile = ofs_rmfile,
+			.lsdir	= ofs_lsdir,
+			.lsfile = ofs_lsfile,
 		},
 	[1] =
 		{
@@ -525,4 +722,32 @@ int fs_rmfile(fs_t *fs, strv_t path)
 	}
 
 	return ret;
+}
+
+int fs_lsdir(fs_t *fs, strv_t path, fs_lsdir_cb cb, void *priv)
+{
+	path_t buf = {0};
+	if (fs == NULL || path.data == NULL || path_init(&buf, path) == NULL) {
+		return EINVAL;
+	}
+
+	if (cb == NULL) {
+		return 0;
+	}
+
+	return fs->ops.lsdir(fs, STRVN(buf.data, buf.len), cb, priv);
+}
+
+int fs_lsfile(fs_t *fs, strv_t path, fs_lsfile_cb cb, void *priv)
+{
+	path_t buf = {0};
+	if (fs == NULL || path.data == NULL || path_init(&buf, path) == NULL) {
+		return EINVAL;
+	}
+
+	if (cb == NULL) {
+		return 0;
+	}
+
+	return fs->ops.lsfile(fs, STRVN(buf.data, buf.len), cb, priv);
 }

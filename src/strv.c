@@ -2,17 +2,22 @@
 
 #include "mem.h"
 
-size_t strv_len(strv_t str)
+strv_t strv_cstr(const char *cstr)
 {
-	if (str.data == NULL) {
-		return 0;
+	if (cstr == NULL) {
+		return STRV_NULL;
 	}
 
-	size_t len = 0;
-	while (*str.data++) {
-		len++;
+	strv_t strv = {
+		.data = cstr,
+		.len  = 0,
+	};
+
+	while (*cstr++) {
+		strv.len++;
 	}
-	return len;
+
+	return strv;
 }
 
 int strv_eq(strv_t l, strv_t r)
@@ -26,6 +31,26 @@ int strv_eq(strv_t l, strv_t r)
 	}
 
 	return mem_cmp(l.data, r.data, l.len) == 0;
+}
+
+int strv_cmp(strv_t l, strv_t r)
+{
+	if (l.data == NULL && r.data == NULL) {
+		return 0;
+	} else if (l.data == NULL) {
+		return -1;
+	} else if (r.data == NULL) {
+		return 1;
+	}
+
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+	int ret = mem_cmp(l.data, r.data, MIN(l.len, r.len));
+
+	if (ret != 0 || l.len == r.len) {
+		return ret;
+	}
+
+	return l.len < r.len ? -1 : 1;
 }
 
 int strv_print(strv_t str, print_dst_t dst)

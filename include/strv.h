@@ -8,9 +8,11 @@ typedef struct strv_s {
 	const char *data;
 } strv_t;
 
-size_t strv_len(strv_t str);
+strv_t strv_cstr(const char *cstr);
 
 int strv_eq(strv_t l, strv_t r);
+int strv_cmp(strv_t l, strv_t r);
+
 int strv_print(strv_t str, print_dst_t dst);
 
 #define STRVSN(_str, _len) {.data = _str, .len = _len}

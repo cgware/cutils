@@ -4,12 +4,12 @@
 #include "mem.h"
 #include "test.h"
 
-TEST(strv_len)
+TEST(strv_cstr)
 {
 	START;
 
-	EXPECT_EQ(strv_len(STRV_NULL), 0);
-	EXPECT_EQ(strv_len(STRV("A")), 1);
+	EXPECT_EQ(strv_cstr(NULL).len, 0);
+	EXPECT_EQ(strv_cstr("A").len, 1);
 
 	END;
 }
@@ -24,6 +24,26 @@ TEST(strv_eq)
 	EXPECT_EQ(strv_eq(STRV_NULL, src), 0);
 	EXPECT_EQ(strv_eq(STRV_NULL, STRV_NULL), 1);
 	EXPECT_EQ(strv_eq(str, src), 1);
+
+	END;
+}
+
+TEST(strv_cmp)
+{
+	START;
+
+	EXPECT_EQ(strv_cmp(STRV_NULL, STRV_NULL), 0);
+	EXPECT_EQ(strv_cmp(STRVN("abc", 0), STRV_NULL), 1);
+	EXPECT_EQ(strv_cmp(STRVN("abc", 3), STRV_NULL), 1);
+	EXPECT_EQ(strv_cmp(STRV_NULL, STRVN("abc", 0)), -1);
+	EXPECT_EQ(strv_cmp(STRV_NULL, STRVN("abc", 3)), -1);
+
+	EXPECT_EQ(strv_cmp(STRVN("a", 1), STRVN("a", 1)), 0);
+	EXPECT_GT(strv_cmp(STRVN("b", 1), STRVN("a", 1)), 0);
+	EXPECT_LT(strv_cmp(STRVN("a", 1), STRVN("b", 1)), 0);
+	EXPECT_GT(strv_cmp(STRVN("a", 1), STRVN("b", 0)), 0);
+	EXPECT_LT(strv_cmp(STRVN("ac", 2), STRVN("b", 1)), 0);
+	EXPECT_LT(strv_cmp(STRVN("ac", 2), STRVN("bcd", 3)), 0);
 
 	END;
 }
@@ -46,8 +66,9 @@ TEST(strv_print)
 STEST(strv)
 {
 	SSTART;
-	RUN(strv_len);
+	RUN(strv_cstr);
 	RUN(strv_eq);
+	RUN(strv_cmp);
 	RUN(strv_print);
 	SEND;
 }
