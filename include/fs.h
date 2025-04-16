@@ -18,10 +18,10 @@ typedef int (*fs_mkfile_fn)(fs_t *fs, strv_t path);
 typedef int (*fs_rmdir_fn)(fs_t *fs, strv_t path);
 typedef int (*fs_rmfile_fn)(fs_t *fs, strv_t path);
 
-typedef int (*fs_lsdir_cb)(strv_t path, strv_t dir, void *priv);
-typedef int (*fs_lsdir_fn)(fs_t *fs, strv_t path, arr_t *dirs);
-typedef int (*fs_lsfile_cb)(strv_t path, strv_t file, void *priv);
-typedef int (*fs_lsfile_fn)(fs_t *fs, strv_t path, arr_t *file);
+typedef int (*fs_lsdir_cb)(strv_t path, strv_t dir, strbuf_t *dirs);
+typedef int (*fs_lsdir_fn)(fs_t *fs, strv_t path, strbuf_t *dirs);
+typedef int (*fs_lsfile_cb)(strv_t path, strv_t file, strbuf_t files);
+typedef int (*fs_lsfile_fn)(fs_t *fs, strv_t path, strbuf_t *files);
 
 typedef struct fs_ops_s {
 	fs_open_fn open;
@@ -59,7 +59,7 @@ int fs_mkfile(fs_t *fs, strv_t path);
 int fs_rmdir(fs_t *fs, strv_t path);
 int fs_rmfile(fs_t *fs, strv_t path);
 
-int fs_lsdir(fs_t *fs, strv_t path, fs_lsdir_cb cb, void *priv);
-int fs_lsfile(fs_t *fs, strv_t path, fs_lsfile_cb cb, void *priv);
+int fs_lsdir(fs_t *fs, strv_t path, strbuf_t *dirs);
+int fs_lsfile(fs_t *fs, strv_t path, strbuf_t *files);
 
 #endif

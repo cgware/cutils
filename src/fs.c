@@ -1,7 +1,6 @@
 #include "fs.h"
 
 #include "log.h"
-#include "mem.h"
 #include "path.h"
 #include "platform.h"
 
@@ -391,7 +390,7 @@ static int vfs_rmfile(fs_t *fs, strv_t path)
 	return 0;
 }
 
-static int ofs_lsdir(fs_t *fs, strv_t path, arr_t *dirs)
+static int ofs_lsdir(fs_t *fs, strv_t path, strbuf_t *dirs)
 {
 	(void)fs;
 
@@ -442,13 +441,9 @@ static int ofs_lsdir(fs_t *fs, strv_t path, arr_t *dirs)
 			continue;
 		}
 
-		char *dest = arr_add(dirs);
-		if (dest == NULL) {
+		if (strbuf_add(dirs, name, NULL)) {
 			return ENOMEM;
 		}
-
-		mem_copy(dest, C_MAX_PATH, name.data, name.len + 1);
-
 	}
 #if defined(C_WIN)
 	while (FindNextFileA(find, (LPWIN32_FIND_DATAA)&data));
@@ -460,7 +455,7 @@ static int ofs_lsdir(fs_t *fs, strv_t path, arr_t *dirs)
 	return 0;
 }
 
-static int vfs_lsdir(fs_t *fs, strv_t path, arr_t *dirs)
+static int vfs_lsdir(fs_t *fs, strv_t path, strbuf_t *dirs)
 {
 	uint index = 0;
 	strv_t dir;
@@ -497,18 +492,15 @@ static int vfs_lsdir(fs_t *fs, strv_t path, arr_t *dirs)
 			continue;
 		}
 
-		char *dest = arr_add(dirs);
-		if (dest == NULL) {
+		if (strbuf_add(dirs, name, NULL)) {
 			return ENOMEM;
 		}
-
-		mem_copy(dest, C_MAX_PATH, name.data, name.len + 1);
 	}
 
 	return 0;
 }
 
-static int ofs_lsfile(fs_t *fs, strv_t path, arr_t *files)
+static int ofs_lsfile(fs_t *fs, strv_t path, strbuf_t *files)
 {
 	(void)fs;
 
@@ -559,12 +551,9 @@ static int ofs_lsfile(fs_t *fs, strv_t path, arr_t *files)
 			continue;
 		}
 
-		char *dest = arr_add(files);
-		if (dest == NULL) {
+		if (strbuf_add(files, name, NULL)) {
 			return ENOMEM;
 		}
-
-		mem_copy(dest, C_MAX_PATH, name.data, name.len + 1);
 	}
 #if defined(C_WIN)
 	while (FindNextFileA(find, (LPWIN32_FIND_DATAA)&data));
@@ -576,7 +565,7 @@ static int ofs_lsfile(fs_t *fs, strv_t path, arr_t *files)
 	return 0;
 }
 
-static int vfs_lsfile(fs_t *fs, strv_t path, arr_t *files)
+static int vfs_lsfile(fs_t *fs, strv_t path, strbuf_t *files)
 {
 	uint index = 0;
 	strv_t dir;
@@ -612,12 +601,9 @@ static int vfs_lsfile(fs_t *fs, strv_t path, arr_t *files)
 			continue;
 		}
 
-		char *dest = arr_add(files);
-		if (dest == NULL) {
+		if (strbuf_add(files, name, NULL)) {
 			return ENOMEM;
 		}
-
-		mem_copy(dest, C_MAX_PATH, name.data, name.len + 1);
 	}
 
 	return 0;
@@ -692,7 +678,7 @@ void *fs_open(fs_t *fs, strv_t path, const char *mode)
 
 	if (file == NULL) {
 		int errnum = errno;
-		log_error("cutils", "file", NULL, "failed to open file \"%s\": %s (%d)", path.data, log_strerror(errnum), errnum);
+		log_error("cutils", "file", NULL, "failed to open file : %s: \"%s\"", log_strerror(errnum), buf.data);
 		errno = errnum;
 		return NULL;
 	}
@@ -737,8 +723,8 @@ int fs_mkdir(fs_t *fs, strv_t path)
 	}
 
 	int ret = fs->ops.mkdir(fs, path_trim(STRVN(buf.data, buf.len)));
-	if (ret != 0) {
-		log_error("cutils", "file", NULL, "failed to create directory \"%s\": %s (%d)", buf.data, log_strerror(ret), ret);
+	if (ret) {
+		log_error("cutils", "file", NULL, "failed to create directory: %s: \"%s\"", log_strerror(ret), buf.data);
 	}
 
 	return ret;
@@ -752,8 +738,8 @@ int fs_mkfile(fs_t *fs, strv_t path)
 	}
 
 	int ret = fs->ops.mkfile(fs, STRVN(buf.data, buf.len));
-	if (ret != 0) {
-		log_error("cutils", "file", NULL, "failed to create file \"%s\": %s (%d)", buf.data, log_strerror(ret), ret);
+	if (ret) {
+		log_error("cutils", "file", NULL, "failed to create file: %s: \"%s\"", log_strerror(ret), buf.data);
 	}
 
 	return ret;
@@ -767,8 +753,8 @@ int fs_rmdir(fs_t *fs, strv_t path)
 	}
 
 	int ret = fs->ops.rmdir(fs, path_trim(STRVN(buf.data, buf.len)));
-	if (ret != 0) {
-		log_error("cutils", "file", NULL, "failed to remove directory \"%s\": %s (%d)", buf.data, log_strerror(ret), ret);
+	if (ret) {
+		log_error("cutils", "file", NULL, "failed to remove directory: %s: \"%s\"", log_strerror(ret), buf.data);
 	}
 
 	return ret;
@@ -782,96 +768,47 @@ int fs_rmfile(fs_t *fs, strv_t path)
 	}
 
 	int ret = fs->ops.rmfile(fs, STRVN(buf.data, buf.len));
-	if (ret != 0) {
-		log_error("cutils", "file", NULL, "failed to remove file \"%s\": %s (%d)", buf.data, log_strerror(ret), ret);
+	if (ret) {
+		log_error("cutils", "file", NULL, "failed to remove file: %s: \"%s\"", log_strerror(ret), buf.data);
 	}
 
 	return ret;
 }
 
-static int name_cmp_cb(const void *a, const void *b, const void *priv)
-{
-	(void)priv;
-	return strv_cmp(strv_cstr(a), strv_cstr(b));
-}
-
-int fs_lsdir(fs_t *fs, strv_t path, fs_lsdir_cb cb, void *priv)
+int fs_lsdir(fs_t *fs, strv_t path, strbuf_t *dirs)
 {
 	path = path_trim(path);
 
 	path_t buf = {0};
-	if (fs == NULL || path.data == NULL || path_init(&buf, path) == NULL) {
+	if (fs == NULL || path.data == NULL || path_init(&buf, path) == NULL || dirs == NULL) {
 		return EINVAL;
 	}
 
-	if (cb == NULL) {
-		return 0;
+	int ret = fs->ops.lsdir(fs, STRVN(buf.data, buf.len), dirs);
+	if (ret) {
+		log_error("cutils", "file", NULL, "failed to list directories: %s: \"%s\"", log_strerror(ret), buf.data);
+	} else {
+		strbuf_sort(dirs);
 	}
 
-	arr_t dirs = {0};
-
-	arr_init(&dirs, 32, sizeof(char) * C_MAX_PATH, ALLOC_STD);
-
-	int ret = fs->ops.lsdir(fs, STRVN(buf.data, buf.len), &dirs);
-	if (ret == 0) {
-		const char *file;
-
-		arr_sort(&dirs, name_cmp_cb, NULL);
-		arr_foreach(&dirs, file)
-		{
-			strv_t name = strv_cstr(file);
-			path_child(&buf, name);
-
-			ret = cb(STRV_STR(buf), name, priv);
-
-			buf.len = path.len;
-			if (ret < 0) {
-				break;
-			}
-		}
-	}
-
-	arr_free(&dirs);
 	return ret;
 }
 
-int fs_lsfile(fs_t *fs, strv_t path, fs_lsfile_cb cb, void *priv)
+int fs_lsfile(fs_t *fs, strv_t path, strbuf_t *files)
 {
 	path = path_trim(path);
 
 	path_t buf = {0};
-	if (fs == NULL || path.data == NULL || path_init(&buf, path) == NULL) {
+	if (fs == NULL || path.data == NULL || path_init(&buf, path) == NULL || files == NULL) {
 		return EINVAL;
 	}
 
-	if (cb == NULL) {
-		return 0;
+	int ret = fs->ops.lsfile(fs, STRVN(buf.data, buf.len), files);
+	if (ret) {
+		log_error("cutils", "file", NULL, "failed to list files: %s: \"%s\"", log_strerror(ret), buf.data);
+	} else {
+		strbuf_sort(files);
 	}
-
-	arr_t files = {0};
-
-	arr_init(&files, 32, sizeof(char) * C_MAX_PATH, ALLOC_STD);
-
-	int ret = fs->ops.lsfile(fs, STRVN(buf.data, buf.len), &files);
-	if (ret == 0) {
-		const char *file;
-
-		arr_sort(&files, name_cmp_cb, NULL);
-		arr_foreach(&files, file)
-		{
-			strv_t name = strv_cstr(file);
-			path_child(&buf, name);
-
-			ret = cb(STRV_STR(buf), name, priv);
-
-			buf.len = path.len;
-			if (ret < 0) {
-				break;
-			}
-		}
-	}
-
-	arr_free(&files);
 
 	return ret;
 }
