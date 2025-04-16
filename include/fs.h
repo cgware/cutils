@@ -19,9 +19,9 @@ typedef int (*fs_rmdir_fn)(fs_t *fs, strv_t path);
 typedef int (*fs_rmfile_fn)(fs_t *fs, strv_t path);
 
 typedef int (*fs_lsdir_cb)(strv_t path, strv_t dir, void *priv);
-typedef int (*fs_lsdir_fn)(fs_t *fs, strv_t path, fs_lsdir_cb cb, void *priv);
+typedef int (*fs_lsdir_fn)(fs_t *fs, strv_t path, arr_t *dirs);
 typedef int (*fs_lsfile_cb)(strv_t path, strv_t file, void *priv);
-typedef int (*fs_lsfile_fn)(fs_t *fs, strv_t path, fs_lsfile_cb cb, void *priv);
+typedef int (*fs_lsfile_fn)(fs_t *fs, strv_t path, arr_t *file);
 
 typedef struct fs_ops_s {
 	fs_open_fn open;

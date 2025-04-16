@@ -301,6 +301,19 @@ static int ofs_rmdir(fs_t *fs, strv_t path)
 	return 0;
 }
 
+static strv_t path_trim(strv_t path)
+{
+	if (path.len <= 0) {
+		return path;
+	}
+
+	if (path.data[path.len - 1] == '/' || path.data[path.len - 1] == '\\') {
+		path.len--;
+	}
+
+	return path;
+}
+
 static int vfs_rmdir(fs_t *fs, strv_t path)
 {
 	uint index = -1;
@@ -321,8 +334,8 @@ static int vfs_rmdir(fs_t *fs, strv_t path)
 	strv_t s;
 	strbuf_foreach(&fs->paths, i, s)
 	{
-		strv_t parent = pathv_get_dir(s, NULL);
-		parent.len--;
+		strv_t parent = path_trim(pathv_get_dir(s, NULL));
+
 		if (strv_eq(parent, path)) {
 			return ENOTEMPTY;
 		}
@@ -358,33 +371,48 @@ static int ofs_rmfile(fs_t *fs, strv_t path)
 	return 0;
 }
 
-static int name_cmp_cb(const void *a, const void *b)
+static int vfs_rmfile(fs_t *fs, strv_t path)
 {
-	return strv_cmp(strv_cstr(a), strv_cstr(b));
+	uint index = -1;
+	if (strbuf_get_index(&fs->paths, path, &index)) {
+		return ENOENT;
+	}
+
+	fs_node_t *node = arr_get(&fs->nodes, index);
+	if (node == NULL) {
+		return EINVAL;
+	}
+
+	if (node->type == FS_NODE_TYPE_DIR) {
+		return EISDIR;
+	}
+
+	strbuf_set(&fs->paths, STRV(""), index);
+	return 0;
 }
 
-static int ofs_lsdir(fs_t *fs, strv_t path, fs_lsdir_cb cb, void *priv)
+static int ofs_lsdir(fs_t *fs, strv_t path, arr_t *dirs)
 {
 	(void)fs;
 
-	int ret = 0;
-
-	arr_t dirs = {0};
-
-	arr_init(&dirs, 32, sizeof(char) * C_MAX_PATH, ALLOC_STD);
-
+#if defined(C_WIN)
 	path_t child_path = {0};
 	path_init(&child_path, path);
 
-#if defined(C_WIN)
 	WIN32_FIND_DATA data = {0};
 	HANDLE find	     = NULL;
 
 	path_child(&child_path, STRV("*.*"));
 
 	if ((find = FindFirstFileA(child_path.data, (LPWIN32_FIND_DATAA)&data)) == INVALID_HANDLE_VALUE) {
-		ret = 1;
-		goto exit;
+		DWORD err = GetLastError();
+		if (err == ERROR_PATH_NOT_FOUND) {
+			return ENOENT;
+		} else if (err == ERROR_DIRECTORY) {
+			return ENOTDIR;
+		} else {
+			return -1;
+		}
 	}
 	child_path.len = path.len;
 
@@ -393,8 +421,7 @@ static int ofs_lsdir(fs_t *fs, strv_t path, fs_lsdir_cb cb, void *priv)
 #else
 	DIR *dir = opendir(path.data);
 	if (!dir) {
-		ret = 1;
-		goto exit;
+		return errno;
 	}
 
 	struct dirent *dp;
@@ -415,7 +442,7 @@ static int ofs_lsdir(fs_t *fs, strv_t path, fs_lsdir_cb cb, void *priv)
 			continue;
 		}
 
-		char *dest = arr_add(&dirs);
+		char *dest = arr_add(dirs);
 		if (dest == NULL) {
 			return ENOMEM;
 		}
@@ -430,50 +457,79 @@ static int ofs_lsdir(fs_t *fs, strv_t path, fs_lsdir_cb cb, void *priv)
 	closedir(dir);
 #endif
 
-	const char *file;
-
-	arr_sort(&dirs, name_cmp_cb);
-	arr_foreach(&dirs, file)
-	{
-		strv_t name = strv_cstr(file);
-		path_child(&child_path, name);
-
-		ret = cb(STRV_STR(child_path), name, priv);
-
-		child_path.len = path.len;
-		if (ret < 0) {
-			goto exit;
-		}
-	}
-
-exit:
-	arr_free(&dirs);
-
-	return ret;
+	return 0;
 }
 
-static int ofs_lsfile(fs_t *fs, strv_t path, fs_lsfile_cb cb, void *priv)
+static int vfs_lsdir(fs_t *fs, strv_t path, arr_t *dirs)
+{
+	uint index = 0;
+	strv_t dir;
+
+	if (strbuf_get_index(&fs->paths, path, &index)) {
+		return ENOENT;
+	}
+
+	fs_node_t *node = arr_get(&fs->nodes, index);
+	if (node == NULL) {
+		return EINVAL;
+	}
+
+	if (node->type != FS_NODE_TYPE_DIR) {
+		return ENOTDIR;
+	}
+
+	index = 0;
+	strbuf_foreach(&fs->paths, index, dir)
+	{
+		strv_t name;
+		strv_t parent = path_trim(pathv_get_dir(dir, &name));
+
+		if (!strv_eq(parent, path)) {
+			continue;
+		}
+
+		node = arr_get(&fs->nodes, index);
+		if (node == NULL) {
+			return EINVAL;
+		}
+
+		if (node->type != FS_NODE_TYPE_DIR) {
+			continue;
+		}
+
+		char *dest = arr_add(dirs);
+		if (dest == NULL) {
+			return ENOMEM;
+		}
+
+		mem_copy(dest, C_MAX_PATH, name.data, name.len + 1);
+	}
+
+	return 0;
+}
+
+static int ofs_lsfile(fs_t *fs, strv_t path, arr_t *files)
 {
 	(void)fs;
 
-	int ret = 0;
-
-	arr_t files = {0};
-
-	arr_init(&files, 32, sizeof(char) * C_MAX_PATH, ALLOC_STD);
-
+#if defined(C_WIN)
 	path_t child_path = {0};
 	path_init(&child_path, path);
 
-#if defined(C_WIN)
 	WIN32_FIND_DATA data = {0};
 	HANDLE find	     = NULL;
 
 	path_child(&child_path, STRV("*.*"));
 
 	if ((find = FindFirstFileA(child_path.data, (LPWIN32_FIND_DATAA)&data)) == INVALID_HANDLE_VALUE) {
-		ret = 1;
-		goto exit;
+		DWORD err = GetLastError();
+		if (err == ERROR_PATH_NOT_FOUND) {
+			return ENOENT;
+		} else if (err == ERROR_DIRECTORY) {
+			return ENOTDIR;
+		} else {
+			return -1;
+		}
 	}
 	child_path.len = path.len;
 
@@ -482,8 +538,7 @@ static int ofs_lsfile(fs_t *fs, strv_t path, fs_lsfile_cb cb, void *priv)
 #else
 	DIR *dir = opendir(path.data);
 	if (!dir) {
-		ret = 1;
-		goto exit;
+		return errno;
 	}
 
 	struct dirent *dp;
@@ -504,7 +559,7 @@ static int ofs_lsfile(fs_t *fs, strv_t path, fs_lsfile_cb cb, void *priv)
 			continue;
 		}
 
-		char *dest = arr_add(&files);
+		char *dest = arr_add(files);
 		if (dest == NULL) {
 			return ENOMEM;
 		}
@@ -518,31 +573,14 @@ static int ofs_lsfile(fs_t *fs, strv_t path, fs_lsfile_cb cb, void *priv)
 	closedir(dir);
 #endif
 
-	const char *file;
-
-	arr_sort(&files, name_cmp_cb);
-	arr_foreach(&files, file)
-	{
-		strv_t name = strv_cstr(file);
-		path_child(&child_path, name);
-
-		ret = cb(STRV_STR(child_path), name, priv);
-
-		child_path.len = path.len;
-		if (ret < 0) {
-			goto exit;
-		}
-	}
-
-exit:
-	arr_free(&files);
-
-	return ret;
+	return 0;
 }
 
-static int vfs_rmfile(fs_t *fs, strv_t path)
+static int vfs_lsfile(fs_t *fs, strv_t path, arr_t *files)
 {
-	uint index = -1;
+	uint index = 0;
+	strv_t dir;
+
 	if (strbuf_get_index(&fs->paths, path, &index)) {
 		return ENOENT;
 	}
@@ -552,11 +590,36 @@ static int vfs_rmfile(fs_t *fs, strv_t path)
 		return EINVAL;
 	}
 
-	if (node->type == FS_NODE_TYPE_DIR) {
-		return EISDIR;
+	if (node->type != FS_NODE_TYPE_DIR) {
+		return ENOTDIR;
 	}
 
-	strbuf_set(&fs->paths, STRV(""), index);
+	strbuf_foreach(&fs->paths, index, dir)
+	{
+		strv_t name;
+		strv_t parent = path_trim(pathv_get_dir(dir, &name));
+
+		if (!strv_eq(parent, path)) {
+			continue;
+		}
+
+		node = arr_get(&fs->nodes, index);
+		if (node == NULL) {
+			return EINVAL;
+		}
+
+		if (node->type != FS_NODE_TYPE_FILE) {
+			continue;
+		}
+
+		char *dest = arr_add(files);
+		if (dest == NULL) {
+			return ENOMEM;
+		}
+
+		mem_copy(dest, C_MAX_PATH, name.data, name.len + 1);
+	}
+
 	return 0;
 }
 
@@ -584,6 +647,8 @@ static const fs_ops_t s_fs_ops[] = {
 			.mkfile = vfs_mkfile,
 			.rmdir	= vfs_rmdir,
 			.rmfile = vfs_rmfile,
+			.lsdir	= vfs_lsdir,
+			.lsfile = vfs_lsfile,
 		},
 };
 
@@ -651,7 +716,7 @@ int fs_isdir(fs_t *fs, strv_t path)
 		return 0;
 	}
 
-	return fs->ops.isdir(fs, STRVN(buf.data, buf.len));
+	return fs->ops.isdir(fs, path_trim(STRVN(buf.data, buf.len)));
 }
 
 int fs_isfile(fs_t *fs, strv_t path)
@@ -671,7 +736,7 @@ int fs_mkdir(fs_t *fs, strv_t path)
 		return EINVAL;
 	}
 
-	int ret = fs->ops.mkdir(fs, STRVN(buf.data, buf.len));
+	int ret = fs->ops.mkdir(fs, path_trim(STRVN(buf.data, buf.len)));
 	if (ret != 0) {
 		log_error("cutils", "file", NULL, "failed to create directory \"%s\": %s (%d)", buf.data, log_strerror(ret), ret);
 	}
@@ -701,7 +766,7 @@ int fs_rmdir(fs_t *fs, strv_t path)
 		return EINVAL;
 	}
 
-	int ret = fs->ops.rmdir(fs, STRVN(buf.data, buf.len));
+	int ret = fs->ops.rmdir(fs, path_trim(STRVN(buf.data, buf.len)));
 	if (ret != 0) {
 		log_error("cutils", "file", NULL, "failed to remove directory \"%s\": %s (%d)", buf.data, log_strerror(ret), ret);
 	}
@@ -724,8 +789,15 @@ int fs_rmfile(fs_t *fs, strv_t path)
 	return ret;
 }
 
+static int name_cmp_cb(const void *a, const void *b)
+{
+	return strv_cmp(strv_cstr(a), strv_cstr(b));
+}
+
 int fs_lsdir(fs_t *fs, strv_t path, fs_lsdir_cb cb, void *priv)
 {
+	path = path_trim(path);
+
 	path_t buf = {0};
 	if (fs == NULL || path.data == NULL || path_init(&buf, path) == NULL) {
 		return EINVAL;
@@ -735,11 +807,37 @@ int fs_lsdir(fs_t *fs, strv_t path, fs_lsdir_cb cb, void *priv)
 		return 0;
 	}
 
-	return fs->ops.lsdir(fs, STRVN(buf.data, buf.len), cb, priv);
+	arr_t dirs = {0};
+
+	arr_init(&dirs, 32, sizeof(char) * C_MAX_PATH, ALLOC_STD);
+
+	int ret = fs->ops.lsdir(fs, STRVN(buf.data, buf.len), &dirs);
+	if (ret == 0) {
+		const char *file;
+
+		arr_sort(&dirs, name_cmp_cb);
+		arr_foreach(&dirs, file)
+		{
+			strv_t name = strv_cstr(file);
+			path_child(&buf, name);
+
+			ret = cb(STRV_STR(buf), name, priv);
+
+			buf.len = path.len;
+			if (ret < 0) {
+				break;
+			}
+		}
+	}
+
+	arr_free(&dirs);
+	return ret;
 }
 
 int fs_lsfile(fs_t *fs, strv_t path, fs_lsfile_cb cb, void *priv)
 {
+	path = path_trim(path);
+
 	path_t buf = {0};
 	if (fs == NULL || path.data == NULL || path_init(&buf, path) == NULL) {
 		return EINVAL;
@@ -749,5 +847,30 @@ int fs_lsfile(fs_t *fs, strv_t path, fs_lsfile_cb cb, void *priv)
 		return 0;
 	}
 
-	return fs->ops.lsfile(fs, STRVN(buf.data, buf.len), cb, priv);
+	arr_t files = {0};
+
+	arr_init(&files, 32, sizeof(char) * C_MAX_PATH, ALLOC_STD);
+
+	int ret = fs->ops.lsfile(fs, STRVN(buf.data, buf.len), &files);
+	if (ret == 0) {
+		const char *file;
+
+		arr_sort(&files, name_cmp_cb);
+		arr_foreach(&files, file)
+		{
+			strv_t name = strv_cstr(file);
+			path_child(&buf, name);
+
+			ret = cb(STRV_STR(buf), name, priv);
+
+			buf.len = path.len;
+			if (ret < 0) {
+				break;
+			}
+		}
+	}
+
+	arr_free(&files);
+
+	return ret;
 }
