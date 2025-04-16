@@ -11,7 +11,7 @@ typedef struct strbuf_s {
 	arr_t off;
 } strbuf_t;
 
-strbuf_t *strbuf_init(strbuf_t *buf, uint cap, size_t size, alloc_t alloc);
+strbuf_t *strbuf_init(strbuf_t *buf, uint cap, size_t len, alloc_t alloc);
 void strbuf_free(strbuf_t *buf);
 
 void strbuf_reset(strbuf_t *buf, uint cnt);

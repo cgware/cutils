@@ -18,7 +18,7 @@ TEST(strbuf_init_free)
 	EXPECT_EQ(strbuf_init(&strbuf, 1, 1, ALLOC_STD), &strbuf);
 
 	EXPECT_NE(strbuf.buf.data, NULL);
-	EXPECT_EQ(strbuf.buf.size, sizeof(char) * 1);
+	EXPECT_EQ(strbuf.buf.size, sizeof(size_t) + sizeof(char) * 1);
 	EXPECT_EQ(strbuf.buf.used, 0);
 
 	strbuf_free(NULL);
