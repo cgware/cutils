@@ -789,8 +789,9 @@ int fs_rmfile(fs_t *fs, strv_t path)
 	return ret;
 }
 
-static int name_cmp_cb(const void *a, const void *b)
+static int name_cmp_cb(const void *a, const void *b, const void *priv)
 {
+	(void)priv;
 	return strv_cmp(strv_cstr(a), strv_cstr(b));
 }
 
@@ -815,7 +816,7 @@ int fs_lsdir(fs_t *fs, strv_t path, fs_lsdir_cb cb, void *priv)
 	if (ret == 0) {
 		const char *file;
 
-		arr_sort(&dirs, name_cmp_cb);
+		arr_sort(&dirs, name_cmp_cb, NULL);
 		arr_foreach(&dirs, file)
 		{
 			strv_t name = strv_cstr(file);
@@ -855,7 +856,7 @@ int fs_lsfile(fs_t *fs, strv_t path, fs_lsfile_cb cb, void *priv)
 	if (ret == 0) {
 		const char *file;
 
-		arr_sort(&files, name_cmp_cb);
+		arr_sort(&files, name_cmp_cb, NULL);
 		arr_foreach(&files, file)
 		{
 			strv_t name = strv_cstr(file);

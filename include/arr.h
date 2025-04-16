@@ -31,8 +31,8 @@ uint arr_addu(arr_t *arr, const void *value);
 
 uint arr_index(const arr_t *arr, const void *value);
 
-typedef int (*arr_cmp_cb)(const void *value1, const void *value2);
-uint arr_index_cmp(const arr_t *arr, const void *value, arr_cmp_cb cb);
+typedef int (*arr_cmp_cb)(const void *value1, const void *value2, const void *priv);
+uint arr_index_cmp(const arr_t *arr, const void *value, arr_cmp_cb cb, const void *priv);
 
 arr_t *arr_add_all(arr_t *arr, const arr_t *src);
 
@@ -42,7 +42,7 @@ arr_t *arr_merge_all(arr_t *arr, const arr_t *arr1, const arr_t *arr2);
 
 arr_t *arr_merge_unique(arr_t *arr, const arr_t *arr1, const arr_t *arr2);
 
-arr_t *arr_sort(arr_t *arr, arr_cmp_cb cb);
+arr_t *arr_sort(arr_t *arr, arr_cmp_cb cb, const void *priv);
 
 typedef int (*arr_print_cb)(void *value, print_dst_t dst, const void *priv);
 int arr_print(const arr_t *arr, arr_print_cb cb, print_dst_t dst, const void *priv);

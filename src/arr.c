@@ -164,14 +164,14 @@ uint arr_index(const arr_t *arr, const void *value)
 	return ARR_END;
 }
 
-uint arr_index_cmp(const arr_t *arr, const void *value, arr_cmp_cb cb)
+uint arr_index_cmp(const arr_t *arr, const void *value, arr_cmp_cb cb, const void *priv)
 {
 	if (arr == NULL || value == NULL || cb == NULL) {
 		return ARR_END;
 	}
 
 	for (uint i = 0; i < arr->cnt; i++) {
-		if (cb(arr_get(arr, i), value)) {
+		if (cb(arr_get(arr, i), value, priv)) {
 			return i;
 		}
 	}
@@ -240,7 +240,7 @@ arr_t *arr_merge_unique(arr_t *arr, const arr_t *arr1, const arr_t *arr2)
 	return arr;
 }
 
-arr_t *arr_sort(arr_t *arr, arr_cmp_cb cb)
+arr_t *arr_sort(arr_t *arr, arr_cmp_cb cb, const void *priv)
 {
 	if (arr == NULL) {
 		return NULL;
@@ -250,15 +250,15 @@ arr_t *arr_sort(arr_t *arr, arr_cmp_cb cb)
 		return arr;
 	}
 
-	void *value1;
-	arr_foreach(arr, value1)
+	void *v1;
+	arr_foreach(arr, v1)
 	{
-		void *value2;
+		void *v2;
 		uint j = _i + 1;
-		arr_foreach_i(arr, value2, j)
+		arr_foreach_i(arr, v2, j)
 		{
-			if (cb(value1, value2) > 0) {
-				mem_swap(value1, value2, arr->size);
+			if (cb(v1, v2, priv) > 0) {
+				mem_swap(v1, v2, arr->size);
 			}
 		}
 	}

@@ -329,8 +329,9 @@ int folder_exists_f(const char *format, ...)
 	return exists;
 }
 
-static int name_cmp_cb(const void *a, const void *b)
+static int name_cmp_cb(const void *a, const void *b, const void *priv)
 {
+	(void)priv;
 	return strcmp(a, b);
 }
 
@@ -419,7 +420,7 @@ int files_foreach(const path_t *path, files_foreach_cb on_folder, files_foreach_
 
 	const char *name;
 	if (on_file) {
-		arr_sort(&files, name_cmp_cb);
+		arr_sort(&files, name_cmp_cb, NULL);
 		arr_foreach(&files, name)
 		{
 			path_child(&child_path, STRVN(name, cstr_len(name)));
@@ -434,7 +435,7 @@ int files_foreach(const path_t *path, files_foreach_cb on_folder, files_foreach_
 	}
 
 	if (on_folder) {
-		arr_sort(&dirs, name_cmp_cb);
+		arr_sort(&dirs, name_cmp_cb, NULL);
 		arr_foreach(&dirs, name)
 		{
 			path_child(&child_path, STRVN(name, cstr_len(name)));

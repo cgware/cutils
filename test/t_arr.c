@@ -196,8 +196,9 @@ TEST(arr_index)
 	END;
 }
 
-static int index_cmp_cb(const void *value1, const void *value2)
+static int index_cmp_cb(const void *value1, const void *value2, const void *priv)
 {
+	(void)priv;
 	return *(int *)value1 == *(int *)value2;
 }
 
@@ -215,12 +216,12 @@ TEST(arr_index_cmp)
 	*(int *)arr_add(&arr) = value0;
 	*(int *)arr_add(&arr) = value1;
 
-	EXPECT_EQ(arr_index_cmp(NULL, NULL, NULL), ARR_END);
-	EXPECT_EQ(arr_index_cmp(&arr, NULL, NULL), ARR_END);
-	EXPECT_EQ(arr_index_cmp(&arr, &value0, NULL), ARR_END);
-	EXPECT_EQ(arr_index_cmp(&arr, &value2, index_cmp_cb), ARR_END);
-	EXPECT_EQ(arr_index_cmp(&arr, &value0, index_cmp_cb), 0);
-	EXPECT_EQ(arr_index_cmp(&arr, &value1, index_cmp_cb), 1);
+	EXPECT_EQ(arr_index_cmp(NULL, NULL, NULL, NULL), ARR_END);
+	EXPECT_EQ(arr_index_cmp(&arr, NULL, NULL, NULL), ARR_END);
+	EXPECT_EQ(arr_index_cmp(&arr, &value0, NULL, NULL), ARR_END);
+	EXPECT_EQ(arr_index_cmp(&arr, &value2, index_cmp_cb, NULL), ARR_END);
+	EXPECT_EQ(arr_index_cmp(&arr, &value0, index_cmp_cb, NULL), 0);
+	EXPECT_EQ(arr_index_cmp(&arr, &value1, index_cmp_cb, NULL), 1);
 
 	arr_free(&arr);
 
@@ -382,8 +383,9 @@ TEST(arr_merge_unique)
 	END;
 }
 
-static int t_arr_sort_cb(const void *a, const void *b)
+static int t_arr_sort_cb(const void *a, const void *b, const void *priv)
 {
+	(void)priv;
 	return cstr_cmp(a, 1, b, 1);
 }
 
@@ -399,9 +401,9 @@ TEST(arr_sort)
 	arr_addv(&arr, "b");
 	arr_addv(&arr, "a");
 
-	EXPECT_EQ(arr_sort(NULL, NULL), NULL);
-	EXPECT_EQ(arr_sort(&arr, NULL), &arr);
-	EXPECT_EQ(arr_sort(&arr, t_arr_sort_cb), &arr);
+	EXPECT_EQ(arr_sort(NULL, NULL, NULL), NULL);
+	EXPECT_EQ(arr_sort(&arr, NULL, NULL), &arr);
+	EXPECT_EQ(arr_sort(&arr, t_arr_sort_cb, NULL), &arr);
 
 	EXPECT_STR(arr_get(&arr, 0), "a");
 	EXPECT_STR(arr_get(&arr, 1), "b");
