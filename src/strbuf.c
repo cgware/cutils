@@ -171,3 +171,24 @@ int strbuf_app(strbuf_t *buf, strv_t strv, uint index)
 
 	return 0;
 }
+
+static int cmp(const void *v1, const void *v2, const void *priv)
+{
+	const buf_t *buf = priv;
+
+	const void *p1 = buf_get(buf, *(size_t *)v1);
+	const void *p2 = buf_get(buf, *(size_t *)v2);
+
+	return strv_cmp(STRVN((const char *)p1, *((const size_t *)p1 - 1)), STRVN((const char *)p2, *((const size_t *)p2 - 1)));
+}
+
+strbuf_t *strbuf_sort(strbuf_t *buf)
+{
+	if (buf == NULL) {
+		return NULL;
+	}
+
+	arr_sort(&buf->off, cmp, &buf->buf);
+
+	return buf;
+}

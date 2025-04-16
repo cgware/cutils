@@ -24,6 +24,8 @@ int strbuf_get_index(const strbuf_t *buf, strv_t strv, uint *index);
 int strbuf_set(strbuf_t *buf, strv_t strv, uint index);
 int strbuf_app(strbuf_t *buf, strv_t strv, uint index);
 
+strbuf_t *strbuf_sort(strbuf_t *buf);
+
 #define strbuf_foreach(_buf, _i, _strv) for (; _i < (_buf)->off.cnt && (_strv = strbuf_get(_buf, _i), 1); _i++)
 
 #endif

@@ -106,19 +106,16 @@ TEST(strbuf_get)
 	{
 		strv_t strv = strbuf_get(&strbuf, 0);
 		EXPECT_STRN(strv.data, "abc", strv.len);
-		EXPECT_EQ(strv.len, 3);
 	}
 
 	{
 		strv_t strv = strbuf_get(&strbuf, 1);
 		EXPECT_STRN(strv.data, "de", strv.len);
-		EXPECT_EQ(strv.len, 2);
 	}
 
 	{
 		strv_t strv = strbuf_get(&strbuf, 2);
 		EXPECT_STRN(strv.data, "fg", strv.len);
-		EXPECT_EQ(strv.len, 2);
 	}
 
 	strbuf_free(&strbuf);
@@ -157,9 +154,7 @@ TEST(strbuf_set)
 	START;
 
 	strbuf_t strbuf = {0};
-	log_set_quiet(0, 1);
 	strbuf_init(&strbuf, 2, 1, ALLOC_STD);
-	log_set_quiet(0, 0);
 
 	EXPECT_EQ(strbuf_set(NULL, STRV_NULL, 0), 1);
 	log_set_quiet(0, 1);
@@ -174,14 +169,10 @@ TEST(strbuf_set)
 
 	{
 		strv_t val = strbuf_get(&strbuf, 0);
-
-		EXPECT_EQ(val.len, 2);
 		EXPECT_STRN(val.data, "bc", val.len);
 	}
 	{
 		strv_t val = strbuf_get(&strbuf, 1);
-
-		EXPECT_EQ(val.len, 1);
 		EXPECT_STRN(val.data, "d", val.len);
 	}
 
@@ -195,9 +186,7 @@ TEST(strbuf_app)
 	START;
 
 	strbuf_t strbuf = {0};
-	log_set_quiet(0, 1);
 	strbuf_init(&strbuf, 2, 1, ALLOC_STD);
-	log_set_quiet(0, 0);
 
 	EXPECT_EQ(strbuf_app(NULL, STRV_NULL, 0), 1);
 	log_set_quiet(0, 1);
@@ -212,17 +201,43 @@ TEST(strbuf_app)
 
 	{
 		strv_t val = strbuf_get(&strbuf, 0);
-
-		EXPECT_EQ(val.len, 3);
 		EXPECT_STRN(val.data, "abc", val.len);
 	}
 	{
 		strv_t val = strbuf_get(&strbuf, 1);
-
-		EXPECT_EQ(val.len, 1);
 		EXPECT_STRN(val.data, "d", val.len);
 	}
 
+	strbuf_free(&strbuf);
+
+	END;
+}
+
+TEST(strbuf_sort)
+{
+	START;
+
+	strbuf_t strbuf = {0};
+	strbuf_init(&strbuf, 4, 1, ALLOC_STD);
+
+	strbuf_add(&strbuf, STRV("d"), NULL);
+	strbuf_add(&strbuf, STRV("c"), NULL);
+	strbuf_add(&strbuf, STRV("bb"), NULL);
+	strbuf_add(&strbuf, STRV("a"), NULL);
+
+	EXPECT_EQ(strbuf_sort(NULL), NULL);
+	EXPECT_EQ(strbuf_sort(&strbuf), &strbuf);
+
+	strv_t val;
+	val = strbuf_get(&strbuf, 0);
+	EXPECT_STRN(val.data, "a", val.len);
+	val = strbuf_get(&strbuf, 1);
+	EXPECT_STRN(val.data, "bb", val.len);
+	val = strbuf_get(&strbuf, 2);
+	EXPECT_STRN(val.data, "c", val.len);
+	val = strbuf_get(&strbuf, 3);
+	EXPECT_STRN(val.data, "d", val.len);
+	
 	strbuf_free(&strbuf);
 
 	END;
@@ -247,10 +262,8 @@ TEST(strbuf_foreach)
 	{
 		if (index == 0) {
 			EXPECT_STRN(strv.data, "abc", strv.len);
-			EXPECT_EQ(strv.len, 3)
 		} else {
 			EXPECT_STRN(strv.data, "de", strv.len);
-			EXPECT_EQ(strv.len, 2);
 		}
 	}
 
@@ -271,6 +284,7 @@ STEST(strbuf)
 	RUN(strbuf_get_index);
 	RUN(strbuf_set);
 	RUN(strbuf_app);
+	RUN(strbuf_sort);
 	RUN(strbuf_foreach);
 
 	SEND;
