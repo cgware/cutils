@@ -173,7 +173,7 @@ TEST(arr_addu)
 	END;
 }
 
-TEST(arr_index)
+TEST(arr_find)
 {
 	START;
 
@@ -186,10 +186,10 @@ TEST(arr_index)
 	*(int *)arr_add(&arr) = value0;
 	*(int *)arr_add(&arr) = value1;
 
-	EXPECT_EQ(arr_index(NULL, NULL), ARR_END);
-	EXPECT_EQ(arr_index(&arr, NULL), ARR_END);
-	EXPECT_EQ(arr_index(&arr, &value0), 0);
-	EXPECT_EQ(arr_index(&arr, &value1), 1);
+	EXPECT_EQ(arr_find(NULL, NULL), ARR_END);
+	EXPECT_EQ(arr_find(&arr, NULL), ARR_END);
+	EXPECT_EQ(arr_find(&arr, &value0), 0);
+	EXPECT_EQ(arr_find(&arr, &value1), 1);
 
 	arr_free(&arr);
 
@@ -202,7 +202,7 @@ static int index_cmp_cb(const void *value1, const void *value2, const void *priv
 	return *(int *)value1 == *(int *)value2;
 }
 
-TEST(arr_index_cmp)
+TEST(arr_find_cmp)
 {
 	START;
 
@@ -216,12 +216,12 @@ TEST(arr_index_cmp)
 	*(int *)arr_add(&arr) = value0;
 	*(int *)arr_add(&arr) = value1;
 
-	EXPECT_EQ(arr_index_cmp(NULL, NULL, NULL, NULL), ARR_END);
-	EXPECT_EQ(arr_index_cmp(&arr, NULL, NULL, NULL), ARR_END);
-	EXPECT_EQ(arr_index_cmp(&arr, &value0, NULL, NULL), ARR_END);
-	EXPECT_EQ(arr_index_cmp(&arr, &value2, index_cmp_cb, NULL), ARR_END);
-	EXPECT_EQ(arr_index_cmp(&arr, &value0, index_cmp_cb, NULL), 0);
-	EXPECT_EQ(arr_index_cmp(&arr, &value1, index_cmp_cb, NULL), 1);
+	EXPECT_EQ(arr_find_cmp(NULL, NULL, NULL, NULL), ARR_END);
+	EXPECT_EQ(arr_find_cmp(&arr, NULL, NULL, NULL), ARR_END);
+	EXPECT_EQ(arr_find_cmp(&arr, &value0, NULL, NULL), ARR_END);
+	EXPECT_EQ(arr_find_cmp(&arr, &value2, index_cmp_cb, NULL), ARR_END);
+	EXPECT_EQ(arr_find_cmp(&arr, &value0, index_cmp_cb, NULL), 0);
+	EXPECT_EQ(arr_find_cmp(&arr, &value1, index_cmp_cb, NULL), 1);
 
 	arr_free(&arr);
 
@@ -483,8 +483,8 @@ STEST(arr)
 	RUN(arr_set);
 	RUN(arr_addv);
 	RUN(arr_addu);
-	RUN(arr_index);
-	RUN(arr_index_cmp);
+	RUN(arr_find);
+	RUN(arr_find_cmp);
 	RUN(arr_add_all);
 	RUN(arr_add_unique);
 	RUN(arr_merge_all);

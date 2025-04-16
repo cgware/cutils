@@ -61,8 +61,8 @@ static void *vfs_open(fs_t *fs, strv_t path, const char *mode)
 		return NULL;
 	}
 
-	uint index = -1;
-	if (strbuf_get_index(&fs->paths, path, &index)) {
+	uint index;
+	if (strbuf_find(&fs->paths, path, &index)) {
 		strv_t name = {0};
 		strv_t dir  = pathv_get_dir(path, &name);
 
@@ -138,7 +138,7 @@ static int ofs_isdir(fs_t *fs, strv_t path)
 static int vfs_isdir(fs_t *fs, strv_t path)
 {
 	uint index = -1;
-	if (strbuf_get_index(&fs->paths, path, &index)) {
+	if (strbuf_find(&fs->paths, path, &index)) {
 		return 0;
 	}
 
@@ -174,7 +174,7 @@ static int ofs_isfile(fs_t *fs, strv_t path)
 static int vfs_isfile(fs_t *fs, strv_t path)
 {
 	uint index = -1;
-	if (strbuf_get_index(&fs->paths, path, &index)) {
+	if (strbuf_find(&fs->paths, path, &index)) {
 		return 0;
 	}
 
@@ -214,7 +214,7 @@ static int ofs_mkdir(fs_t *fs, strv_t path)
 
 static int vfs_mkdir(fs_t *fs, strv_t path)
 {
-	if (strbuf_get_index(&fs->paths, path, NULL) == 0) {
+	if (strbuf_find(&fs->paths, path, NULL) == 0) {
 		return EEXIST;
 	}
 
@@ -258,7 +258,7 @@ static int ofs_mkfile(fs_t *fs, strv_t path)
 
 static int vfs_mkfile(fs_t *fs, strv_t path)
 {
-	if (strbuf_get_index(&fs->paths, path, NULL) == 0) {
+	if (strbuf_find(&fs->paths, path, NULL) == 0) {
 		return EEXIST;
 	}
 
@@ -316,7 +316,7 @@ static strv_t path_trim(strv_t path)
 static int vfs_rmdir(fs_t *fs, strv_t path)
 {
 	uint index = -1;
-	if (strbuf_get_index(&fs->paths, path, &index)) {
+	if (strbuf_find(&fs->paths, path, &index)) {
 		return ENOENT;
 	}
 
@@ -373,7 +373,7 @@ static int ofs_rmfile(fs_t *fs, strv_t path)
 static int vfs_rmfile(fs_t *fs, strv_t path)
 {
 	uint index = -1;
-	if (strbuf_get_index(&fs->paths, path, &index)) {
+	if (strbuf_find(&fs->paths, path, &index)) {
 		return ENOENT;
 	}
 
@@ -460,7 +460,7 @@ static int vfs_lsdir(fs_t *fs, strv_t path, strbuf_t *dirs)
 	uint index = 0;
 	strv_t dir;
 
-	if (strbuf_get_index(&fs->paths, path, &index)) {
+	if (strbuf_find(&fs->paths, path, &index)) {
 		return ENOENT;
 	}
 
@@ -570,7 +570,7 @@ static int vfs_lsfile(fs_t *fs, strv_t path, strbuf_t *files)
 	uint index = 0;
 	strv_t dir;
 
-	if (strbuf_get_index(&fs->paths, path, &index)) {
+	if (strbuf_find(&fs->paths, path, &index)) {
 		return ENOENT;
 	}
 

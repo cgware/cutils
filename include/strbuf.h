@@ -19,7 +19,7 @@ void strbuf_reset(strbuf_t *buf, uint cnt);
 int strbuf_add(strbuf_t *buf, strv_t strv, uint *index);
 
 strv_t strbuf_get(const strbuf_t *buf, uint index);
-int strbuf_get_index(const strbuf_t *buf, strv_t strv, uint *index);
+int strbuf_find(const strbuf_t *buf, strv_t strv, uint *index);
 
 int strbuf_set(strbuf_t *buf, strv_t strv, uint index);
 int strbuf_app(strbuf_t *buf, strv_t strv, uint index);

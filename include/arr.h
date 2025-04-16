@@ -29,10 +29,10 @@ void *arr_set(arr_t *arr, uint index, const void *value);
 uint arr_addv(arr_t *arr, const void *value);
 uint arr_addu(arr_t *arr, const void *value);
 
-uint arr_index(const arr_t *arr, const void *value);
+uint arr_find(const arr_t *arr, const void *value);
 
 typedef int (*arr_cmp_cb)(const void *value1, const void *value2, const void *priv);
-uint arr_index_cmp(const arr_t *arr, const void *value, arr_cmp_cb cb, const void *priv);
+uint arr_find_cmp(const arr_t *arr, const void *value, arr_cmp_cb cb, const void *priv);
 
 arr_t *arr_add_all(arr_t *arr, const arr_t *src);
 

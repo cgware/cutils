@@ -88,7 +88,7 @@ strv_t strbuf_get(const strbuf_t *buf, uint index)
 	};
 }
 
-int strbuf_get_index(const strbuf_t *buf, strv_t strv, uint *index)
+int strbuf_find(const strbuf_t *buf, strv_t strv, uint *index)
 {
 	if (buf == NULL) {
 		return 1;
@@ -127,7 +127,7 @@ int strbuf_set(strbuf_t *buf, strv_t strv, uint index)
 		return 1;
 	}
 
-	off  = arr_get(&buf->off, index);
+	off = arr_get(&buf->off, index);
 	len = (size_t *)buf_get(&buf->buf, *off) - 1;
 
 	index++;

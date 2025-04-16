@@ -141,7 +141,7 @@ uint arr_addu(arr_t *arr, const void *value)
 		return ARR_END;
 	}
 
-	uint index = arr_index(arr, value);
+	uint index = arr_find(arr, value);
 	if (index < arr->cnt) {
 		return index;
 	}
@@ -149,7 +149,7 @@ uint arr_addu(arr_t *arr, const void *value)
 	return arr_addv(arr, value);
 }
 
-uint arr_index(const arr_t *arr, const void *value)
+uint arr_find(const arr_t *arr, const void *value)
 {
 	if (arr == NULL || value == NULL) {
 		return ARR_END;
@@ -164,7 +164,7 @@ uint arr_index(const arr_t *arr, const void *value)
 	return ARR_END;
 }
 
-uint arr_index_cmp(const arr_t *arr, const void *value, arr_cmp_cb cb, const void *priv)
+uint arr_find_cmp(const arr_t *arr, const void *value, arr_cmp_cb cb, const void *priv)
 {
 	if (arr == NULL || value == NULL || cb == NULL) {
 		return ARR_END;

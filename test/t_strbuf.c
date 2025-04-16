@@ -123,7 +123,7 @@ TEST(strbuf_get)
 	END;
 }
 
-TEST(strbuf_get_index)
+TEST(strbuf_find)
 {
 	START;
 
@@ -137,11 +137,11 @@ TEST(strbuf_get_index)
 
 	uint index;
 
-	EXPECT_EQ(strbuf_get_index(NULL, STRV("abc"), &index), 1);
+	EXPECT_EQ(strbuf_find(NULL, STRV("abc"), &index), 1);
 	log_set_quiet(0, 1);
-	EXPECT_EQ(strbuf_get_index(&strbuf, STRVN("abc", 2), &index), 1);
+	EXPECT_EQ(strbuf_find(&strbuf, STRVN("abc", 2), &index), 1);
 	log_set_quiet(0, 0);
-	EXPECT_EQ(strbuf_get_index(&strbuf, STRV("de"), &index), 0);
+	EXPECT_EQ(strbuf_find(&strbuf, STRV("de"), &index), 0);
 	EXPECT_EQ(index, 1);
 
 	strbuf_free(&strbuf);
@@ -237,7 +237,7 @@ TEST(strbuf_sort)
 	EXPECT_STRN(val.data, "c", val.len);
 	val = strbuf_get(&strbuf, 3);
 	EXPECT_STRN(val.data, "d", val.len);
-	
+
 	strbuf_free(&strbuf);
 
 	END;
@@ -281,7 +281,7 @@ STEST(strbuf)
 	RUN(strbuf_add);
 	RUN(strbuf_add_off);
 	RUN(strbuf_get);
-	RUN(strbuf_get_index);
+	RUN(strbuf_find);
 	RUN(strbuf_set);
 	RUN(strbuf_app);
 	RUN(strbuf_sort);
