@@ -4,15 +4,6 @@
 #include "mem.h"
 #include "test.h"
 
-TEST(str_null)
-{
-	START;
-
-	EXPECT_EQ(str_null().data, NULL);
-
-	END;
-}
-
 TEST(strz)
 {
 	START;
@@ -23,24 +14,6 @@ TEST(strz)
 	str_t str = strz(1);
 
 	str_free(&str);
-
-	END;
-}
-
-TEST(strc)
-{
-	START;
-
-	strc(NULL, 0);
-
-	END;
-}
-
-TEST(strs)
-{
-	START;
-
-	strs(STR(NULL));
 
 	END;
 }
@@ -57,7 +30,6 @@ TEST(strn)
 	EXPECT_STR(str.data, "ab");
 	EXPECT_EQ(str.size, 16);
 	EXPECT_EQ(str.len, 2);
-	EXPECT_EQ(str.ref, 0);
 
 	str_free(&str);
 
@@ -79,57 +51,12 @@ TEST(strf)
 	EXPECT_STR(str.data, "a");
 	EXPECT_EQ(str.size, 2);
 	EXPECT_EQ(str.len, 1);
-	EXPECT_EQ(str.ref, 0);
 
 	str_free(&str);
 
 	EXPECT_STR(str.data, NULL);
 	EXPECT_EQ(str.size, 0);
 	EXPECT_EQ(str.len, 0);
-	EXPECT_EQ(str.ref, 0);
-
-	END;
-}
-
-TEST(strb)
-{
-	START;
-
-	char buf[16] = "abc";
-	str_t str    = strb(buf, sizeof(buf), 3);
-
-	EXPECT_STR(str.data, "abc");
-	EXPECT_EQ(str.size, 16);
-	EXPECT_EQ(str.len, 3);
-	EXPECT_EQ(str.ref, 1);
-
-	str_free(&str);
-
-	EXPECT_STR(str.data, NULL);
-	EXPECT_EQ(str.size, 0);
-	EXPECT_EQ(str.len, 0);
-	EXPECT_EQ(str.ref, 1);
-
-	END;
-}
-
-TEST(strr)
-{
-	START;
-
-	str_t str = strr();
-
-	EXPECT_STR(str.data, NULL);
-	EXPECT_EQ(str.size, 0);
-	EXPECT_EQ(str.len, 0);
-	EXPECT_EQ(str.ref, 1);
-
-	str_free(&str);
-
-	EXPECT_STR(str.data, NULL);
-	EXPECT_EQ(str.size, 0);
-	EXPECT_EQ(str.len, 0);
-	EXPECT_EQ(str.ref, 1);
 
 	END;
 }
@@ -143,7 +70,6 @@ TEST(str_free)
 	EXPECT_STR(str.data, "");
 	EXPECT_EQ(str.size, 16);
 	EXPECT_EQ(str.len, 0);
-	EXPECT_EQ(str.ref, 0);
 
 	str_free(NULL);
 	str_free(&str);
@@ -151,7 +77,6 @@ TEST(str_free)
 	EXPECT_STR(str.data, NULL);
 	EXPECT_EQ(str.size, 0);
 	EXPECT_EQ(str.len, 0);
-	EXPECT_EQ(str.ref, 0);
 
 	END;
 }
@@ -192,12 +117,10 @@ TEST(str_cat)
 {
 	START;
 
-	str_t ref = strc("abc", 3);
-	str_t str = strn("abc", 3, 4);
+	str_t str = STR("abc");
 
 	EXPECT_EQ(str_cat(NULL, STRV("")), NULL);
 	EXPECT_EQ(str_cat(&str, STRV_NULL), NULL);
-	EXPECT_EQ(str_cat(&ref, STRVN("def", 2)), NULL);
 	mem_oom(1);
 	EXPECT_EQ(str_cat(&str, STRVN("def", 2)), NULL);
 	mem_oom(0);
@@ -206,116 +129,8 @@ TEST(str_cat)
 	EXPECT_STR(str.data, "abcde");
 	EXPECT_EQ(str.size, 6);
 	EXPECT_EQ(str.len, 5);
-	EXPECT_EQ(str.ref, 0);
 
 	str_free(&str);
-
-	END;
-}
-
-TEST(str_cmpn)
-{
-	START;
-
-	str_t str = strn("abc", 3, 16);
-
-	EXPECT_EQ(str_cmpn(str, STRV("abc"), 0), 0);
-	EXPECT_EQ(str_cmpn(str, STRV("abc"), 3), 0);
-
-	str_free(&str);
-
-	END;
-}
-
-TEST(str_cmp)
-{
-	START;
-
-	str_t str = strn("abc", 3, 16);
-	str_t src = strn("abc", 3, 16);
-
-	EXPECT_EQ(str_cmp(str, STRV("abc")), 0);
-
-	str_free(&str);
-	str_free(&src);
-
-	END;
-}
-
-TEST(str_chr)
-{
-	START;
-
-	str_t str = strc("a:b:c", 5);
-	str_t l	  = {0};
-	str_t r	  = {0};
-
-	EXPECT_EQ(str_chr(str, NULL, NULL, 0), 1);
-	EXPECT_EQ(str_chr(str, NULL, NULL, ':'), 0);
-	EXPECT_EQ(str_chr(str, &l, &r, ':'), 0);
-
-	EXPECT_STRN(l.data, "a", 1);
-	EXPECT_EQ(l.len, 1);
-	EXPECT_STRN(r.data, "b:c", 3);
-	EXPECT_EQ(r.len, 3);
-
-	END;
-}
-
-TEST(str_cstr)
-{
-	START;
-
-	str_t str = strc("a:=b:=c", 7);
-	str_t l	  = {0};
-	str_t r	  = {0};
-
-	EXPECT_EQ(str_cstr(str, NULL, NULL, NULL, 0), 1);
-	EXPECT_EQ(str_cstr(str, NULL, NULL, ":=", 2), 0);
-	EXPECT_EQ(str_cstr(str, &l, &r, ":=", 2), 0);
-
-	EXPECT_STRN(l.data, "a", 1);
-	EXPECT_EQ(l.len, 1);
-	EXPECT_STRN(r.data, "b:=c", 4);
-	EXPECT_EQ(r.len, 4);
-
-	END;
-}
-
-TEST(str_cpy)
-{
-	START;
-
-	str_t src = strc("abc", 3);
-
-	str_t str = str_cpy(src);
-
-	EXPECT_STR(str.data, "abc");
-	EXPECT_EQ(str.size, 4);
-	EXPECT_EQ(str.len, 3);
-	EXPECT_EQ(str.ref, 0);
-
-	str_free(&str);
-
-	END;
-}
-
-TEST(str_cpyd)
-{
-	START;
-
-	str_t src = strc("abc", 3);
-	str_t dst = strz(4);
-
-	EXPECT_EQ(str_cpyd(src, NULL), 1);
-	EXPECT_EQ(str_cpyd(dst, &src), 1);
-	EXPECT_EQ(str_cpyd(str_null(), &dst), 1);
-	EXPECT_EQ(str_cpyd(src, &dst), 0);
-
-	EXPECT_STR(dst.data, "abc");
-	EXPECT_EQ(dst.len, 3);
-
-	str_free(&dst);
 
 	END;
 }
@@ -324,128 +139,15 @@ TEST(str_to_upper)
 {
 	START;
 
-	str_t src = strc("abc;", 4);
 	str_t dst = strz(5);
 
-	EXPECT_EQ(str_to_upper(src, NULL), 1);
-	EXPECT_EQ(str_to_upper(src, &dst), 0);
+	EXPECT_EQ(str_to_upper(STRV_NULL, NULL), 1);
+	EXPECT_EQ(str_to_upper(STRV("abc;"), &dst), 0);
 
 	EXPECT_STR(dst.data, "ABC;");
 	EXPECT_EQ(dst.len, 4);
 
 	str_free(&dst);
-
-	END;
-}
-
-TEST(str_split)
-{
-	START;
-
-	str_t str = strn("abc", 3, 4);
-	str_t ref = strc("abc", 3);
-
-	EXPECT_EQ(str_split(str, 0, NULL, NULL), 1);
-	EXPECT_EQ(str_split(str, 0, &str, NULL), 1);
-	EXPECT_EQ(str_split(str, 'b', &ref, NULL), 1);
-	EXPECT_EQ(str_split(str, 0, NULL, &str), 1);
-	EXPECT_EQ(str_split(str, 'b', NULL, &ref), 1);
-
-	str_free(&str);
-
-	END;
-}
-
-TEST(str_split_ref)
-{
-	START;
-
-	str_t str = strc("abc defgh ijkl", 14);
-	str_t l	  = strr();
-	str_t r	  = strr();
-
-	EXPECT_EQ(str_split(str, ' ', &l, &r), 0);
-
-	EXPECT_STRN(l.data, "abc", 3);
-	EXPECT_EQ(l.len, 3);
-	EXPECT_STR(r.data, "defgh ijkl");
-	EXPECT_EQ(r.len, 10);
-
-	END;
-}
-
-TEST(str_split_buf)
-{
-	START;
-
-	char lbuf[18] = {"buf1: "};
-	char rbuf[18] = {"buf2: "};
-
-	str_t str = strc("abc defgh ijkl", 14);
-	str_t l	  = strb(lbuf, sizeof(lbuf), 6);
-	str_t r	  = strb(rbuf, sizeof(rbuf), 6);
-
-	EXPECT_EQ(str_split(str, ' ', &l, &r), 0);
-
-	EXPECT_STRN(l.data, "buf1: abc", 9);
-	EXPECT_EQ(l.len, 9);
-	EXPECT_STR(r.data, "buf2: defgh ijkl");
-	EXPECT_EQ(r.len, 16);
-
-	END;
-}
-
-TEST(str_split_own)
-{
-	START;
-
-	str_t str = strc("abc defgh ijkl", 14);
-	log_set_quiet(0, 1);
-	str_t l = strz(0);
-	str_t r = strz(0);
-	log_set_quiet(0, 0);
-
-	mem_oom(1);
-	EXPECT_EQ(str_split(str, ' ', &l, &r), 1);
-	mem_oom(0);
-	EXPECT_EQ(str_split(str, ' ', &l, &r), 0);
-
-	EXPECT_STRN(l.data, "abc", 3);
-	EXPECT_EQ(l.len, 3);
-	EXPECT_STR(r.data, "defgh ijkl");
-	EXPECT_EQ(r.len, 10);
-
-	str_free(&str);
-	str_free(&l);
-	str_free(&r);
-
-	END;
-}
-
-TEST(str_rsplit)
-{
-	START;
-
-	str_t str = strc("abc defgh ijkl", 14);
-	str_t ref = strc("abc", 3);
-	str_t l	  = strr();
-	str_t r	  = strr();
-
-	EXPECT_EQ(str_rsplit(str, 0, NULL, NULL), 1);
-	EXPECT_EQ(str_rsplit(str, 0, &str, NULL), 1);
-	EXPECT_EQ(str_rsplit(str, ' ', &ref, NULL), 1);
-	EXPECT_EQ(str_rsplit(str, 0, NULL, &str), 1);
-	EXPECT_EQ(str_rsplit(str, ' ', NULL, &ref), 1);
-	EXPECT_EQ(str_rsplit(str, ' ', &l, &r), 0);
-
-	EXPECT_STRN(l.data, "abc defgh", 9);
-	EXPECT_EQ(l.len, 9);
-	EXPECT_STR(r.data, "ijkl");
-	EXPECT_EQ(r.len, 4);
-
-	str_free(&str);
-	str_free(&l);
-	str_free(&r);
 
 	END;
 }
@@ -456,12 +158,38 @@ TEST(str_replace)
 
 	char buf[32] = "ab<char>de";
 
-	str_t str = strb(buf, 32, 10);
+	str_t str = STRB(buf, 10);
+	int found = 0;
 
-	EXPECT_EQ(str_replace(NULL, str, str), 0);
-	EXPECT_EQ(str_replace(&str, STR("<char>"), STR("c")), 1);
+	EXPECT_EQ(str_replace(NULL, STRV_NULL, STRV_NULL, NULL), 1);
 
+	EXPECT_EQ(str_replace(&str, STRV("<_>"), STRV("c"), &found), 0);
+	EXPECT_EQ(found, 0);
+	EXPECT_STR(str.data, "ab<char>de");
+
+	EXPECT_EQ(str_replace(&str, STRV("<char>"), STRV("c"), &found), 0);
+	EXPECT_EQ(found, 1);
 	EXPECT_STR(str.data, "abcde");
+
+	EXPECT_EQ(str_replace(&str, STRV("c"), STRV("<char>"), &found), 0);
+	EXPECT_EQ(found, 1);
+	EXPECT_STR(str.data, "ab<char>de");
+
+	END;
+}
+
+TEST(str_replace_oom)
+{
+	START;
+
+	char buf[2] = "a";
+
+	str_t str = STRB(buf, 1);
+	int found = 0;
+
+	EXPECT_EQ(str_replace(&str, STRV("a"), STRV("bb"), &found), 1);
+	EXPECT_EQ(found, 1);
+	EXPECT_STR(str.data, "a");
 
 	END;
 }
@@ -472,28 +200,64 @@ TEST(str_replaces)
 
 	char buf[32] = "ab<char>d<none><ignore>e<str>";
 
-	str_t str = strb(buf, 32, 29);
+	str_t str = STRB(buf, 29);
+	int found = 0;
 
-	EXPECT_EQ(str_replaces(NULL, NULL, NULL, 0), 0);
-	EXPECT_EQ(str_replaces(&str, NULL, NULL, 0), 0);
+	EXPECT_EQ(str_replaces(NULL, NULL, NULL, 0, NULL), 1);
+	EXPECT_EQ(str_replaces(&str, NULL, NULL, 0, NULL), 1);
 
-	const str_t from[] = {
-		STR("<char>"),
-		STR("<ignore>"),
-		STR("<none>"),
-		STR("<str>"),
+	const strv_t none[] = {
+		STRVT("<_>"),
+		STRVT("<_>"),
+		STRVT("<_>"),
+		STRVT("<_>"),
 	};
 
-	const str_t to[] = {
-		STR("c"),
-		strb(NULL, 0, 0),
-		STR(""),
-		STR("string"),
+	const strv_t from[] = {
+		STRVT("<char>"),
+		STRVT("<ignore>"),
+		STRVT("<none>"),
+		STRVT("<str>"),
 	};
 
-	EXPECT_EQ(str_replaces(&str, from, to, 4), 1);
+	const strv_t to[] = {
+		STRVT("c"),
+		STRV_NULL,
+		STRVT(""),
+		STRVT("string"),
+	};
 
+	EXPECT_EQ(str_replaces(&str, none, to, 4, &found), 0);
+	EXPECT_EQ(found, 0);
+	EXPECT_STR(str.data, "ab<char>d<none><ignore>e<str>");
+
+	EXPECT_EQ(str_replaces(&str, from, to, 4, &found), 0);
+	EXPECT_EQ(found, 1);
 	EXPECT_STR(str.data, "abcd<ignore>estring");
+
+	END;
+}
+
+TEST(str_replaces_oom)
+{
+	START;
+
+	char buf[2] = "a";
+
+	str_t str = STRB(buf, 1);
+	int found = 0;
+
+	const strv_t from[] = {
+		STRVT("a"),
+	};
+
+	const strv_t to[] = {
+		STRVT("bb"),
+	};
+
+	EXPECT_EQ(str_replaces(&str, from, to, 4, &found), 1);
+	EXPECT_EQ(found, 1);
+	EXPECT_STR(str.data, "a");
 
 	END;
 }
@@ -504,22 +268,22 @@ TEST(str_rreplaces)
 
 	char buf[32] = "<string> world";
 
-	str_t str = strb(buf, 32, 14);
+	str_t str = STRB(buf, 14);
 
-	EXPECT_EQ(str_rreplaces(NULL, NULL, NULL, 0), 0);
-	EXPECT_EQ(str_rreplaces(&str, NULL, NULL, 0), 0);
+	EXPECT_EQ(str_rreplaces(NULL, NULL, NULL, 0), 1);
+	EXPECT_EQ(str_rreplaces(&str, NULL, NULL, 0), 1);
 
-	const str_t from[] = {
-		STR("<word>"),
-		STR("<string>"),
+	const strv_t from[] = {
+		STRVT("<word>"),
+		STRVT("<string>"),
 	};
 
-	const str_t to[] = {
-		STR("hello"),
-		STR("string:<word>"),
+	const strv_t to[] = {
+		STRVT("hello"),
+		STRVT("string:<word>"),
 	};
 
-	EXPECT_EQ(str_rreplaces(&str, from, to, 2), 1);
+	EXPECT_EQ(str_rreplaces(&str, from, to, 2), 0);
 	EXPECT_STR(str.data, "string:hello world");
 
 	END;
@@ -531,7 +295,7 @@ TEST(str_subreplace)
 
 	char buf[12] = "ab<char>de";
 
-	str_t str = strb(buf, 12, 10);
+	str_t str = STRB(buf, 10);
 
 	EXPECT_EQ(str_subreplace(NULL, 0, 0, STRV_NULL), 1);
 	log_set_quiet(0, 1);
@@ -546,32 +310,18 @@ TEST(str_subreplace)
 STEST(str)
 {
 	SSTART;
-	RUN(str_null);
 	RUN(strz);
-	RUN(strc);
-	RUN(strs);
 	RUN(strn);
 	RUN(strf);
-	RUN(strb);
-	RUN(strr);
 	RUN(str_free);
 	RUN(str_zero);
 	RUN(str_resize);
 	RUN(str_cat);
-	RUN(str_cmpn);
-	RUN(str_cmp);
-	RUN(str_chr);
-	RUN(str_cstr);
-	RUN(str_cpy);
-	RUN(str_cpyd);
 	RUN(str_to_upper);
-	RUN(str_split);
-	RUN(str_split_ref);
-	RUN(str_split_buf);
-	RUN(str_split_own);
-	RUN(str_rsplit);
 	RUN(str_replace);
+	RUN(str_replace_oom);
 	RUN(str_replaces);
+	RUN(str_replaces_oom);
 	RUN(str_rreplaces);
 	RUN(str_subreplace);
 	SEND;
