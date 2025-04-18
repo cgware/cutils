@@ -2,6 +2,7 @@
 #define ARGS_H
 
 #include "print.h"
+#include "strv.h"
 
 typedef enum opt_type_e {
 	OPT_NONE,
@@ -17,7 +18,7 @@ typedef enum opt_opt_e {
 } opt_opt_t;
 
 typedef struct opt_enum_val_s {
-	const char *param;
+	strv_t param;
 	const char *desc;
 	void *priv;
 } opt_enum_val_t;
@@ -30,7 +31,7 @@ typedef struct opt_enum_s {
 
 typedef struct {
 	char short_opt;
-	const char *long_opt;
+	strv_t long_opt;
 	opt_type_t type;
 	const char *placeholder;
 	const char *desc;
@@ -43,6 +44,6 @@ typedef struct {
 int args_parse(int argc, const char **argv, opt_t *opts, size_t opts_size, print_dst_t dst);
 
 #define OPT(short_opt, long_opt, type, placeholder, desc, value, enums, required)                                                          \
-	{short_opt, long_opt, type, placeholder, desc, value, enums, required, 0}
+	{short_opt, STRVT(long_opt), type, placeholder, desc, value, enums, required, 0}
 
 #endif

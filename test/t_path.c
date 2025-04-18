@@ -1,7 +1,5 @@
 #include "path.h"
 
-#include "cstr.h"
-#include "file.h"
 #include "log.h"
 #include "platform.h"
 #include "test.h"
@@ -51,22 +49,6 @@ TEST(path_child)
 	EXPECT_EQ(path_child(&path, STRV("b")), &path);
 
 	EXPECT_EQ(path.len, 3);
-
-	END;
-}
-
-TEST(path_is_dir)
-{
-	START;
-
-	path_t path = {0};
-	path_init(&path, STRV(".test_folder"));
-
-	EXPECT_EQ(path_is_dir(NULL), 0);
-	EXPECT_EQ(path_is_dir(&path), 0);
-	folder_create(path.data);
-	EXPECT_EQ(path_is_dir(&path), 1);
-	folder_delete(path.data);
 
 	END;
 }
@@ -149,9 +131,9 @@ TEST(path_ends)
 	path_t path = {0};
 	path_init(&path, STRV("a/b/c"));
 
-	EXPECT_EQ(path_ends(NULL, NULL, 0), 0);
-	EXPECT_EQ(path_ends(&path, NULL, 0), 1);
-	EXPECT_EQ(path_ends(&path, CSTR("c")), 1);
+	EXPECT_EQ(path_ends(NULL, STRV_NULL), 0);
+	EXPECT_EQ(path_ends(&path, STRV_NULL), 1);
+	EXPECT_EQ(path_ends(&path, STRV("c")), 1);
 
 	END;
 }
@@ -162,56 +144,56 @@ TEST(path_calc_rel)
 
 	path_t path = {0};
 
-	EXPECT_EQ(path_calc_rel(NULL, 0, NULL, 0, NULL), 1);
-	EXPECT_EQ(path_calc_rel(CSTR("a/b/c/"), NULL, 0, NULL), 1);
-	EXPECT_EQ(path_calc_rel(CSTR("a/b/c/"), CSTR("a/b/c/d/"), NULL), 1);
+	EXPECT_EQ(path_calc_rel(STRV_NULL, STRV_NULL, NULL), 1);
+	EXPECT_EQ(path_calc_rel(STRV("a/b/c/"), STRV_NULL, NULL), 1);
+	EXPECT_EQ(path_calc_rel(STRV("a/b/c/"), STRV("a/b/c/d/"), NULL), 1);
 
-	EXPECT_EQ(path_calc_rel(CSTR("a"), CSTR("a"), &path), 0);
+	EXPECT_EQ(path_calc_rel(STRV("a"), STRV("a"), &path), 0);
 	EXPECT_STR(path.data, "");
 
-	EXPECT_EQ(path_calc_rel(CSTR("/a"), CSTR("/a"), &path), 0);
+	EXPECT_EQ(path_calc_rel(STRV("/a"), STRV("/a"), &path), 0);
 	EXPECT_STR(path.data, "");
 
-	EXPECT_EQ(path_calc_rel(CSTR("a"), CSTR("b"), &path), 0);
+	EXPECT_EQ(path_calc_rel(STRV("a"), STRV("b"), &path), 0);
 	EXPECT_STR(path.data, "b");
 
-	EXPECT_EQ(path_calc_rel(CSTR("/a"), CSTR("/b"), &path), 0);
+	EXPECT_EQ(path_calc_rel(STRV("/a"), STRV("/b"), &path), 0);
 	EXPECT_STR(path.data, "b");
 
-	EXPECT_EQ(path_calc_rel(CSTR("a/"), CSTR("a/"), &path), 0);
+	EXPECT_EQ(path_calc_rel(STRV("a/"), STRV("a/"), &path), 0);
 	EXPECT_STR(path.data, "");
 
-	EXPECT_EQ(path_calc_rel(CSTR("/a/"), CSTR("/a/"), &path), 0);
+	EXPECT_EQ(path_calc_rel(STRV("/a/"), STRV("/a/"), &path), 0);
 	EXPECT_STR(path.data, "");
 
-	EXPECT_EQ(path_calc_rel(CSTR("a/"), CSTR("b/"), &path), 0);
+	EXPECT_EQ(path_calc_rel(STRV("a/"), STRV("b/"), &path), 0);
 	EXPECT_STR(path.data, ".." SEP "b/");
 
-	EXPECT_EQ(path_calc_rel(CSTR("a/"), CSTR("a/b/"), &path), 0);
+	EXPECT_EQ(path_calc_rel(STRV("a/"), STRV("a/b/"), &path), 0);
 	EXPECT_STR(path.data, "b/");
 
-	EXPECT_EQ(path_calc_rel(CSTR("a/b"), CSTR("a/"), &path), 0);
+	EXPECT_EQ(path_calc_rel(STRV("a/b"), STRV("a/"), &path), 0);
 	EXPECT_STR(path.data, "");
 
-	EXPECT_EQ(path_calc_rel(CSTR("a/b"), CSTR("a"), &path), 0);
+	EXPECT_EQ(path_calc_rel(STRV("a/b"), STRV("a"), &path), 0);
 	EXPECT_STR(path.data, ".." SEP "a");
 
-	EXPECT_EQ(path_calc_rel(CSTR("a/b/"), CSTR("a/"), &path), 0);
+	EXPECT_EQ(path_calc_rel(STRV("a/b/"), STRV("a/"), &path), 0);
 	EXPECT_STR(path.data, ".." SEP);
 
-	EXPECT_EQ(path_calc_rel(CSTR("a/b/"), CSTR("a"), &path), 0);
+	EXPECT_EQ(path_calc_rel(STRV("a/b/"), STRV("a"), &path), 0);
 	EXPECT_STR(path.data, ".." SEP ".." SEP "a");
 
-	EXPECT_EQ(path_calc_rel(CSTR("a/b"), CSTR("a/bc"), &path), 0);
+	EXPECT_EQ(path_calc_rel(STRV("a/b"), STRV("a/bc"), &path), 0);
 	EXPECT_STR(path.data, "bc");
 
-	EXPECT_EQ(path_calc_rel(CSTR("a/bc"), CSTR("a/b"), &path), 0);
+	EXPECT_EQ(path_calc_rel(STRV("a/bc"), STRV("a/b"), &path), 0);
 	EXPECT_STR(path.data, "b");
 
-	EXPECT_EQ(path_calc_rel(CSTR("/"), CSTR("/a"), &path), 0);
+	EXPECT_EQ(path_calc_rel(STRV("/"), STRV("/a"), &path), 0);
 	EXPECT_STR(path.data, "a");
 
-	EXPECT_EQ(path_calc_rel(CSTR("/a"), CSTR("/"), &path), 0);
+	EXPECT_EQ(path_calc_rel(STRV("/a"), STRV("/"), &path), 0);
 	EXPECT_STR(path.data, "");
 
 	END;
@@ -332,7 +314,6 @@ STEST(path)
 	RUN(path_init);
 	RUN(path_child_s);
 	RUN(path_child);
-	RUN(path_is_dir);
 	RUN(path_is_rel);
 	RUN(path_get_cwd);
 	RUN(path_parent);

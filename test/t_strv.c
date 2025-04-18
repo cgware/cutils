@@ -70,6 +70,27 @@ TEST(strv_cmpn)
 	END;
 }
 
+TEST(strv_to_int)
+{
+	START;
+
+	int res;
+
+	EXPECT_EQ(strv_to_int(STRV_NULL, NULL), 1);
+	EXPECT_EQ(strv_to_int(STRV(""), NULL), 1);
+	EXPECT_EQ(strv_to_int(STRV(" "), NULL), 1);
+	EXPECT_EQ(strv_to_int(STRV("0 "), NULL), 1);
+	EXPECT_EQ(strv_to_int(STRV("0"), &res), 0);
+	EXPECT_EQ(res, 0);
+	EXPECT_EQ(strv_to_int(STRV("-1"), &res), 0);
+	EXPECT_EQ(res, -1);
+	EXPECT_EQ(strv_to_int(STRV("01"), &res), 0);
+	EXPECT_EQ(res, 1);
+	EXPECT_EQ(strv_to_int(STRV("19"), &res), 0);
+	EXPECT_EQ(res, 19);
+	END;
+}
+
 TEST(strv_split)
 {
 	START;
@@ -144,6 +165,7 @@ STEST(strv)
 	RUN(strv_eq);
 	RUN(strv_cmp);
 	RUN(strv_cmpn);
+	RUN(strv_to_int);
 	RUN(strv_split);
 	RUN(strv_rsplit);
 	RUN(strv_print);

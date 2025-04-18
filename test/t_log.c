@@ -455,6 +455,16 @@ TEST(log_fatal)
 	END;
 }
 
+TEST(log_strerror)
+{
+	START;
+
+	EXPECT_STR(log_strerror(-1), "Unknown error");
+	EXPECT_STR(log_strerror(0), "No error information");
+
+	END;
+}
+
 STEST(log)
 {
 	SSTART;
@@ -473,6 +483,7 @@ STEST(log)
 	RUN(log_warn);
 	RUN(log_error);
 	RUN(log_fatal);
+	RUN(log_strerror);
 
 	SEND;
 }

@@ -73,6 +73,38 @@ int strv_cmpn(strv_t l, strv_t r, size_t len)
 	return l.len < r.len ? -1 : 1;
 }
 
+int strv_to_int(strv_t str, int *res)
+{
+	if (str.data == NULL || str.len < 1) {
+		return 1;
+	}
+
+	int ret	 = 1;
+	int sign = 1;
+	size_t i = 0;
+	int acc	 = 0;
+
+	if (str.data[0] == '-') {
+		sign = -1;
+		i++;
+	}
+
+	for (; i < str.len; i++) {
+		if (str.data[i] < '0' || '9' < str.data[i]) {
+			return 1;
+		}
+
+		acc = acc * 10 + (str.data[i] - '0');
+		ret = 0;
+	}
+
+	if (res) {
+		*res = sign * acc;
+	}
+
+	return ret;
+}
+
 int strv_split(strv_t str, char c, strv_t *l, strv_t *r)
 {
 	if (str.data == NULL) {

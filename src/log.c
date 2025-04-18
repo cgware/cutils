@@ -1,9 +1,6 @@
 #include "log.h"
 
-#include "file.h"
 #include "platform.h"
-
-#include <string.h>
 
 #define DEFAULT_QUIET 0
 
@@ -202,13 +199,96 @@ int log_log(int level, const char *pkg, const char *file, const char *func, int 
 	return 0;
 }
 
+#define EPERM	     1
+#define ENOENT	     2
+#define ESRCH	     3
+#define EINTR	     4
+#define EIO	     5
+#define ENXIO	     6
+#define E2BIG	     7
+#define ENOEXEC	     8
+#define EBADF	     9
+#define ECHILD	     10
+#define EAGAIN	     11
+#define ENOMEM	     12
+#define EACCES	     13
+#define EFAULT	     14
+#define ENOTBLK	     15
+#define EBUSY	     16
+#define EEXIST	     17
+#define EXDEV	     18
+#define ENODEV	     19
+#define ENOTDIR	     20
+#define EISDIR	     21
+#define EINVAL	     22
+#define ENFILE	     23
+#define EMFILE	     24
+#define ENOTTY	     25
+#define ETXTBSY	     26
+#define EFBIG	     27
+#define ENOSPC	     28
+#define ESPIPE	     29
+#define EROFS	     30
+#define EMLINK	     31
+#define EPIPE	     32
+#define EDOM	     33
+#define ERANGE	     34
+#define EDEADLK	     35
+#define ENAMETOOLONG 36
+#define ENOLCK	     37
+#define ENOSYS	     38
+#define ENOTEMPTY    39
+#define ELOOP	     40
+
+static const char *errors[] = {
+	[0]	       = "No error information",
+	[EPERM]	       = "Operation not permitted",
+	[ENOENT]       = "No such file or directory",
+	[ESRCH]	       = "No such process",
+	[EINTR]	       = "Interrupted system call",
+	[EIO]	       = "I/O error",
+	[ENXIO]	       = "No such device or address",
+	[E2BIG]	       = "Argument list too long",
+	[ENOEXEC]      = "Exec format error",
+	[EBADF]	       = "Bad file number",
+	[ECHILD]       = "No child processes",
+	[EAGAIN]       = "Try again",
+	[ENOMEM]       = "Out of memory",
+	[EACCES]       = "Permission denied",
+	[EFAULT]       = "Bad address",
+	[ENOTBLK]      = "Block device required",
+	[EBUSY]	       = "Device or resource busy",
+	[EEXIST]       = "File exists",
+	[EXDEV]	       = "Cross-device link",
+	[ENODEV]       = "No such device",
+	[ENOTDIR]      = "Not a directory",
+	[EISDIR]       = "Is a directory",
+	[EINVAL]       = "Invalid argument",
+	[ENFILE]       = "File table overflow",
+	[EMFILE]       = "Too many open files",
+	[ENOTTY]       = "Not a typewriter",
+	[ETXTBSY]      = "Text file busy",
+	[EFBIG]	       = "File too large",
+	[ENOSPC]       = "No space left on device",
+	[ESPIPE]       = "Illegal seek",
+	[EROFS]	       = "Read-only file system",
+	[EMLINK]       = "Too many links",
+	[EPIPE]	       = "Broken pipe",
+	[EDOM]	       = "Math argument out of domain of func",
+	[ERANGE]       = "Math result not representable",
+	[EDEADLK]      = "Resource deadlock would occur",
+	[ENAMETOOLONG] = "File name too long",
+	[ENOLCK]       = "No record locks available",
+	[ENOSYS]       = "Invalid system call number",
+	[ENOTEMPTY]    = "Directory not empty",
+	[ELOOP]	       = "Too many symbolic links encountered",
+};
+
 const char *log_strerror(int errnum)
 {
-#if defined C_WIN
-	static char buf[256] = {0};
-	strerror_s(buf, sizeof(buf), errnum);
-	return buf;
-#else
-	return strerror(errnum);
-#endif
+	if (errnum < 0 || errnum > (int)(sizeof(errors) / sizeof(const char *))) {
+		return "Unknown error";
+	}
+
+	return errors[errnum];
 }

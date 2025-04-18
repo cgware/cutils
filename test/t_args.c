@@ -188,7 +188,7 @@ TEST(args_parse_str)
 
 	char buf[256] = {0};
 
-	const char *val = "";
+	strv_t val;
 
 	opt_t opts[] = {
 		OPT('a', "a", OPT_STR, "<a>", "A", &val, {0}, OPT_OPT),
@@ -197,18 +197,19 @@ TEST(args_parse_str)
 	{
 		const char *argv[] = {"test", "-a", "val"};
 		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 0);
-		EXPECT_STR(val, "val");
-		val = "";
+		EXPECT_STRN(val.data, "val", val.len);
+		val = STRV("");
 	}
 
 	{
 		const char *argv[] = {"test", "--a", "val"};
 		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 0);
-		EXPECT_STR(val, "val");
-		val = "";
+		EXPECT_STRN(val.data, "val", val.len);
+		val = STRV("");
 	}
 
 	{
+
 		const char *argv[] = {"test", "-h"};
 		EXPECT_EQ(args_parse(2, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
 		EXPECT_STR(buf,
@@ -233,6 +234,12 @@ TEST(args_parse_int)
 	opt_t opts[] = {
 		OPT('a', "a", OPT_INT, "<a>", "A", &val, {0}, OPT_OPT),
 	};
+
+	{
+		const char *argv[] = {"test", "-a", "a"};
+		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		val = 1;
+	}
 
 	{
 		const char *argv[] = {"test", "-a", "2"};
@@ -275,9 +282,28 @@ TEST(args_parse_bool)
 	};
 
 	{
+		const char *argv[] = {"test", "-a", "a"};
+		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		val = 1;
+	}
+
+	{
+		const char *argv[] = {"test", "-a", "aa"};
+		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		val = 1;
+	}
+
+	{
 		const char *argv[] = {"test", "-a", "0"};
 		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 0);
 		EXPECT_EQ(val, 0);
+		val = 1;
+	}
+
+	{
+		const char *argv[] = {"test", "-a", "1"};
+		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 0);
+		EXPECT_EQ(val, 1);
 		val = 1;
 	}
 
@@ -311,9 +337,9 @@ TEST(args_parse_enum)
 	int val = 1;
 
 	const opt_enum_val_t enums[] = {
-		[0] = {"a", "A"},
-		[1] = {"b", "B"},
-		[2] = {"c", "C"},
+		[0] = {STRVT("a"), "A"},
+		[1] = {STRVT("b"), "B"},
+		[2] = {STRVT("c"), "C"},
 	};
 
 	const opt_enum_t enums_desc = {

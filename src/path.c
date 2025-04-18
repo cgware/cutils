@@ -54,21 +54,6 @@ path_t *path_child(path_t *path, strv_t child)
 	return path_child_s(path, child, CSEP);
 }
 
-int path_is_dir(const path_t *path)
-{
-	if (path == NULL || path->len == 0) {
-		return 0;
-	}
-
-#if defined(C_WIN)
-	int dwAttrib = GetFileAttributesA(path->data);
-	return dwAttrib != INVALID_FILE_ATTRIBUTES && (dwAttrib & FILE_ATTRIBUTE_DIRECTORY);
-#else
-	struct stat buf;
-	return stat(path->data, &buf) == 0 && S_ISDIR(buf.st_mode);
-#endif
-}
-
 int path_is_rel(const path_t *path)
 {
 	if (path == NULL || path->len == 0) {
@@ -131,32 +116,32 @@ path_t *path_set_len(path_t *path, size_t len)
 	return path;
 }
 
-int path_ends(const path_t *path, const char *str, size_t len)
+int path_ends(const path_t *path, strv_t str)
 {
 	if (path == NULL) {
 		return 0;
 	}
 
-	return path->len > len && mem_cmp(path->data + path->len - len, str, (size_t)len) == 0;
+	return path->len > str.len && mem_cmp(path->data + path->len - str.len, str.data, str.len) == 0;
 }
 
-int path_calc_rel(const char *path, size_t path_len, const char *dest, size_t dest_len, path_t *out)
+int path_calc_rel(strv_t path, strv_t dest, path_t *out)
 {
-	if (path == NULL || dest == NULL || out == NULL) {
+	if (path.data == NULL || dest.data == NULL || out == NULL) {
 		return 1;
 	}
 
-	int same = path_len == dest_len;
+	int same = path.len == dest.len;
 
 	size_t prefix_len = -1;
 
-	for (size_t i = 0; i < path_len && i < dest_len; i++) {
-		if (path[i] != dest[i]) {
+	for (size_t i = 0; i < path.len && i < dest.len; i++) {
+		if (path.data[i] != dest.data[i]) {
 			same = 0;
 			break;
 		}
 
-		if (path[i] == '/' || path[i] == '\\') {
+		if (path.data[i] == '/' || path.data[i] == '\\') {
 			prefix_len = i;
 		}
 	}
@@ -167,15 +152,15 @@ int path_calc_rel(const char *path, size_t path_len, const char *dest, size_t de
 		return 0;
 	}
 
-	for (size_t i = prefix_len + 1; i < path_len; i++) {
-		if (path[i] == '/' || path[i] == '\\') {
+	for (size_t i = prefix_len + 1; i < path.len; i++) {
+		if (path.data[i] == '/' || path.data[i] == '\\') {
 			out->data[out->len++] = '.';
 			out->data[out->len++] = '.';
 			out->data[out->len++] = CSEP;
 		}
 	}
 
-	path_child(out, STRVN(&dest[prefix_len + 1], dest_len - prefix_len - 1));
+	path_child(out, STRVN(&dest.data[prefix_len + 1], dest.len - prefix_len - 1));
 	return 0;
 }
 

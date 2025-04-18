@@ -1,6 +1,5 @@
 #include "arr.h"
 
-#include "cstr.h"
 #include "log.h"
 #include "mem.h"
 #include "test.h"
@@ -386,7 +385,7 @@ TEST(arr_merge_unique)
 static int t_arr_sort_cb(const void *a, const void *b, const void *priv)
 {
 	(void)priv;
-	return cstr_cmp(a, 1, b, 1);
+	return *(int *)a < *(int *)b ? -1 : 1;
 }
 
 TEST(arr_sort)
@@ -394,21 +393,21 @@ TEST(arr_sort)
 	START;
 
 	arr_t arr = {0};
-	arr_init(&arr, 2, sizeof(char) * 2, ALLOC_STD);
+	arr_init(&arr, 2, sizeof(int), ALLOC_STD);
 
-	arr_addv(&arr, "d");
-	arr_addv(&arr, "c");
-	arr_addv(&arr, "b");
-	arr_addv(&arr, "a");
+	*(int *)arr_add(&arr) = 3;
+	*(int *)arr_add(&arr) = 1;
+	*(int *)arr_add(&arr) = 2;
+	*(int *)arr_add(&arr) = 0;
 
 	EXPECT_EQ(arr_sort(NULL, NULL, NULL), NULL);
 	EXPECT_EQ(arr_sort(&arr, NULL, NULL), &arr);
 	EXPECT_EQ(arr_sort(&arr, t_arr_sort_cb, NULL), &arr);
 
-	EXPECT_STR(arr_get(&arr, 0), "a");
-	EXPECT_STR(arr_get(&arr, 1), "b");
-	EXPECT_STR(arr_get(&arr, 2), "c");
-	EXPECT_STR(arr_get(&arr, 3), "d");
+	EXPECT_EQ(*(int *)arr_get(&arr, 0), 0);
+	EXPECT_EQ(*(int *)arr_get(&arr, 1), 1);
+	EXPECT_EQ(*(int *)arr_get(&arr, 2), 2);
+	EXPECT_EQ(*(int *)arr_get(&arr, 3), 3);
 
 	arr_free(&arr);
 

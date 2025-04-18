@@ -3,8 +3,6 @@
 #include "log.h"
 #include "mem.h"
 
-#include <stdlib.h>
-
 arr_t *arr_init(arr_t *arr, uint cap, size_t size, alloc_t alloc)
 {
 	if (arr == NULL) {
