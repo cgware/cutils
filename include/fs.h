@@ -1,13 +1,18 @@
 #ifndef FS_H
 #define FS_H
 
+#include "str.h"
 #include "strbuf.h"
 
 typedef struct fs_s fs_t;
 
 typedef void *(*fs_open_fn)(fs_t *fs, strv_t path, const char *mode);
-typedef void *(*fs_reopen_fn)(fs_t *fs, strv_t path, const char *mode, void *file);
 typedef int (*fs_close_fn)(fs_t *fs, void *file);
+
+typedef int (*fs_write_fn)(fs_t *fs, void *file, strv_t str);
+typedef int (*fs_read_fn)(fs_t *fs, void *file, str_t *str);
+
+typedef size_t (*fs_du_fn)(fs_t *fs, void *file);
 
 typedef int (*fs_isdir_fn)(fs_t *fs, strv_t path);
 typedef int (*fs_isfile_fn)(fs_t *fs, strv_t path);
@@ -25,8 +30,10 @@ typedef int (*fs_lsfile_fn)(fs_t *fs, strv_t path, strbuf_t *files);
 
 typedef struct fs_ops_s {
 	fs_open_fn open;
-	fs_reopen_fn reopen;
 	fs_close_fn close;
+	fs_write_fn write;
+	fs_read_fn read;
+	fs_du_fn du;
 	fs_isdir_fn isdir;
 	fs_isfile_fn isfile;
 	fs_mkdir_fn mkdir;
@@ -49,6 +56,9 @@ void fs_free(fs_t *fs);
 
 void *fs_open(fs_t *fs, strv_t path, const char *mode);
 int fs_close(fs_t *fs, void *file);
+
+int fs_write(fs_t *fs, void *file, strv_t str);
+int fs_read(fs_t *fs, strv_t path, int b, str_t *str);
 
 int fs_isdir(fs_t *fs, strv_t path);
 int fs_isfile(fs_t *fs, strv_t path);

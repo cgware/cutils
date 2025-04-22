@@ -337,12 +337,281 @@ TEST(fs_close_arr)
 
 	void *vf = fs_open(&vfs, STRV(TEST_FILE), "w");
 
-	arr_reset(&vfs.nodes, 0, 0);
+	size_t nodes_cnt = vfs.nodes.cnt;
+
+	vfs.nodes.cnt = 0;
 
 	log_set_quiet(0, 1);
 	EXPECT_EQ(fs_close(&vfs, vf), 1);
 	log_set_quiet(0, 0);
 
+	vfs.nodes.cnt = nodes_cnt;
+
+	fs_free(&vfs);
+
+	END;
+}
+
+TEST(fs_write)
+{
+	START;
+
+	fs_t fs = {0};
+
+	fs_init(&fs, 0, 0, ALLOC_STD);
+
+	EXPECT_EQ(fs_write(NULL, NULL, STRV_NULL), EINVAL);
+
+	fs_free(&fs);
+
+	END;
+}
+
+TEST(fs_write_invalid)
+{
+	START;
+
+	fs_t vfs = {0};
+
+	fs_init(&vfs, 1, 1, ALLOC_STD);
+
+	log_set_quiet(0, 1);
+	EXPECT_EQ(fs_write(&vfs, (void *)-1, STRV("a")), EINVAL);
+	log_set_quiet(0, 0);
+
+	fs_free(&vfs);
+
+	END;
+}
+
+TEST(fs_write_oom)
+{
+	START;
+
+	fs_t vfs = {0};
+
+	fs_init(&vfs, 1, 1, ALLOC_STD);
+
+	void *f = fs_open(&vfs, STRV(TEST_FILE), "w");
+
+	mem_oom(1);
+	EXPECT_EQ(fs_write(&vfs, f, STRVN("a", 256)), ENOMEM);
+	mem_oom(0);
+
+	fs_close(&vfs, f);
+
+	fs_rmfile(&vfs, STRV(TEST_FILE));
+
+	fs_free(&vfs);
+
+	END;
+}
+
+TEST(fs_write_valid)
+{
+	START;
+
+	fs_t fs	 = {0};
+	fs_t vfs = {0};
+
+	fs_init(&fs, 0, 0, ALLOC_STD);
+	fs_init(&vfs, 1, 1, ALLOC_STD);
+
+	void *f	 = fs_open(&fs, STRV(TEST_FILE), "w");
+	void *vf = fs_open(&vfs, STRV(TEST_FILE), "w");
+
+	EXPECT_EQ(fs_write(&fs, f, STRV("a")), 0);
+	EXPECT_EQ(fs_write(&vfs, vf, STRV("a")), 0);
+
+	fs_close(&fs, f);
+	fs_close(&vfs, vf);
+
+	fs_rmfile(&fs, STRV(TEST_FILE));
+	fs_rmfile(&vfs, STRV(TEST_FILE));
+
+	fs_free(&fs);
+	fs_free(&vfs);
+
+	END;
+}
+
+TEST(fs_read)
+{
+	START;
+
+	fs_t fs = {0};
+
+	fs_init(&fs, 0, 0, ALLOC_STD);
+
+	EXPECT_EQ(fs_read(NULL, STRV_NULL, 0, NULL), EINVAL);
+
+	fs_free(&fs);
+
+	END;
+}
+
+TEST(fs_read_does_not_exist)
+{
+	START;
+
+	fs_t fs	 = {0};
+	fs_t vfs = {0};
+
+	fs_init(&fs, 0, 0, ALLOC_STD);
+	fs_init(&vfs, 1, 1, ALLOC_STD);
+
+	str_t str = strz(1);
+
+	log_set_quiet(0, 1);
+	EXPECT_EQ(fs_read(&fs, STRV(TEST_FILE), 0, &str), ENOENT);
+	EXPECT_EQ(fs_read(&vfs, STRV(TEST_FILE), 0, &str), ENOENT);
+	log_set_quiet(0, 0);
+
+	str_free(&str);
+
+	fs_free(&fs);
+	fs_free(&vfs);
+
+	END;
+}
+
+TEST(fs_read_arr)
+{
+	START;
+
+	fs_t vfs = {0};
+
+	fs_init(&vfs, 1, 1, ALLOC_STD);
+
+	fs_mkfile(&vfs, STRV(TEST_FILE));
+
+	str_t str = strz(1);
+
+	size_t nodes_cnt = vfs.nodes.cnt;
+
+	vfs.nodes.cnt = 0;
+
+	log_set_quiet(0, 1);
+	EXPECT_EQ(fs_read(&vfs, STRV(TEST_FILE), 0, &str), EINVAL);
+	log_set_quiet(0, 0);
+
+	vfs.nodes.cnt = nodes_cnt;
+
+	str_free(&str);
+
+	fs_free(&vfs);
+
+	END;
+}
+
+TEST(fs_read_oom)
+{
+	START;
+
+	fs_t fs	 = {0};
+	fs_t vfs = {0};
+
+	fs_init(&fs, 0, 0, ALLOC_STD);
+	fs_init(&vfs, 1, 1, ALLOC_STD);
+
+	fs_mkfile(&fs, STRV(TEST_FILE));
+	fs_mkfile(&vfs, STRV(TEST_FILE));
+
+	void *f	 = fs_open(&fs, STRV(TEST_FILE), "w");
+	void *vf = fs_open(&vfs, STRV(TEST_FILE), "w");
+
+	fs_write(&fs, f, STRV("a"));
+	fs_write(&vfs, vf, STRV("a"));
+
+	fs_close(&fs, f);
+	fs_close(&vfs, vf);
+
+	str_t str = strz(1);
+
+	mem_oom(1);
+	EXPECT_EQ(fs_read(&fs, STRV(TEST_FILE), 0, &str), ENOMEM);
+	EXPECT_EQ(fs_read(&vfs, STRV(TEST_FILE), 0, &str), ENOMEM);
+	mem_oom(0);
+
+	fs_rmfile(&fs, STRV(TEST_FILE));
+
+	str_free(&str);
+
+	fs_free(&fs);
+	fs_free(&vfs);
+
+	END;
+}
+
+TEST(fs_read_empty)
+{
+	START;
+
+	fs_t fs	 = {0};
+	fs_t vfs = {0};
+
+	fs_init(&fs, 0, 0, ALLOC_STD);
+	fs_init(&vfs, 1, 1, ALLOC_STD);
+
+	fs_mkfile(&fs, STRV(TEST_FILE));
+	fs_mkfile(&vfs, STRV(TEST_FILE));
+
+	str_t str = strz(1);
+
+	EXPECT_EQ(fs_read(&fs, STRV(TEST_FILE), 0, &str), 0);
+	EXPECT_STRN(str.data, "", str.len);
+
+	str.len = 0;
+
+	EXPECT_EQ(fs_read(&vfs, STRV(TEST_FILE), 0, &str), 0);
+	EXPECT_STRN(str.data, "", str.len);
+
+	fs_rmfile(&fs, STRV(TEST_FILE));
+	fs_rmfile(&vfs, STRV(TEST_FILE));
+
+	str_free(&str);
+
+	fs_free(&fs);
+	fs_free(&vfs);
+
+	END;
+}
+
+TEST(fs_read_str)
+{
+	START;
+
+	fs_t fs	 = {0};
+	fs_t vfs = {0};
+
+	fs_init(&fs, 0, 0, ALLOC_STD);
+	fs_init(&vfs, 1, 1, ALLOC_STD);
+
+	void *f	 = fs_open(&fs, STRV(TEST_FILE), "w");
+	void *vf = fs_open(&vfs, STRV(TEST_FILE), "w");
+
+	fs_write(&fs, f, STRV("ab"));
+	fs_write(&vfs, vf, STRV("ab"));
+
+	fs_close(&fs, f);
+	fs_close(&vfs, vf);
+
+	str_t str = strz(1);
+
+	EXPECT_EQ(fs_read(&fs, STRV(TEST_FILE), 0, &str), 0);
+	EXPECT_STRN(str.data, "ab", str.len);
+
+	str.len = 0;
+
+	EXPECT_EQ(fs_read(&vfs, STRV(TEST_FILE), 0, &str), 0);
+	EXPECT_STRN(str.data, "ab", str.len);
+
+	fs_rmfile(&fs, STRV(TEST_FILE));
+	fs_rmfile(&vfs, STRV(TEST_FILE));
+
+	str_free(&str);
+
+	fs_free(&fs);
 	fs_free(&vfs);
 
 	END;
@@ -1222,6 +1491,16 @@ STEST(fs)
 	RUN(fs_close_null);
 	RUN(fs_close_valid);
 	RUN(fs_close_arr);
+	RUN(fs_write);
+	RUN(fs_write_invalid);
+	RUN(fs_write_oom);
+	RUN(fs_write_valid);
+	RUN(fs_read);
+	RUN(fs_read_does_not_exist);
+	RUN(fs_read_arr);
+	RUN(fs_read_oom);
+	RUN(fs_read_empty);
+	RUN(fs_read_str);
 	RUN(fs_isdir);
 	RUN(fs_isdir_dir);
 	RUN(fs_isdir_file);
