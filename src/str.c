@@ -1,6 +1,5 @@
 #include "str.h"
 
-#include "cstr.h"
 #include "log.h"
 #include "mem.h"
 
@@ -44,7 +43,7 @@ str_t strn(const char *cstr, size_t len, size_t size)
 str_t strv(const char *fmt, va_list args)
 {
 	str_t str = {0};
-	int size  = cstrv(NULL, 0, fmt, args);
+	int size  = c_sprintv(NULL, 0, 0, fmt, args);
 	if (size < 0) {
 		return (str_t){0};
 	}
@@ -55,7 +54,7 @@ str_t strv(const char *fmt, va_list args)
 		return (str_t){0};
 	}
 
-	str.len = cstrv(str.data, str.size, fmt, args);
+	str.len = c_sprintv(str.data, str.size, 0, fmt, args);
 	return str;
 }
 
@@ -121,7 +120,10 @@ str_t *str_cat(str_t *str, strv_t src)
 		return NULL;
 	}
 
-	str->len = cstr_cat(str->data, str->size, str->len, src.data, src.len);
+	mem_copy(str->data + str->len, str->size - str->len, src.data, src.len);
+	str->len += src.len;
+	str->data[str->len] = '\0';
+
 	return str;
 }
 

@@ -2,9 +2,6 @@
 
 #include "mem.h"
 
-#include <stdlib.h>
-#include <string.h>
-
 #define DICT_MAX_LOAD	   0.75f
 #define DICT_RESIZE_FACTOR 2
 
