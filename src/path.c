@@ -6,12 +6,8 @@
 #include "str.h"
 
 #if defined(C_WIN)
-	#include <Windows.h>
 	#define CSEP '\\'
 #else
-	#include <dirent.h>
-	#include <sys/stat.h>
-	#include <unistd.h>
 	#define CSEP '/'
 #endif
 
@@ -65,24 +61,6 @@ int path_is_rel(const path_t *path)
 #else
 	return path->data[0] != '/';
 #endif
-}
-
-path_t *path_get_cwd(path_t *path)
-{
-	path_t *ret = NULL;
-#if defined(C_WIN)
-	size_t cnt = GetCurrentDirectory(sizeof(path->data), path->data);
-	if (0 < cnt && cnt < sizeof(path->data)) {
-		path->len = cnt;
-		ret	  = path;
-	}
-#else
-	if (getcwd(path->data, sizeof(path->data)) != NULL) {
-		path->len = strv_cstr(path->data).len;
-		ret	  = path;
-	}
-#endif
-	return ret;
 }
 
 path_t *path_parent(path_t *path)

@@ -22,8 +22,6 @@ path_t *path_child(path_t *path, strv_t child);
 
 int path_is_rel(const path_t *path);
 
-path_t *path_get_cwd(path_t *path);
-
 path_t *path_parent(path_t *path);
 path_t *path_set_len(path_t *path, size_t len);
 int path_ends(const path_t *path, strv_t str);

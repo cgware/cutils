@@ -77,19 +77,6 @@ TEST(path_is_rel)
 	END;
 }
 
-TEST(path_get_cwd)
-{
-	START;
-
-	path_t path = {0};
-
-	EXPECT_EQ(path_get_cwd(&path), &path);
-	EXPECT_NE(path.data, NULL);
-	EXPECT_NE(path.len, 0);
-
-	END;
-}
-
 TEST(path_parent)
 {
 	START;
@@ -315,7 +302,6 @@ STEST(path)
 	RUN(path_child_s);
 	RUN(path_child);
 	RUN(path_is_rel);
-	RUN(path_get_cwd);
 	RUN(path_parent);
 	RUN(path_set_len);
 	RUN(path_ends);
