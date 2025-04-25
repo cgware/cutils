@@ -1,10 +1,9 @@
 #include "fs.h"
 
+#include "cerr.h"
 #include "log.h"
 #include "mem.h"
 #include "test.h"
-
-#include <errno.h>
 
 #define TEST_FILE "t_fs_file.txt"
 #define TEST_DIR  "t_fs_tmp"
@@ -31,23 +30,29 @@ TEST(fs_open)
 {
 	START;
 
-	errno = 0;
-	EXPECT_EQ(fs_open(NULL, STRV_NULL, NULL), NULL);
-	EXPECT_EQ(errno, EINVAL);
+	EXPECT_EQ(fs_open(NULL, STRV_NULL, NULL, NULL), CERR_VAL);
 
-	fs_t fs = {0};
+	fs_t fs	 = {0};
+	fs_t vfs = {0};
 
+	fs_init(&fs, 0, 0, ALLOC_STD);
 	log_set_quiet(0, 1);
-	fs_init(&fs, 0, 1, ALLOC_STD);
+	fs_init(&vfs, 0, 1, ALLOC_STD);
 	log_set_quiet(0, 0);
 
+	void *file;
+	log_set_quiet(0, 1);
+	EXPECT_EQ(fs_open(&fs, STRV(TEST_FILE), NULL, &file), CERR_VAL);
+	EXPECT_EQ(fs_open(&vfs, STRV(TEST_FILE), NULL, &file), CERR_VAL);
+	EXPECT_EQ(fs_open(&fs, STRV(TEST_FILE), "w", NULL), CERR_VAL);
+	EXPECT_EQ(fs_open(&vfs, STRV(TEST_FILE), "w", NULL), CERR_VAL);
+	log_set_quiet(0, 0);
 	mem_oom(1);
-	errno = 0;
-	EXPECT_EQ(fs_open(&fs, STRV(TEST_FILE), "w"), NULL);
-	EXPECT_EQ(errno, ENOMEM);
+	EXPECT_EQ(fs_open(&vfs, STRV(TEST_FILE), "w", &file), CERR_MEM);
 	mem_oom(0);
 
 	fs_free(&fs);
+	fs_free(&vfs);
 
 	END;
 }
@@ -62,13 +67,19 @@ TEST(fs_open_arr)
 
 	fs_mkfile(&vfs, STRV(TEST_FILE));
 
-	arr_reset(&vfs.nodes, 0, 0);
+	size_t nodes_cnt = vfs.nodes.cnt;
+
+	vfs.nodes.cnt = 0;
+
+	void *file;
 
 	log_set_quiet(0, 1);
-	errno = 0;
-	EXPECT_EQ(fs_open(&vfs, STRV(TEST_FILE), "r"), NULL);
-	EXPECT_EQ(errno, EINVAL);
+	EXPECT_EQ(fs_open(&vfs, STRV(TEST_FILE), "r", &file), CERR_VAL);
 	log_set_quiet(0, 0);
+
+	vfs.nodes.cnt = nodes_cnt;
+
+	fs_rmfile(&vfs, STRV(TEST_FILE));
 
 	fs_free(&vfs);
 
@@ -88,13 +99,10 @@ TEST(fs_open_dir)
 	fs_mkdir(&fs, STRV(TEST_DIR));
 	fs_mkdir(&vfs, STRV(TEST_DIR));
 
+	void *file;
 	log_set_quiet(0, 1);
-	errno = 0;
-	EXPECT_EQ(fs_open(&fs, STRV(TEST_DIR), "r"), NULL);
-	EXPECT_EQ(errno, EISDIR);
-	errno = 0;
-	EXPECT_EQ(fs_open(&vfs, STRV(TEST_DIR), "r"), NULL);
-	EXPECT_EQ(errno, EISDIR);
+	EXPECT_EQ(fs_open(&fs, STRV(TEST_DIR), "r", &file), CERR_TYPE);
+	EXPECT_EQ(fs_open(&vfs, STRV(TEST_DIR), "r", &file), CERR_TYPE);
 	log_set_quiet(0, 0);
 
 	fs_rmdir(&fs, STRV(TEST_DIR));
@@ -116,13 +124,12 @@ TEST(fs_open_empty_path)
 	fs_init(&fs, 0, 0, ALLOC_STD);
 	fs_init(&vfs, 1, 1, ALLOC_STD);
 
+	void *file;
 	log_set_quiet(0, 1);
-	errno = 0;
-	EXPECT_EQ(fs_open(&fs, STRV(""), "r"), NULL);
-	EXPECT_EQ(errno, EINVAL);
-	errno = 0;
-	EXPECT_EQ(fs_open(&vfs, STRV(""), "r"), NULL);
-	EXPECT_EQ(errno, EINVAL);
+	EXPECT_EQ(fs_open(&fs, STRV(""), "r", &file), CERR_NOT_FOUND);
+	EXPECT_EQ(fs_open(&vfs, STRV(""), "r", &file), CERR_NOT_FOUND);
+	EXPECT_EQ(fs_open(&fs, STRV(TEST_FILE), "f", &file), CERR_VAL);
+	EXPECT_EQ(fs_open(&vfs, STRV(TEST_FILE), "f", &file), CERR_VAL);
 	log_set_quiet(0, 0);
 
 	fs_free(&fs);
@@ -131,7 +138,7 @@ TEST(fs_open_empty_path)
 	END;
 }
 
-TEST(fs_open_r_does_not_exist)
+TEST(fs_open_r_not_found)
 {
 	START;
 
@@ -141,13 +148,10 @@ TEST(fs_open_r_does_not_exist)
 	fs_init(&fs, 0, 0, ALLOC_STD);
 	fs_init(&vfs, 1, 1, ALLOC_STD);
 
+	void *file;
 	log_set_quiet(0, 1);
-	errno = 0;
-	EXPECT_EQ(fs_open(&fs, STRV(TEST_FILE), "r"), NULL);
-	EXPECT_EQ(errno, ENOENT);
-	errno = 0;
-	EXPECT_EQ(fs_open(&vfs, STRV(TEST_FILE), "r"), NULL);
-	EXPECT_EQ(errno, ENOENT);
+	EXPECT_EQ(fs_open(&fs, STRV(TEST_FILE), "r", &file), CERR_NOT_FOUND);
+	EXPECT_EQ(fs_open(&vfs, STRV(TEST_FILE), "r", &file), CERR_NOT_FOUND);
 	log_set_quiet(0, 0);
 
 	fs_free(&fs);
@@ -166,8 +170,9 @@ TEST(fs_open_w_does_not_exist)
 	fs_init(&fs, 0, 0, ALLOC_STD);
 	fs_init(&vfs, 1, 1, ALLOC_STD);
 
-	void *f	 = fs_open(&fs, STRV(TEST_FILE), "w");
-	void *vf = fs_open(&vfs, STRV(TEST_FILE), "w");
+	void *f, *vf;
+	EXPECT_EQ(fs_open(&fs, STRV(TEST_FILE), "w", &f), CERR_OK);
+	EXPECT_EQ(fs_open(&vfs, STRV(TEST_FILE), "w", &vf), CERR_OK);
 
 	EXPECT_NE(f, NULL);
 	EXPECT_NE(vf, NULL);
@@ -194,8 +199,9 @@ TEST(fs_open_wb_does_not_exist)
 	fs_init(&fs, 0, 0, ALLOC_STD);
 	fs_init(&vfs, 1, 1, ALLOC_STD);
 
-	void *f	 = fs_open(&fs, STRV(TEST_FILE), "wb");
-	void *vf = fs_open(&vfs, STRV(TEST_FILE), "wb");
+	void *f, *vf;
+	EXPECT_EQ(fs_open(&fs, STRV(TEST_FILE), "wb", &f), CERR_OK);
+	EXPECT_EQ(fs_open(&vfs, STRV(TEST_FILE), "wb", &vf), CERR_OK);
 
 	EXPECT_NE(f, NULL);
 	EXPECT_NE(vf, NULL);
@@ -222,13 +228,10 @@ TEST(fs_open_w_does_not_exist_folder)
 	fs_init(&fs, 0, 0, ALLOC_STD);
 	fs_init(&vfs, 1, 1, ALLOC_STD);
 
+	void *file;
 	log_set_quiet(0, 1);
-	errno = 0;
-	EXPECT_EQ(fs_open(&fs, STRV(TEST_DIR "/" TEST_FILE), "w"), NULL);
-	EXPECT_EQ(errno, ENOENT);
-	errno = 0;
-	EXPECT_EQ(fs_open(&vfs, STRV(TEST_DIR "/" TEST_FILE), "w"), NULL);
-	EXPECT_EQ(errno, ENOENT);
+	EXPECT_EQ(fs_open(&fs, STRV(TEST_DIR "/" TEST_FILE), "w", &file), CERR_NOT_FOUND);
+	EXPECT_EQ(fs_open(&vfs, STRV(TEST_DIR "/" TEST_FILE), "w", &file), CERR_NOT_FOUND);
 	log_set_quiet(0, 0);
 
 	fs_free(&fs);
@@ -237,7 +240,7 @@ TEST(fs_open_w_does_not_exist_folder)
 	END;
 }
 
-TEST(fs_open_r_exists)
+TEST(fs_open_r_exist)
 {
 	START;
 
@@ -247,11 +250,15 @@ TEST(fs_open_r_exists)
 	fs_init(&fs, 0, 0, ALLOC_STD);
 	fs_init(&vfs, 1, 1, ALLOC_STD);
 
-	fs_close(&fs, fs_open(&fs, STRV(TEST_FILE), "w"));
-	fs_close(&vfs, fs_open(&vfs, STRV(TEST_FILE), "w"));
+	void *f, *vf;
+	fs_open(&fs, STRV(TEST_FILE), "w", &f);
+	fs_open(&vfs, STRV(TEST_FILE), "w", &vf);
 
-	void *f	 = fs_open(&fs, STRV(TEST_FILE), "r");
-	void *vf = fs_open(&vfs, STRV(TEST_FILE), "r");
+	fs_close(&fs, f);
+	fs_close(&vfs, vf);
+
+	EXPECT_EQ(fs_open(&fs, STRV(TEST_FILE), "r", &f), CERR_OK);
+	EXPECT_EQ(fs_open(&vfs, STRV(TEST_FILE), "r", &vf), CERR_OK);
 
 	EXPECT_NE(f, NULL);
 	EXPECT_NE(vf, NULL);
@@ -272,29 +279,17 @@ TEST(fs_close)
 {
 	START;
 
-	fs_t fs = {0};
-
-	fs_init(&fs, 0, 0, ALLOC_STD);
-
-	EXPECT_EQ(fs_close(NULL, NULL), EINVAL);
-
-	fs_free(&fs);
-
-	END;
-}
-
-TEST(fs_close_null)
-{
-	START;
-
 	fs_t fs	 = {0};
 	fs_t vfs = {0};
 
 	fs_init(&fs, 0, 0, ALLOC_STD);
 	fs_init(&vfs, 1, 1, ALLOC_STD);
 
-	EXPECT_EQ(fs_close(&fs, NULL), EINVAL);
-	EXPECT_EQ(fs_close(&vfs, NULL), EINVAL);
+	EXPECT_EQ(fs_close(NULL, NULL), CERR_VAL);
+	log_set_quiet(0, 1);
+	EXPECT_EQ(fs_close(&fs, NULL), CERR_VAL);
+	EXPECT_EQ(fs_close(&vfs, NULL), CERR_VAL);
+	log_set_quiet(0, 0);
 
 	fs_free(&fs);
 	fs_free(&vfs);
@@ -312,8 +307,9 @@ TEST(fs_close_valid)
 	fs_init(&fs, 0, 0, ALLOC_STD);
 	fs_init(&vfs, 1, 1, ALLOC_STD);
 
-	void *f	 = fs_open(&fs, STRV(TEST_FILE), "w");
-	void *vf = fs_open(&vfs, STRV(TEST_FILE), "w");
+	void *f, *vf;
+	fs_open(&fs, STRV(TEST_FILE), "w", &f);
+	fs_open(&vfs, STRV(TEST_FILE), "w", &vf);
 
 	EXPECT_EQ(fs_close(&fs, f), 0);
 	EXPECT_EQ(fs_close(&vfs, vf), 0);
@@ -335,14 +331,15 @@ TEST(fs_close_arr)
 
 	fs_init(&vfs, 1, 1, ALLOC_STD);
 
-	void *vf = fs_open(&vfs, STRV(TEST_FILE), "w");
+	void *vf;
+	fs_open(&vfs, STRV(TEST_FILE), "w", &vf);
 
 	size_t nodes_cnt = vfs.nodes.cnt;
 
 	vfs.nodes.cnt = 0;
 
 	log_set_quiet(0, 1);
-	EXPECT_EQ(fs_close(&vfs, vf), 1);
+	EXPECT_EQ(fs_close(&vfs, vf), CERR_NOT_FOUND);
 	log_set_quiet(0, 0);
 
 	vfs.nodes.cnt = nodes_cnt;
@@ -356,29 +353,30 @@ TEST(fs_write)
 {
 	START;
 
-	fs_t fs = {0};
-
-	fs_init(&fs, 0, 0, ALLOC_STD);
-
-	EXPECT_EQ(fs_write(NULL, NULL, STRV_NULL), EINVAL);
-
-	fs_free(&fs);
-
-	END;
-}
-
-TEST(fs_write_invalid)
-{
-	START;
-
+	fs_t fs	 = {0};
 	fs_t vfs = {0};
 
+	fs_init(&fs, 0, 0, ALLOC_STD);
 	fs_init(&vfs, 1, 1, ALLOC_STD);
 
+	fs_mkfile(&fs, STRV(TEST_FILE));
+	fs_mkfile(&vfs, STRV(TEST_FILE));
+
+	void *f, *vf;
+	fs_open(&fs, STRV(TEST_FILE), "r", &f);
+	fs_open(&vfs, STRV(TEST_FILE), "r", &vf);
+
+	EXPECT_EQ(fs_write(NULL, NULL, STRV_NULL), CERR_VAL);
+
 	log_set_quiet(0, 1);
-	EXPECT_EQ(fs_write(&vfs, (void *)-1, STRV("a")), EINVAL);
+	EXPECT_EQ(fs_write(&fs, NULL, STRV_NULL), CERR_VAL);
+	EXPECT_EQ(fs_write(&vfs, NULL, STRV_NULL), CERR_VAL);
+	EXPECT_EQ(fs_write(&vfs, (void *)-1, STRV("a")), CERR_NOT_FOUND);
+	EXPECT_EQ(fs_write(&fs, f, STRV("a")), CERR_DESC);
+	EXPECT_EQ(fs_write(&vfs, vf, STRV("a")), CERR_DESC);
 	log_set_quiet(0, 0);
 
+	fs_free(&fs);
 	fs_free(&vfs);
 
 	END;
@@ -392,13 +390,14 @@ TEST(fs_write_oom)
 
 	fs_init(&vfs, 1, 1, ALLOC_STD);
 
-	void *f = fs_open(&vfs, STRV(TEST_FILE), "w");
+	void *vf;
+	fs_open(&vfs, STRV(TEST_FILE), "w", &vf);
 
 	mem_oom(1);
-	EXPECT_EQ(fs_write(&vfs, f, STRVN("a", 256)), ENOMEM);
+	EXPECT_EQ(fs_write(&vfs, vf, STRVN("a", 256)), CERR_MEM);
 	mem_oom(0);
 
-	fs_close(&vfs, f);
+	fs_close(&vfs, vf);
 
 	fs_rmfile(&vfs, STRV(TEST_FILE));
 
@@ -417,8 +416,9 @@ TEST(fs_write_valid)
 	fs_init(&fs, 0, 0, ALLOC_STD);
 	fs_init(&vfs, 1, 1, ALLOC_STD);
 
-	void *f	 = fs_open(&fs, STRV(TEST_FILE), "w");
-	void *vf = fs_open(&vfs, STRV(TEST_FILE), "w");
+	void *f, *vf;
+	fs_open(&fs, STRV(TEST_FILE), "w", &f);
+	fs_open(&vfs, STRV(TEST_FILE), "w", &vf);
 
 	EXPECT_EQ(fs_write(&fs, f, STRV("a")), 0);
 	EXPECT_EQ(fs_write(&vfs, vf, STRV("a")), 0);
@@ -439,18 +439,12 @@ TEST(fs_read)
 {
 	START;
 
-	fs_t fs = {0};
-
-	fs_init(&fs, 0, 0, ALLOC_STD);
-
-	EXPECT_EQ(fs_read(NULL, STRV_NULL, 0, NULL), EINVAL);
-
-	fs_free(&fs);
+	EXPECT_EQ(fs_read(NULL, STRV_NULL, 0, NULL), CERR_VAL);
 
 	END;
 }
 
-TEST(fs_read_does_not_exist)
+TEST(fs_read_not_found)
 {
 	START;
 
@@ -463,8 +457,8 @@ TEST(fs_read_does_not_exist)
 	str_t str = strz(1);
 
 	log_set_quiet(0, 1);
-	EXPECT_EQ(fs_read(&fs, STRV(TEST_FILE), 0, &str), ENOENT);
-	EXPECT_EQ(fs_read(&vfs, STRV(TEST_FILE), 0, &str), ENOENT);
+	EXPECT_EQ(fs_read(&fs, STRV(TEST_FILE), 0, &str), CERR_NOT_FOUND);
+	EXPECT_EQ(fs_read(&vfs, STRV(TEST_FILE), 0, &str), CERR_NOT_FOUND);
 	log_set_quiet(0, 0);
 
 	str_free(&str);
@@ -492,7 +486,7 @@ TEST(fs_read_arr)
 	vfs.nodes.cnt = 0;
 
 	log_set_quiet(0, 1);
-	EXPECT_EQ(fs_read(&vfs, STRV(TEST_FILE), 0, &str), EINVAL);
+	EXPECT_EQ(fs_read(&vfs, STRV(TEST_FILE), 0, &str), CERR_VAL);
 	log_set_quiet(0, 0);
 
 	vfs.nodes.cnt = nodes_cnt;
@@ -517,8 +511,9 @@ TEST(fs_read_oom)
 	fs_mkfile(&fs, STRV(TEST_FILE));
 	fs_mkfile(&vfs, STRV(TEST_FILE));
 
-	void *f	 = fs_open(&fs, STRV(TEST_FILE), "w");
-	void *vf = fs_open(&vfs, STRV(TEST_FILE), "w");
+	void *f, *vf;
+	fs_open(&fs, STRV(TEST_FILE), "w", &f);
+	fs_open(&vfs, STRV(TEST_FILE), "w", &vf);
 
 	fs_write(&fs, f, STRV("a"));
 	fs_write(&vfs, vf, STRV("a"));
@@ -529,8 +524,8 @@ TEST(fs_read_oom)
 	str_t str = strz(1);
 
 	mem_oom(1);
-	EXPECT_EQ(fs_read(&fs, STRV(TEST_FILE), 0, &str), ENOMEM);
-	EXPECT_EQ(fs_read(&vfs, STRV(TEST_FILE), 0, &str), ENOMEM);
+	EXPECT_EQ(fs_read(&fs, STRV(TEST_FILE), 0, &str), CERR_MEM);
+	EXPECT_EQ(fs_read(&vfs, STRV(TEST_FILE), 0, &str), CERR_MEM);
 	mem_oom(0);
 
 	fs_rmfile(&fs, STRV(TEST_FILE));
@@ -587,8 +582,9 @@ TEST(fs_read_str)
 	fs_init(&fs, 0, 0, ALLOC_STD);
 	fs_init(&vfs, 1, 1, ALLOC_STD);
 
-	void *f	 = fs_open(&fs, STRV(TEST_FILE), "w");
-	void *vf = fs_open(&vfs, STRV(TEST_FILE), "w");
+	void *f, *vf;
+	fs_open(&fs, STRV(TEST_FILE), "w", &f);
+	fs_open(&vfs, STRV(TEST_FILE), "w", &vf);
 
 	fs_write(&fs, f, STRV("ab"));
 	fs_write(&vfs, vf, STRV("ab"));
@@ -603,7 +599,17 @@ TEST(fs_read_str)
 
 	str.len = 0;
 
+	EXPECT_EQ(fs_read(&fs, STRV(TEST_FILE), 1, &str), 0);
+	EXPECT_STRN(str.data, "ab", str.len);
+
+	str.len = 0;
+
 	EXPECT_EQ(fs_read(&vfs, STRV(TEST_FILE), 0, &str), 0);
+	EXPECT_STRN(str.data, "ab", str.len);
+
+	str.len = 0;
+
+	EXPECT_EQ(fs_read(&vfs, STRV(TEST_FILE), 1, &str), 0);
 	EXPECT_STRN(str.data, "ab", str.len);
 
 	fs_rmfile(&fs, STRV(TEST_FILE));
@@ -612,6 +618,79 @@ TEST(fs_read_str)
 	str_free(&str);
 
 	fs_free(&fs);
+	fs_free(&vfs);
+
+	END;
+}
+
+TEST(fs_du)
+{
+	START;
+
+	fs_t fs	 = {0};
+	fs_t vfs = {0};
+
+	fs_init(&fs, 0, 0, ALLOC_STD);
+	fs_init(&vfs, 1, 1, ALLOC_STD);
+
+	void *f, *vf;
+	fs_open(&fs, STRV(TEST_FILE), "w", &f);
+	fs_open(&vfs, STRV(TEST_FILE), "w", &vf);
+
+	fs_write(&fs, f, STRV("a"));
+	fs_write(&vfs, vf, STRV("a"));
+
+	EXPECT_EQ(fs_du(NULL, NULL, NULL), CERR_VAL);
+
+	size_t size;
+	log_set_quiet(0, 1);
+	EXPECT_EQ(fs_du(&fs, NULL, NULL), CERR_VAL);
+	EXPECT_EQ(fs_du(&vfs, NULL, NULL), CERR_VAL);
+	log_set_quiet(0, 0);
+
+	EXPECT_EQ(fs_du(&fs, f, &size), CERR_OK);
+	EXPECT_EQ(size, 1);
+	EXPECT_EQ(fs_du(&vfs, vf, &size), CERR_OK);
+	EXPECT_EQ(size, 1);
+
+	fs_close(&fs, f);
+	fs_close(&vfs, vf);
+
+	fs_rmfile(&fs, STRV(TEST_FILE));
+	fs_rmfile(&vfs, STRV(TEST_FILE));
+
+	fs_free(&fs);
+	fs_free(&vfs);
+
+	END;
+}
+
+TEST(fs_du_arr)
+{
+	START;
+
+	fs_t vfs = {0};
+
+	fs_init(&vfs, 1, 1, ALLOC_STD);
+
+	void *vf;
+	fs_open(&vfs, STRV(TEST_FILE), "w", &vf);
+
+	size_t nodes_cnt = vfs.nodes.cnt;
+
+	vfs.nodes.cnt = 0;
+
+	size_t size;
+	log_set_quiet(0, 1);
+	EXPECT_EQ(fs_du(&vfs, vf, &size), CERR_NOT_FOUND);
+	log_set_quiet(0, 0);
+
+	vfs.nodes.cnt = nodes_cnt;
+
+	fs_close(&vfs, vf);
+
+	fs_rmfile(&vfs, STRV(TEST_FILE));
+
 	fs_free(&vfs);
 
 	END;
@@ -686,11 +765,17 @@ TEST(fs_isdir_arr)
 
 	fs_mkdir(&vfs, STRV(TEST_DIR));
 
-	arr_reset(&vfs.nodes, 0, 0);
+	size_t nodes_cnt = vfs.nodes.cnt;
+
+	vfs.nodes.cnt = 0;
 
 	log_set_quiet(0, 1);
 	EXPECT_EQ(fs_isdir(&vfs, STRV(TEST_DIR)), 0);
 	log_set_quiet(0, 0);
+
+	vfs.nodes.cnt = nodes_cnt;
+
+	fs_rmdir(&vfs, STRV(TEST_DIR));
 
 	fs_free(&vfs);
 
@@ -768,11 +853,17 @@ TEST(fs_isfile_arr)
 
 	fs_mkfile(&vfs, STRV(TEST_FILE));
 
-	arr_reset(&vfs.nodes, 0, 0);
+	size_t nodes_cnt = vfs.nodes.cnt;
+
+	vfs.nodes.cnt = 0;
 
 	log_set_quiet(0, 1);
 	EXPECT_EQ(fs_isfile(&vfs, STRV(TEST_FILE)), 0);
 	log_set_quiet(0, 0);
+
+	vfs.nodes.cnt = nodes_cnt;
+
+	fs_rmfile(&vfs, STRV(TEST_FILE));
 
 	fs_free(&vfs);
 
@@ -783,23 +874,50 @@ TEST(fs_mkdir)
 {
 	START;
 
-	fs_t fs = {0};
+	fs_t fs	 = {0};
+	fs_t vfs = {0};
 
+	fs_init(&fs, 0, 0, ALLOC_STD);
 	log_set_quiet(0, 1);
-	fs_init(&fs, 0, 1, ALLOC_STD);
+	fs_init(&vfs, 0, 1, ALLOC_STD);
 	log_set_quiet(0, 0);
 
-	EXPECT_EQ(fs_mkdir(NULL, STRV_NULL), EINVAL);
+	fs_mkfile(&fs, STRV(TEST_FILE));
+	fs_mkfile(&vfs, STRV(TEST_FILE));
+
+	EXPECT_EQ(fs_mkdir(NULL, STRV_NULL), CERR_VAL);
+
 	mem_oom(1);
-	EXPECT_EQ(fs_mkdir(&fs, STRV(TEST_DIR)), ENOMEM);
+	EXPECT_EQ(fs_mkdir(&vfs, STRV(TEST_DIR)), CERR_MEM);
 	mem_oom(0);
 
+	log_set_quiet(0, 1);
+	EXPECT_EQ(fs_mkdir(&fs, STRV_NULL), CERR_VAL);
+	EXPECT_EQ(fs_mkdir(&vfs, STRV_NULL), CERR_VAL);
+	EXPECT_EQ(fs_mkdir(&fs, STRV("")), CERR_NOT_FOUND);
+	EXPECT_EQ(fs_mkdir(&vfs, STRV("")), CERR_NOT_FOUND);
+	EXPECT_EQ(fs_mkdir(&fs, STRV(TEST_DIR "/" TEST_DIR)), CERR_NOT_FOUND);
+	EXPECT_EQ(fs_mkdir(&vfs, STRV(TEST_DIR "/" TEST_DIR)), CERR_NOT_FOUND);
+	EXPECT_EQ(fs_mkdir(&fs, STRV(TEST_FILE "/" TEST_DIR)), CERR_NOT_FOUND);
+	EXPECT_EQ(fs_mkdir(&vfs, STRV(TEST_FILE "/" TEST_DIR)), CERR_NOT_FOUND);
+	log_set_quiet(0, 0);
+
+	EXPECT_EQ(fs_mkdir(&fs, STRV(TEST_DIR)), CERR_OK);
+	EXPECT_EQ(fs_mkdir(&vfs, STRV(TEST_DIR)), CERR_OK);
+
+	fs_rmfile(&fs, STRV(TEST_FILE));
+	fs_rmfile(&vfs, STRV(TEST_FILE));
+
+	fs_rmdir(&fs, STRV(TEST_DIR));
+	fs_rmdir(&vfs, STRV(TEST_DIR));
+
 	fs_free(&fs);
+	fs_free(&vfs);
 
 	END;
 }
 
-TEST(fs_mkdir_exists)
+TEST(fs_mkdir_exist)
 {
 	START;
 
@@ -813,8 +931,8 @@ TEST(fs_mkdir_exists)
 	fs_mkdir(&vfs, STRV(TEST_DIR));
 
 	log_set_quiet(0, 1);
-	EXPECT_EQ(fs_mkdir(&fs, STRV(TEST_DIR)), EEXIST);
-	EXPECT_EQ(fs_mkdir(&vfs, STRV(TEST_DIR)), EEXIST);
+	EXPECT_EQ(fs_mkdir(&fs, STRV(TEST_DIR)), CERR_EXIST);
+	EXPECT_EQ(fs_mkdir(&vfs, STRV(TEST_DIR)), CERR_EXIST);
 	log_set_quiet(0, 0);
 
 	fs_rmdir(&fs, STRV(TEST_DIR));
@@ -840,8 +958,8 @@ TEST(fs_mkdir_file)
 	fs_mkfile(&vfs, STRV(TEST_DIR));
 
 	log_set_quiet(0, 1);
-	EXPECT_EQ(fs_mkdir(&fs, STRV(TEST_DIR)), EEXIST);
-	EXPECT_EQ(fs_mkdir(&vfs, STRV(TEST_DIR)), EEXIST);
+	EXPECT_EQ(fs_mkdir(&fs, STRV(TEST_DIR)), CERR_EXIST);
+	EXPECT_EQ(fs_mkdir(&vfs, STRV(TEST_DIR)), CERR_EXIST);
 	log_set_quiet(0, 0);
 
 	fs_rmfile(&fs, STRV(TEST_DIR));
@@ -857,23 +975,47 @@ TEST(fs_mkfile)
 {
 	START;
 
-	fs_t fs = {0};
+	fs_t fs	 = {0};
+	fs_t vfs = {0};
 
+	fs_init(&fs, 0, 0, ALLOC_STD);
 	log_set_quiet(0, 1);
-	fs_init(&fs, 0, 1, ALLOC_STD);
+	fs_init(&vfs, 0, 1, ALLOC_STD);
 	log_set_quiet(0, 0);
 
-	EXPECT_EQ(fs_mkfile(NULL, STRV_NULL), EINVAL);
+	EXPECT_EQ(fs_mkfile(NULL, STRV_NULL), CERR_VAL);
+
+	log_set_quiet(0, 1);
+	EXPECT_EQ(fs_mkfile(&fs, STRV_NULL), CERR_VAL);
+	EXPECT_EQ(fs_mkfile(&vfs, STRV_NULL), CERR_VAL);
+	log_set_quiet(0, 0);
+
 	mem_oom(1);
-	EXPECT_EQ(fs_mkfile(&fs, STRV(TEST_FILE)), ENOMEM);
+	EXPECT_EQ(fs_mkfile(&vfs, STRV(TEST_FILE)), CERR_MEM);
 	mem_oom(0);
 
+	EXPECT_EQ(fs_mkfile(&fs, STRV(TEST_FILE)), CERR_OK);
+	EXPECT_EQ(fs_mkfile(&vfs, STRV(TEST_FILE)), CERR_OK);
+
+	log_set_quiet(0, 1);
+	EXPECT_EQ(fs_mkfile(&fs, STRV("")), CERR_NOT_FOUND);
+	EXPECT_EQ(fs_mkfile(&vfs, STRV("")), CERR_NOT_FOUND);
+	EXPECT_EQ(fs_mkfile(&fs, STRV(TEST_DIR "/" TEST_FILE)), CERR_NOT_FOUND);
+	EXPECT_EQ(fs_mkfile(&vfs, STRV(TEST_DIR "/" TEST_FILE)), CERR_NOT_FOUND);
+	EXPECT_EQ(fs_mkfile(&fs, STRV(TEST_FILE "/" TEST_FILE)), CERR_NOT_FOUND);
+	EXPECT_EQ(fs_mkfile(&vfs, STRV(TEST_FILE "/" TEST_FILE)), CERR_NOT_FOUND);
+	log_set_quiet(0, 0);
+
+	fs_rmfile(&fs, STRV(TEST_FILE));
+	fs_rmfile(&vfs, STRV(TEST_FILE));
+
 	fs_free(&fs);
+	fs_free(&vfs);
 
 	END;
 }
 
-TEST(fs_mkfile_exists)
+TEST(fs_mkfile_exist)
 {
 	START;
 
@@ -887,8 +1029,8 @@ TEST(fs_mkfile_exists)
 	fs_mkfile(&vfs, STRV(TEST_FILE));
 
 	log_set_quiet(0, 1);
-	EXPECT_EQ(fs_mkfile(&fs, STRV(TEST_FILE)), EEXIST);
-	EXPECT_EQ(fs_mkfile(&vfs, STRV(TEST_FILE)), EEXIST);
+	EXPECT_EQ(fs_mkfile(&fs, STRV(TEST_FILE)), CERR_EXIST);
+	EXPECT_EQ(fs_mkfile(&vfs, STRV(TEST_FILE)), CERR_EXIST);
 	log_set_quiet(0, 0);
 
 	fs_rmfile(&fs, STRV(TEST_FILE));
@@ -914,8 +1056,8 @@ TEST(fs_mkfile_dir)
 	fs_mkdir(&vfs, STRV(TEST_FILE));
 
 	log_set_quiet(0, 1);
-	EXPECT_EQ(fs_mkfile(&fs, STRV(TEST_FILE)), EEXIST);
-	EXPECT_EQ(fs_mkfile(&vfs, STRV(TEST_FILE)), EEXIST);
+	EXPECT_EQ(fs_mkfile(&fs, STRV(TEST_FILE)), CERR_TYPE);
+	EXPECT_EQ(fs_mkfile(&vfs, STRV(TEST_FILE)), CERR_TYPE);
 	log_set_quiet(0, 0);
 
 	fs_rmdir(&fs, STRV(TEST_FILE));
@@ -935,7 +1077,7 @@ TEST(fs_rmdir)
 
 	fs_init(&fs, 0, 0, ALLOC_STD);
 
-	EXPECT_EQ(fs_rmdir(NULL, STRV_NULL), EINVAL);
+	EXPECT_EQ(fs_rmdir(NULL, STRV_NULL), CERR_VAL);
 
 	fs_free(&fs);
 
@@ -952,11 +1094,17 @@ TEST(fs_rmdir_arr)
 
 	fs_mkdir(&vfs, STRV(TEST_FILE));
 
-	arr_reset(&vfs.nodes, 0, 0);
+	size_t nodes_cnt = vfs.nodes.cnt;
+
+	vfs.nodes.cnt = 0;
 
 	log_set_quiet(0, 1);
-	EXPECT_EQ(fs_rmdir(&vfs, STRV(TEST_FILE)), EINVAL);
+	EXPECT_EQ(fs_rmdir(&vfs, STRV(TEST_FILE)), CERR_NOT_FOUND);
 	log_set_quiet(0, 0);
+
+	vfs.nodes.cnt = nodes_cnt;
+
+	fs_rmdir(&vfs, STRV(TEST_FILE));
 
 	fs_free(&vfs);
 
@@ -977,8 +1125,8 @@ TEST(fs_rmdir_file)
 	fs_mkfile(&vfs, STRV(TEST_DIR));
 
 	log_set_quiet(0, 1);
-	EXPECT_EQ(fs_rmdir(&fs, STRV(TEST_DIR)), EINVAL);
-	EXPECT_EQ(fs_rmdir(&vfs, STRV(TEST_DIR)), EINVAL);
+	EXPECT_EQ(fs_rmdir(&fs, STRV(TEST_DIR)), CERR_NOT_FOUND);
+	EXPECT_EQ(fs_rmdir(&vfs, STRV(TEST_DIR)), CERR_NOT_FOUND);
 	log_set_quiet(0, 0);
 
 	fs_rmfile(&fs, STRV(TEST_DIR));
@@ -990,7 +1138,7 @@ TEST(fs_rmdir_file)
 	END;
 }
 
-TEST(fs_rmdir_does_not_exist)
+TEST(fs_rmdir_not_found)
 {
 	START;
 
@@ -1001,8 +1149,8 @@ TEST(fs_rmdir_does_not_exist)
 	fs_init(&vfs, 1, 1, ALLOC_STD);
 
 	log_set_quiet(0, 1);
-	EXPECT_EQ(fs_rmdir(&fs, STRV(TEST_DIR)), ENOENT);
-	EXPECT_EQ(fs_rmdir(&vfs, STRV(TEST_DIR)), ENOENT);
+	EXPECT_EQ(fs_rmdir(&fs, STRV(TEST_DIR)), CERR_NOT_FOUND);
+	EXPECT_EQ(fs_rmdir(&vfs, STRV(TEST_DIR)), CERR_NOT_FOUND);
 	log_set_quiet(0, 0);
 
 	fs_free(&fs);
@@ -1028,8 +1176,8 @@ TEST(fs_rmdir_not_empty)
 	fs_mkdir(&vfs, STRV(TEST_DIR "/a"));
 
 	log_set_quiet(0, 1);
-	EXPECT_EQ(fs_rmdir(&fs, STRV(TEST_DIR)), ENOTEMPTY);
-	EXPECT_EQ(fs_rmdir(&vfs, STRV(TEST_DIR)), ENOTEMPTY);
+	EXPECT_EQ(fs_rmdir(&fs, STRV(TEST_DIR)), CERR_NOT_EMPTY);
+	EXPECT_EQ(fs_rmdir(&vfs, STRV(TEST_DIR)), CERR_NOT_EMPTY);
 	log_set_quiet(0, 0);
 
 	fs_rmdir(&fs, STRV(TEST_DIR "/a"));
@@ -1052,7 +1200,7 @@ TEST(fs_rmfile)
 
 	fs_init(&fs, 0, 0, ALLOC_STD);
 
-	EXPECT_EQ(fs_rmfile(NULL, STRV_NULL), EINVAL);
+	EXPECT_EQ(fs_rmfile(NULL, STRV_NULL), CERR_VAL);
 
 	fs_free(&fs);
 
@@ -1069,11 +1217,17 @@ TEST(fs_rmfile_arr)
 
 	fs_mkfile(&vfs, STRV(TEST_FILE));
 
-	arr_reset(&vfs.nodes, 0, 0);
+	size_t nodes_cnt = vfs.nodes.cnt;
+
+	vfs.nodes.cnt = 0;
 
 	log_set_quiet(0, 1);
-	EXPECT_EQ(fs_rmfile(&vfs, STRV(TEST_FILE)), EINVAL);
+	EXPECT_EQ(fs_rmfile(&vfs, STRV(TEST_FILE)), CERR_NOT_FOUND);
 	log_set_quiet(0, 0);
+
+	vfs.nodes.cnt = nodes_cnt;
+
+	fs_rmfile(&vfs, STRV(TEST_FILE));
 
 	fs_free(&vfs);
 
@@ -1094,8 +1248,8 @@ TEST(fs_rmfile_dir)
 	fs_mkdir(&vfs, STRV(TEST_FILE));
 
 	log_set_quiet(0, 1);
-	EXPECT_EQ(fs_rmfile(&fs, STRV(TEST_FILE)), EISDIR);
-	EXPECT_EQ(fs_rmfile(&vfs, STRV(TEST_FILE)), EISDIR);
+	EXPECT_EQ(fs_rmfile(&fs, STRV(TEST_FILE)), CERR_NOT_FOUND);
+	EXPECT_EQ(fs_rmfile(&vfs, STRV(TEST_FILE)), CERR_NOT_FOUND);
 	log_set_quiet(0, 0);
 
 	fs_rmdir(&fs, STRV(TEST_FILE));
@@ -1107,7 +1261,7 @@ TEST(fs_rmfile_dir)
 	END;
 }
 
-TEST(fs_rmfile_does_not_exist)
+TEST(fs_rmfile_not_found)
 {
 	START;
 
@@ -1118,8 +1272,8 @@ TEST(fs_rmfile_does_not_exist)
 	fs_init(&vfs, 1, 1, ALLOC_STD);
 
 	log_set_quiet(0, 1);
-	EXPECT_EQ(fs_rmfile(&fs, STRV(TEST_FILE)), ENOENT);
-	EXPECT_EQ(fs_rmfile(&vfs, STRV(TEST_FILE)), ENOENT);
+	EXPECT_EQ(fs_rmfile(&fs, STRV(TEST_FILE)), CERR_NOT_FOUND);
+	EXPECT_EQ(fs_rmfile(&vfs, STRV(TEST_FILE)), CERR_NOT_FOUND);
 	log_set_quiet(0, 0);
 
 	fs_free(&fs);
@@ -1176,8 +1330,8 @@ TEST(fs_file_mk_is_rm)
 	EXPECT_EQ(fs_mkfile(&vfs, STRV(TEST_FILE)), 0);
 
 	log_set_quiet(0, 1);
-	EXPECT_EQ(fs_mkfile(&fs, STRV(TEST_FILE)), EEXIST);
-	EXPECT_EQ(fs_mkfile(&vfs, STRV(TEST_FILE)), EEXIST);
+	EXPECT_EQ(fs_mkfile(&fs, STRV(TEST_FILE)), CERR_EXIST);
+	EXPECT_EQ(fs_mkfile(&vfs, STRV(TEST_FILE)), CERR_EXIST);
 	log_set_quiet(0, 0);
 
 	EXPECT_EQ(fs_isfile(&fs, STRV(TEST_FILE)), 1);
@@ -1187,12 +1341,50 @@ TEST(fs_file_mk_is_rm)
 	EXPECT_EQ(fs_rmfile(&vfs, STRV(TEST_FILE)), 0);
 
 	log_set_quiet(0, 1);
-	EXPECT_EQ(fs_rmfile(&fs, STRV(TEST_FILE)), ENOENT);
-	EXPECT_EQ(fs_rmfile(&vfs, STRV(TEST_FILE)), ENOENT);
+	EXPECT_EQ(fs_rmfile(&fs, STRV(TEST_FILE)), CERR_NOT_FOUND);
+	EXPECT_EQ(fs_rmfile(&vfs, STRV(TEST_FILE)), CERR_NOT_FOUND);
 	log_set_quiet(0, 0);
 
 	EXPECT_EQ(fs_isfile(&fs, STRV(TEST_FILE)), 0);
 	EXPECT_EQ(fs_isfile(&vfs, STRV(TEST_FILE)), 0);
+
+	fs_free(&fs);
+	fs_free(&vfs);
+
+	END;
+}
+
+TEST(fs_getcwd)
+{
+	START;
+
+	fs_t fs	 = {0};
+	fs_t vfs = {0};
+
+	fs_init(&fs, 0, 0, ALLOC_STD);
+	fs_init(&vfs, 1, 1, ALLOC_STD);
+
+	char buf[256];
+	str_t path = STRB(buf, sizeof(buf));
+
+	str_t path_null = STR_NULL;
+	str_t path_val	= {.data = buf, .size = 0};
+	str_t path_oom	= {.data = buf, .size = 1};
+
+	EXPECT_EQ(fs_getcwd(NULL, NULL), CERR_VAL);
+	log_set_quiet(0, 1);
+	EXPECT_EQ(fs_getcwd(&fs, NULL), CERR_VAL);
+	EXPECT_EQ(fs_getcwd(&vfs, NULL), CERR_VAL);
+	EXPECT_EQ(fs_getcwd(&fs, &path_null), CERR_VAL);
+	EXPECT_EQ(fs_getcwd(&vfs, &path_null), CERR_VAL);
+	EXPECT_EQ(fs_getcwd(&fs, &path_val), CERR_VAL);
+	EXPECT_EQ(fs_getcwd(&vfs, &path_val), CERR_VAL);
+	EXPECT_EQ(fs_getcwd(&fs, &path_oom), CERR_MEM);
+	EXPECT_EQ(fs_getcwd(&vfs, &path_oom), CERR_MEM);
+	log_set_quiet(0, 0);
+
+	EXPECT_EQ(fs_getcwd(&fs, &path), CERR_OK);
+	EXPECT_EQ(fs_getcwd(&vfs, &path), CERR_OK);
 
 	fs_free(&fs);
 	fs_free(&vfs);
@@ -1233,15 +1425,15 @@ TEST(fs_lsdir)
 	fs_mkdir(&fs, STRV(TEST_DIR "/c"));
 	fs_mkdir(&vfs, STRV(TEST_DIR "/c"));
 
-	EXPECT_EQ(fs_lsdir(&fs, STRV_NULL, NULL), EINVAL);
-	EXPECT_EQ(fs_lsdir(&vfs, STRV_NULL, NULL), EINVAL);
+	EXPECT_EQ(fs_lsdir(&fs, STRV_NULL, NULL), CERR_VAL);
+	EXPECT_EQ(fs_lsdir(&vfs, STRV_NULL, NULL), CERR_VAL);
 	log_set_quiet(0, 1);
-	EXPECT_EQ(fs_lsdir(&fs, not, &dirs), ENOENT);
-	EXPECT_EQ(fs_lsdir(&vfs, not, &vdirs), ENOENT);
+	EXPECT_EQ(fs_lsdir(&fs, not, &dirs), CERR_NOT_FOUND);
+	EXPECT_EQ(fs_lsdir(&vfs, not, &vdirs), CERR_NOT_FOUND);
 	log_set_quiet(0, 0);
 	mem_oom(1);
-	EXPECT_EQ(fs_lsdir(&fs, path, &dirs), ENOMEM);
-	EXPECT_EQ(fs_lsdir(&vfs, path, &vdirs), ENOMEM);
+	EXPECT_EQ(fs_lsdir(&fs, path, &dirs), CERR_MEM);
+	EXPECT_EQ(fs_lsdir(&vfs, path, &vdirs), CERR_MEM);
 	mem_oom(0);
 	EXPECT_EQ(fs_lsdir(&fs, path, &dirs), 0);
 	EXPECT_EQ(fs_lsdir(&vfs, path, &vdirs), 0);
@@ -1264,6 +1456,17 @@ TEST(fs_lsdir)
 	vdir = strbuf_get(&vdirs, 2);
 	EXPECT_STRN(dir.data, "c", dir.len);
 	EXPECT_STRN(vdir.data, "c", vdir.len);
+
+	strbuf_free(&dirs);
+	strbuf_free(&vdirs);
+
+	strbuf_init(&dirs, 1, 1, ALLOC_STD);
+	strbuf_init(&vdirs, 1, 1, ALLOC_STD);
+
+	mem_oom(1);
+	EXPECT_EQ(fs_lsdir(&fs, path, &dirs), CERR_MEM);
+	EXPECT_EQ(fs_lsdir(&vfs, path, &vdirs), CERR_MEM);
+	mem_oom(0);
 
 	fs_rmdir(&fs, STRV(TEST_DIR "/c"));
 	fs_rmdir(&vfs, STRV(TEST_DIR "/c"));
@@ -1298,11 +1501,17 @@ TEST(fs_lsdir_arr)
 
 	fs_mkdir(&vfs, STRV(TEST_DIR));
 
-	arr_reset(&vfs.nodes, 0, 0);
+	size_t nodes_cnt = vfs.nodes.cnt;
+
+	vfs.nodes.cnt = 0;
 
 	log_set_quiet(0, 1);
-	EXPECT_EQ(fs_lsdir(&vfs, STRV(TEST_DIR), &dirs), EINVAL);
+	EXPECT_EQ(fs_lsdir(&vfs, STRV(TEST_DIR), &dirs), CERR_NOT_FOUND);
 	log_set_quiet(0, 0);
+
+	vfs.nodes.cnt = nodes_cnt;
+
+	fs_rmdir(&vfs, STRV(TEST_DIR));
 
 	fs_free(&vfs);
 
@@ -1325,8 +1534,8 @@ TEST(fs_lsdir_file)
 	fs_mkfile(&vfs, STRV(TEST_FILE));
 
 	log_set_quiet(0, 1);
-	EXPECT_EQ(fs_lsdir(&fs, STRV(TEST_FILE), &dirs), ENOTDIR);
-	EXPECT_EQ(fs_lsdir(&vfs, STRV(TEST_FILE), &dirs), ENOTDIR);
+	EXPECT_EQ(fs_lsdir(&fs, STRV(TEST_FILE), &dirs), CERR_TYPE);
+	EXPECT_EQ(fs_lsdir(&vfs, STRV(TEST_FILE), &dirs), CERR_TYPE);
 	log_set_quiet(0, 0);
 
 	fs_rmfile(&fs, STRV(TEST_FILE));
@@ -1371,15 +1580,15 @@ TEST(fs_lsfile)
 	fs_mkfile(&fs, STRV(TEST_DIR "/c.txt"));
 	fs_mkfile(&vfs, STRV(TEST_DIR "/c.txt"));
 
-	EXPECT_EQ(fs_lsfile(&fs, STRV_NULL, NULL), EINVAL);
-	EXPECT_EQ(fs_lsfile(&vfs, STRV_NULL, NULL), EINVAL);
+	EXPECT_EQ(fs_lsfile(&fs, STRV_NULL, NULL), CERR_VAL);
+	EXPECT_EQ(fs_lsfile(&vfs, STRV_NULL, NULL), CERR_VAL);
 	log_set_quiet(0, 1);
-	EXPECT_EQ(fs_lsfile(&fs, not, &files), ENOENT);
-	EXPECT_EQ(fs_lsfile(&vfs, not, &vfiles), ENOENT);
+	EXPECT_EQ(fs_lsfile(&fs, not, &files), CERR_NOT_FOUND);
+	EXPECT_EQ(fs_lsfile(&vfs, not, &vfiles), CERR_NOT_FOUND);
 	log_set_quiet(0, 0);
 	mem_oom(1);
-	EXPECT_EQ(fs_lsfile(&fs, path, &files), ENOMEM);
-	EXPECT_EQ(fs_lsfile(&vfs, path, &vfiles), ENOMEM);
+	EXPECT_EQ(fs_lsfile(&fs, path, &files), CERR_MEM);
+	EXPECT_EQ(fs_lsfile(&vfs, path, &vfiles), CERR_MEM);
 	mem_oom(0);
 	EXPECT_EQ(fs_lsfile(&fs, path, &files), 0);
 	EXPECT_EQ(fs_lsfile(&vfs, path, &vfiles), 0);
@@ -1399,6 +1608,17 @@ TEST(fs_lsfile)
 	vdir = strbuf_get(&vfiles, 2);
 	EXPECT_STRN(dir.data, "c.txt", dir.len);
 	EXPECT_STRN(vdir.data, "c.txt", vdir.len);
+
+	strbuf_free(&files);
+	strbuf_free(&vfiles);
+
+	strbuf_init(&files, 1, 5, ALLOC_STD);
+	strbuf_init(&vfiles, 1, 5, ALLOC_STD);
+
+	mem_oom(1);
+	EXPECT_EQ(fs_lsfile(&fs, path, &files), CERR_MEM);
+	EXPECT_EQ(fs_lsfile(&vfs, path, &vfiles), CERR_MEM);
+	mem_oom(0);
 
 	fs_rmfile(&fs, STRV(TEST_DIR "/c.txt"));
 	fs_rmfile(&vfs, STRV(TEST_DIR "/c.txt"));
@@ -1433,11 +1653,17 @@ TEST(fs_lsfile_arr)
 
 	fs_mkdir(&vfs, STRV(TEST_DIR));
 
-	arr_reset(&vfs.nodes, 0, 0);
+	size_t nodes_cnt = vfs.nodes.cnt;
+
+	vfs.nodes.cnt = 0;
 
 	log_set_quiet(0, 1);
-	EXPECT_EQ(fs_lsfile(&vfs, STRV(TEST_DIR), &files), EINVAL);
+	EXPECT_EQ(fs_lsfile(&vfs, STRV(TEST_DIR), &files), CERR_NOT_FOUND);
 	log_set_quiet(0, 0);
+
+	vfs.nodes.cnt = nodes_cnt;
+
+	fs_rmdir(&vfs, STRV(TEST_DIR));
 
 	fs_free(&vfs);
 
@@ -1460,8 +1686,8 @@ TEST(fs_lsfile_file)
 	fs_mkfile(&vfs, STRV(TEST_FILE));
 
 	log_set_quiet(0, 1);
-	EXPECT_EQ(fs_lsfile(&fs, STRV(TEST_FILE), &files), ENOTDIR);
-	EXPECT_EQ(fs_lsfile(&vfs, STRV(TEST_FILE), &files), ENOTDIR);
+	EXPECT_EQ(fs_lsfile(&fs, STRV(TEST_FILE), &files), CERR_TYPE);
+	EXPECT_EQ(fs_lsfile(&vfs, STRV(TEST_FILE), &files), CERR_TYPE);
 	log_set_quiet(0, 0);
 
 	fs_rmfile(&fs, STRV(TEST_FILE));
@@ -1482,25 +1708,25 @@ STEST(fs)
 	RUN(fs_open_arr);
 	RUN(fs_open_dir);
 	RUN(fs_open_empty_path);
-	RUN(fs_open_r_does_not_exist);
+	RUN(fs_open_r_not_found);
 	RUN(fs_open_w_does_not_exist);
 	RUN(fs_open_wb_does_not_exist);
 	RUN(fs_open_w_does_not_exist_folder);
-	RUN(fs_open_r_exists);
+	RUN(fs_open_r_exist);
 	RUN(fs_close);
-	RUN(fs_close_null);
 	RUN(fs_close_valid);
 	RUN(fs_close_arr);
 	RUN(fs_write);
-	RUN(fs_write_invalid);
 	RUN(fs_write_oom);
 	RUN(fs_write_valid);
 	RUN(fs_read);
-	RUN(fs_read_does_not_exist);
+	RUN(fs_read_not_found);
 	RUN(fs_read_arr);
 	RUN(fs_read_oom);
 	RUN(fs_read_empty);
 	RUN(fs_read_str);
+	RUN(fs_du);
+	RUN(fs_du_arr);
 	RUN(fs_isdir);
 	RUN(fs_isdir_dir);
 	RUN(fs_isdir_file);
@@ -1510,22 +1736,23 @@ STEST(fs)
 	RUN(fs_isfile_dir);
 	RUN(fs_isfile_arr);
 	RUN(fs_mkdir);
-	RUN(fs_mkdir_exists);
+	RUN(fs_mkdir_exist);
 	RUN(fs_mkdir_file);
 	RUN(fs_mkfile);
-	RUN(fs_mkfile_exists);
+	RUN(fs_mkfile_exist);
 	RUN(fs_mkfile_dir);
 	RUN(fs_rmdir);
 	RUN(fs_rmdir_arr);
 	RUN(fs_rmdir_file);
-	RUN(fs_rmdir_does_not_exist);
+	RUN(fs_rmdir_not_found);
 	RUN(fs_rmdir_not_empty);
 	RUN(fs_rmfile);
 	RUN(fs_rmfile_arr);
 	RUN(fs_rmfile_dir);
-	RUN(fs_rmfile_does_not_exist);
+	RUN(fs_rmfile_not_found);
 	RUN(fs_dir_mk_is_rm);
 	RUN(fs_file_mk_is_rm);
+	RUN(fs_getcwd);
 	RUN(fs_lsdir);
 	RUN(fs_lsdir_arr);
 	RUN(fs_lsdir_file);

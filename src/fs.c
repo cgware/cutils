@@ -2,17 +2,48 @@
 
 #include "log.h"
 #include "path.h"
-#include "platform.h"
+#include "cfs.h"
 
-#include <errno.h>
-#include <stdio.h>
+typedef cerr_t (*fs_open_fn)(fs_t *fs, strv_t path, const char *mode, void **file);
+typedef cerr_t (*fs_close_fn)(fs_t *fs, void *file);
 
-#if defined(C_WIN)
-	#include <Windows.h>
-#else
-	#include <dirent.h>
-	#include <sys/stat.h>
-#endif
+typedef cerr_t (*fs_write_fn)(fs_t *fs, void *file, strv_t str);
+typedef cerr_t (*fs_read_fn)(fs_t *fs, void *file, str_t str, size_t size);
+
+typedef cerr_t (*fs_du_fn)(fs_t *fs, void *file, size_t *size);
+
+typedef int (*fs_isdir_fn)(fs_t *fs, strv_t path);
+typedef int (*fs_isfile_fn)(fs_t *fs, strv_t path);
+
+typedef cerr_t (*fs_mkdir_fn)(fs_t *fs, strv_t path);
+typedef cerr_t (*fs_mkfile_fn)(fs_t *fs, strv_t path);
+
+typedef cerr_t (*fs_rmdir_fn)(fs_t *fs, strv_t path);
+typedef cerr_t (*fs_rmfile_fn)(fs_t *fs, strv_t path);
+
+typedef cerr_t (*fs_getcwd_fn)(fs_t *fs, str_t *path);
+
+typedef int (*fs_lsdir_cb)(strv_t path, strv_t dir, strbuf_t *dirs);
+typedef int (*fs_lsdir_fn)(fs_t *fs, strv_t path, strbuf_t *dirs);
+typedef int (*fs_lsfile_cb)(strv_t path, strv_t file, strbuf_t files);
+typedef int (*fs_lsfile_fn)(fs_t *fs, strv_t path, strbuf_t *files);
+
+typedef struct fs_ops_s {
+	fs_open_fn open;
+	fs_close_fn close;
+	fs_write_fn write;
+	fs_read_fn read;
+	fs_du_fn du;
+	fs_isdir_fn isdir;
+	fs_isfile_fn isfile;
+	fs_mkdir_fn mkdir;
+	fs_mkfile_fn mkfile;
+	fs_rmdir_fn rmdir;
+	fs_rmfile_fn rmfile;
+	fs_getcwd_fn getcwd;
+	fs_lsdir_fn lsdir;
+	fs_lsfile_fn lsfile;
+} fs_ops_t;
 
 typedef enum fs_node_type_e {
 	FS_NODE_TYPE_UNKNOWN,
@@ -22,6 +53,7 @@ typedef enum fs_node_type_e {
 
 typedef enum fs_node_flag_e {
 	FS_NODE_FLAG_OPEN,
+	FS_NODE_FLAG_WRITE,
 } fs_node_flag_t;
 
 typedef struct fs_node_s {
@@ -30,36 +62,23 @@ typedef struct fs_node_s {
 	int flags;
 } fs_node_t;
 
-static int ofs_isdir(fs_t *fs, strv_t path);
-
-static void *ofs_open(fs_t *fs, strv_t path, const char *mode)
+static cerr_t ofs_open(fs_t *fs, strv_t path, const char *mode, void **file)
 {
 	(void)fs;
-	FILE *file = NULL;
-
-	if (ofs_isdir(fs, path)) {
-		errno = EISDIR;
-		return NULL;
-	}
-
-	errno = 0;
-#if defined(C_WIN)
-	fopen_s(&file, path.data, mode);
-#else
-	if (path.len == 0) {
-		errno = EINVAL;
-		return NULL;
-	}
-	file = fopen(path.data, mode);
-#endif
-	return file;
+	return cfs_open(path.data, mode, file);
 }
 
-static void *vfs_open(fs_t *fs, strv_t path, const char *mode)
+static cerr_t vfs_open(fs_t *fs, strv_t path, const char *mode, void **file)
 {
-	if (path.len == 0) {
-		errno = EINVAL;
-		return NULL;
+	if (path.data == NULL || mode == NULL || file == NULL) {
+		return CERR_VAL;
+	}
+
+	switch (mode[0]) {
+	case 'r':
+	case 'w':
+	case 'a': break;
+	default: return CERR_VAL;
 	}
 
 	uint index;
@@ -71,150 +90,139 @@ static void *vfs_open(fs_t *fs, strv_t path, const char *mode)
 			strbuf_add(&fs->paths, name, &index);
 			fs_node_t *node = arr_add(&fs->nodes);
 			if (node == NULL) {
-				errno = ENOMEM;
-				return NULL;
+				return CERR_MEM;
 			}
 			node->type = FS_NODE_TYPE_FILE;
 			node->data = STR_NULL;
 		} else {
-			errno = ENOENT;
-			return NULL;
+			return CERR_NOT_FOUND;
 		}
 	}
 
 	fs_node_t *node = arr_get(&fs->nodes, index);
 	if (node == NULL) {
-		errno = EINVAL;
-		return NULL;
+		return CERR_VAL;
 	}
 
 	if (node->type != FS_NODE_TYPE_FILE) {
-		errno = node->type == FS_NODE_TYPE_DIR ? EISDIR : EINVAL;
-		return NULL;
+		return node->type == FS_NODE_TYPE_DIR ? CERR_TYPE : CERR_VAL;
 	}
 
-	if ((mode[0] == 'w' || mode[0] == 'a') && node->data.data == NULL) {
+	if (node->data.data == NULL) {
 		node->data = strz(256);
 	}
 
-	if (mode[0] == 'w') {
-		node->data.len = 0;
+	switch (mode[0]) {
+	case 'r': node->flags &= ~(1 << FS_NODE_FLAG_WRITE); break;
+	case 'w': node->data.len = 0; // fall-through
+	case 'a': node->flags |= 1 << FS_NODE_FLAG_WRITE; break;
 	}
 
 	node->flags |= 1 << FS_NODE_FLAG_OPEN;
 
-	return (void *)((size_t)index + 1);
+	*file = (void *)((size_t)index + 1);
+	return CERR_OK;
 }
 
-static int ofs_close(fs_t *fs, void *file)
+static cerr_t ofs_close(fs_t *fs, void *file)
 {
 	(void)fs;
-	fclose(file);
-
-	return 0;
+	return cfs_close(file);
 }
 
-static int vfs_close(fs_t *fs, void *file)
+static cerr_t vfs_close(fs_t *fs, void *file)
 {
+	if (file == NULL) {
+		return CERR_VAL;
+	}
+
 	uint index = (uint)((size_t)file - 1);
 
 	fs_node_t *node = arr_get(&fs->nodes, index);
 	if (node == NULL) {
-		return 1;
+		return CERR_NOT_FOUND;
 	}
 
 	node->flags &= ~(1 << FS_NODE_FLAG_OPEN);
+	node->flags &= ~(1 << FS_NODE_FLAG_WRITE);
 
-	return 0;
+	return CERR_OK;
 }
 
-static int ofs_write(fs_t *fs, void *file, strv_t str)
+static cerr_t ofs_write(fs_t *fs, void *file, strv_t str)
 {
 	(void)fs;
-	errno = 0;
-
-	size_t cnt = fwrite(str.data, str.len, 1, file);
-	return cnt != 1 ? errno : 0;
+	return cfs_write(file, str.data, str.len);
 }
 
-static int vfs_write(fs_t *fs, void *file, strv_t str)
+static cerr_t vfs_write(fs_t *fs, void *file, strv_t str)
 {
+	if (file == NULL || str.data == NULL) {
+		return CERR_VAL;
+	}
+
 	uint index = (uint)((size_t)file - 1);
 
 	fs_node_t *node = arr_get(&fs->nodes, index);
 	if (node == NULL) {
-		return EINVAL;
+		return CERR_NOT_FOUND;
+	}
+
+	if (!(node->flags & (1 << FS_NODE_FLAG_OPEN)) || !(node->flags & (1 << FS_NODE_FLAG_WRITE))) {
+		return CERR_DESC;
 	}
 
 	if (str_cat(&node->data, str) == NULL) {
-		return ENOMEM;
+		return CERR_MEM;
 	}
 
-	return 0;
+	return CERR_OK;
 }
 
-static int ofs_read(fs_t *fs, void *file, str_t *str)
+static cerr_t ofs_read(fs_t *fs, void *file, str_t str, size_t size)
 {
 	(void)fs;
-	size_t cnt;
-
-	errno = 0;
-#if defined(C_WIN)
-	cnt = fread_s(str->data, str->size - 1, str->size - 1, 1, file);
-#else
-	cnt = fread(str->data, str->size - 1, 1, file);
-#endif
-	if (cnt != 1) {
-		return errno;
-	}
-
-	return 0;
+	return cfs_read(file, str.data, size);
 }
 
-static int vfs_read(fs_t *fs, void *file, str_t *str)
+static cerr_t vfs_read(fs_t *fs, void *file, str_t str, size_t size)
 {
 	uint index = (uint)((size_t)file - 1);
 
 	fs_node_t *node = arr_get(&fs->nodes, index);
 
-	str_cat(str, STRVS(node->data));
+	str_cat(&str, STRVN(node->data.data, size));
 
-	return 0;
+	return CERR_OK;
 }
 
-static size_t ofs_du(fs_t *fs, void *file)
+static cerr_t ofs_du(fs_t *fs, void *file, size_t *size)
 {
 	(void)fs;
-	fseek(file, 0L, SEEK_END);
-	size_t size = ftell(file);
-	fseek(file, 0L, SEEK_SET);
-	return size;
+	return cfs_du(file, size);
 }
 
-static size_t vfs_du(fs_t *fs, void *file)
+static cerr_t vfs_du(fs_t *fs, void *file, size_t *size)
 {
+	if (size == NULL) {
+		return CERR_VAL;
+	}
+
 	uint index = (uint)((size_t)file - 1);
 
 	fs_node_t *node = arr_get(&fs->nodes, index);
+	if (node == NULL) {
+		return CERR_NOT_FOUND;
+	}
 
-	return node->data.len;
+	*size = node->data.len;
+	return CERR_OK;
 }
 
 static int ofs_isdir(fs_t *fs, strv_t path)
 {
 	(void)fs;
-
-#if defined(C_WIN)
-	int dwAttrib = GetFileAttributesA(path.data);
-	return dwAttrib != INVALID_FILE_ATTRIBUTES && (dwAttrib & FILE_ATTRIBUTE_DIRECTORY);
-#else
-	struct stat buffer;
-	if (stat(path.data, &buffer)) {
-		return 0;
-	} else {
-		return S_ISDIR(buffer.st_mode);
-	}
-#endif
+	return cfs_isdir(path.data);
 }
 
 static int vfs_isdir(fs_t *fs, strv_t path)
@@ -239,18 +247,7 @@ static int vfs_isdir(fs_t *fs, strv_t path)
 static int ofs_isfile(fs_t *fs, strv_t path)
 {
 	(void)fs;
-
-#if defined(C_WIN)
-	int dwAttrib = GetFileAttributesA(path.data);
-	return dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY);
-#else
-	struct stat buffer;
-	if (stat(path.data, &buffer)) {
-		return 0;
-	} else {
-		return S_ISREG(buffer.st_mode);
-	}
-#endif
+	return cfs_isfile(path.data);
 }
 
 static int vfs_isfile(fs_t *fs, strv_t path)
@@ -272,115 +269,10 @@ static int vfs_isfile(fs_t *fs, strv_t path)
 	return 1;
 }
 
-static int ofs_mkdir(fs_t *fs, strv_t path)
+static cerr_t ofs_mkdir(fs_t *fs, strv_t path)
 {
 	(void)fs;
-
-#if defined(C_WIN)
-	if (CreateDirectoryA(path.data, NULL) == 0) {
-		DWORD err = GetLastError();
-		if (err == ERROR_ALREADY_EXISTS) {
-			return EEXIST;
-		} else {
-			return -1;
-		}
-	}
-#else
-	errno = 0;
-	if (mkdir(path.data, 0700)) {
-		return errno;
-	}
-#endif
-	return 0;
-}
-
-static int vfs_mkdir(fs_t *fs, strv_t path)
-{
-	if (strbuf_find(&fs->paths, path, NULL) == 0) {
-		return EEXIST;
-	}
-
-	strbuf_add(&fs->paths, path, NULL);
-	fs_node_t *node = arr_add(&fs->nodes);
-	if (node == NULL) {
-		return ENOMEM;
-	}
-	node->type = FS_NODE_TYPE_DIR;
-
-	return 0;
-}
-
-static int ofs_mkfile(fs_t *fs, strv_t path)
-{
-	(void)fs;
-
-	if (fs_isdir(fs, path)) {
-		return EEXIST;
-	}
-
-#if defined(C_WIN)
-	HANDLE h = CreateFileA(path.data, GENERIC_WRITE, 0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
-	if (h == INVALID_HANDLE_VALUE) {
-		DWORD err = GetLastError();
-		if (err == ERROR_FILE_EXISTS) {
-			return EEXIST;
-		} else {
-			return -1;
-		}
-	}
-	CloseHandle(h);
-#else
-	if (ofs_isfile(fs, path)) {
-		return EEXIST;
-	}
-	ofs_close(fs, ofs_open(fs, path, "w"));
-#endif
-	return 0;
-}
-
-static int vfs_mkfile(fs_t *fs, strv_t path)
-{
-	if (strbuf_find(&fs->paths, path, NULL) == 0) {
-		return EEXIST;
-	}
-
-	strbuf_add(&fs->paths, path, NULL);
-	fs_node_t *node = arr_add(&fs->nodes);
-	if (node == NULL) {
-		return ENOMEM;
-	}
-	node->type = FS_NODE_TYPE_FILE;
-	node->data = STR_NULL;
-
-	return 0;
-}
-
-static int ofs_rmdir(fs_t *fs, strv_t path)
-{
-	(void)fs;
-
-	if (ofs_isfile(fs, path)) {
-		return EINVAL;
-	}
-
-#if defined(C_WIN)
-	if (RemoveDirectoryA(path.data) == 0) {
-		DWORD err = GetLastError();
-		if (err == ERROR_FILE_NOT_FOUND) {
-			return ENOENT;
-		} else if (err == ERROR_DIR_NOT_EMPTY) {
-			return ENOTEMPTY;
-		} else {
-			return -1;
-		}
-	}
-#else
-	errno = 0;
-	if (remove(path.data)) {
-		return errno;
-	}
-#endif
-	return 0;
+	return cfs_mkdir(path.data);
 }
 
 static strv_t path_trim(strv_t path)
@@ -396,20 +288,90 @@ static strv_t path_trim(strv_t path)
 	return path;
 }
 
-static int vfs_rmdir(fs_t *fs, strv_t path)
+static cerr_t vfs_mkdir(fs_t *fs, strv_t path)
+{
+	if (path.len == 0) {
+		return CERR_NOT_FOUND;
+	}
+
+	if (strbuf_find(&fs->paths, path, NULL) == 0) {
+		return CERR_EXIST;
+	}
+
+	strv_t parent = path_trim(pathv_get_dir(path, NULL));
+	if (parent.len > 0 && !vfs_isdir(fs, parent)) {
+		return CERR_NOT_FOUND;
+	}
+
+	size_t paths_used = fs->paths.buf.used;
+	size_t paths_cnt  = fs->paths.off.cnt;
+
+	strbuf_add(&fs->paths, path, NULL);
+	fs_node_t *node = arr_add(&fs->nodes);
+	if (node == NULL) {
+		fs->paths.buf.used = paths_used;
+		fs->paths.off.cnt  = paths_cnt;
+		return CERR_MEM;
+	}
+	node->type = FS_NODE_TYPE_DIR;
+
+	return CERR_OK;
+}
+
+static cerr_t ofs_mkfile(fs_t *fs, strv_t path)
+{
+	(void)fs;
+	return cfs_mkfile(path.data);
+}
+
+static cerr_t vfs_mkfile(fs_t *fs, strv_t path)
+{
+	if (path.len == 0) {
+		return CERR_NOT_FOUND;
+	}
+
+	uint index;
+	if (strbuf_find(&fs->paths, path, &index) == 0) {
+		fs_node_t *node = arr_get(&fs->nodes, index);
+		return node->type == FS_NODE_TYPE_FILE ? CERR_EXIST : CERR_TYPE;
+	}
+
+	strv_t parent = path_trim(pathv_get_dir(path, NULL));
+	if (parent.len > 0 && !vfs_isdir(fs, parent)) {
+		return CERR_NOT_FOUND;
+	}
+
+	strbuf_add(&fs->paths, path, NULL);
+	fs_node_t *node = arr_add(&fs->nodes);
+	if (node == NULL) {
+		return CERR_MEM;
+	}
+	node->type = FS_NODE_TYPE_FILE;
+	node->data = STR_NULL;
+
+	return CERR_OK;
+}
+
+static cerr_t ofs_rmdir(fs_t *fs, strv_t path)
+{
+	(void)fs;
+	return cfs_rmdir(path.data);
+}
+
+static cerr_t vfs_rmdir(fs_t *fs, strv_t path)
 {
 	uint index = -1;
 	if (strbuf_find(&fs->paths, path, &index)) {
-		return ENOENT;
+		return CERR_NOT_FOUND;
 	}
 
 	fs_node_t *node = arr_get(&fs->nodes, index);
 	if (node == NULL) {
-		return EINVAL;
+		return CERR_NOT_FOUND;
 	}
 
 	if (node->type != FS_NODE_TYPE_DIR) {
-		return EINVAL;
+		return CERR_NOT_FOUND;
 	}
 
 	uint i = 0;
@@ -419,56 +381,36 @@ static int vfs_rmdir(fs_t *fs, strv_t path)
 		strv_t parent = path_trim(pathv_get_dir(s, NULL));
 
 		if (strv_eq(parent, path)) {
-			return ENOTEMPTY;
+			return CERR_NOT_EMPTY;
 		}
 	}
 
 	strbuf_set(&fs->paths, STRV(""), index);
 	node->type = FS_NODE_TYPE_UNKNOWN;
 
-	return 0;
+	return CERR_OK;
 }
 
-static int ofs_rmfile(fs_t *fs, strv_t path)
+static cerr_t ofs_rmfile(fs_t *fs, strv_t path)
 {
 	(void)fs;
-
-	if (ofs_isdir(fs, path)) {
-		return EISDIR;
-	}
-
-#if defined(C_WIN)
-	if (DeleteFileA(path.data) == 0) {
-		DWORD err = GetLastError();
-		if (err == ERROR_FILE_NOT_FOUND) {
-			return ENOENT;
-		} else {
-			return -1;
-		}
-	}
-#else
-	errno = 0;
-	if (remove(path.data)) {
-		return errno;
-	}
-#endif
-	return 0;
+	return cfs_rmfile(path.data);
 }
 
-static int vfs_rmfile(fs_t *fs, strv_t path)
+static cerr_t vfs_rmfile(fs_t *fs, strv_t path)
 {
 	uint index = -1;
 	if (strbuf_find(&fs->paths, path, &index)) {
-		return ENOENT;
+		return CERR_NOT_FOUND;
 	}
 
 	fs_node_t *node = arr_get(&fs->nodes, index);
 	if (node == NULL) {
-		return EINVAL;
+		return CERR_NOT_FOUND;
 	}
 
-	if (node->type == FS_NODE_TYPE_DIR) {
-		return EISDIR;
+	if (node->type != FS_NODE_TYPE_FILE) {
+		return CERR_NOT_FOUND;
 	}
 
 	if (node->data.data) {
@@ -479,72 +421,55 @@ static int vfs_rmfile(fs_t *fs, strv_t path)
 	strbuf_set(&fs->paths, STRV(""), index);
 	node->type = FS_NODE_TYPE_UNKNOWN;
 
-	return 0;
+	return CERR_OK;
+}
+
+static cerr_t ofs_getcwd(fs_t *fs, str_t *path)
+{
+	(void)fs;
+	cerr_t err = cfs_getcwd(path->data, path->size);
+	if (err == CERR_OK) {
+		path->len = strv_cstr(path->data).len;
+	}
+
+	return err;
+}
+
+static cerr_t vfs_getcwd(fs_t *fs, str_t *path)
+{
+	(void)fs;
+	if (path->size == 0) {
+		return CERR_VAL;
+	}
+
+	strv_t cwd = STRV("/");
+
+	if (path->size < cwd.len + 1) {
+		return CERR_MEM;
+	}
+
+	path->len = 0;
+	str_cat(path, cwd);
+
+	return CERR_OK;
 }
 
 static int ofs_lsdir(fs_t *fs, strv_t path, strbuf_t *dirs)
 {
 	(void)fs;
 
-#if defined(C_WIN)
-	path_t child_path = {0};
-	path_init(&child_path, path);
+	void *it;
+	char name[256] = {0};
 
-	WIN32_FIND_DATA data = {0};
-	HANDLE find	     = NULL;
-
-	path_child(&child_path, STRV("*.*"));
-
-	if ((find = FindFirstFileA(child_path.data, (LPWIN32_FIND_DATAA)&data)) == INVALID_HANDLE_VALUE) {
-		DWORD err = GetLastError();
-		if (err == ERROR_PATH_NOT_FOUND) {
-			return ENOENT;
-		} else if (err == ERROR_DIRECTORY) {
-			return ENOTDIR;
-		} else {
-			return -1;
+	cerr_t i;
+	cfs_lsdir_foreach(i, path.data, &it, name, sizeof(name))
+	{
+		if (strbuf_add(dirs, strv_cstr(name), NULL)) {
+			return CERR_MEM;
 		}
 	}
-	child_path.len = path.len;
 
-	do {
-		strv_t name = strv_cstr((char *)data.cFileName);
-#else
-	DIR *dir = opendir(path.data);
-	if (!dir) {
-		return errno;
-	}
-
-	struct dirent *dp;
-
-	while ((dp = readdir(dir))) {
-		strv_t name = strv_cstr(dp->d_name);
-#endif
-		if (strv_eq(name, STRV(".")) || strv_eq(name, STRV(".."))) {
-			continue;
-		}
-
-#if defined(C_WIN)
-		if (!(data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
-#else
-		if (dp->d_type != 4)
-#endif
-		{
-			continue;
-		}
-
-		if (strbuf_add(dirs, name, NULL)) {
-			return ENOMEM;
-		}
-	}
-#if defined(C_WIN)
-	while (FindNextFileA(find, (LPWIN32_FIND_DATAA)&data));
-	FindClose(find);
-#else
-	closedir(dir);
-#endif
-
-	return 0;
+	return i == CERR_END ? 0 : i;
 }
 
 static int vfs_lsdir(fs_t *fs, strv_t path, strbuf_t *dirs)
@@ -553,16 +478,16 @@ static int vfs_lsdir(fs_t *fs, strv_t path, strbuf_t *dirs)
 	strv_t dir;
 
 	if (strbuf_find(&fs->paths, path, &index)) {
-		return ENOENT;
+		return CERR_NOT_FOUND;
 	}
 
 	fs_node_t *node = arr_get(&fs->nodes, index);
 	if (node == NULL) {
-		return EINVAL;
+		return CERR_NOT_FOUND;
 	}
 
 	if (node->type != FS_NODE_TYPE_DIR) {
-		return ENOTDIR;
+		return CERR_TYPE;
 	}
 
 	index = 0;
@@ -577,7 +502,7 @@ static int vfs_lsdir(fs_t *fs, strv_t path, strbuf_t *dirs)
 
 		node = arr_get(&fs->nodes, index);
 		if (node == NULL) {
-			return EINVAL;
+			return CERR_NOT_FOUND;
 		}
 
 		if (node->type != FS_NODE_TYPE_DIR) {
@@ -585,76 +510,29 @@ static int vfs_lsdir(fs_t *fs, strv_t path, strbuf_t *dirs)
 		}
 
 		if (strbuf_add(dirs, name, NULL)) {
-			return ENOMEM;
+			return CERR_MEM;
 		}
 	}
 
-	return 0;
+	return CERR_OK;
 }
 
 static int ofs_lsfile(fs_t *fs, strv_t path, strbuf_t *files)
 {
 	(void)fs;
 
-#if defined(C_WIN)
-	path_t child_path = {0};
-	path_init(&child_path, path);
+	void *it;
+	char name[256] = {0};
 
-	WIN32_FIND_DATA data = {0};
-	HANDLE find	     = NULL;
-
-	path_child(&child_path, STRV("*.*"));
-
-	if ((find = FindFirstFileA(child_path.data, (LPWIN32_FIND_DATAA)&data)) == INVALID_HANDLE_VALUE) {
-		DWORD err = GetLastError();
-		if (err == ERROR_PATH_NOT_FOUND) {
-			return ENOENT;
-		} else if (err == ERROR_DIRECTORY) {
-			return ENOTDIR;
-		} else {
-			return -1;
+	cerr_t i;
+	cfs_lsfile_foreach(i, path.data, &it, name, sizeof(name))
+	{
+		if (strbuf_add(files, strv_cstr(name), NULL)) {
+			return CERR_MEM;
 		}
 	}
-	child_path.len = path.len;
 
-	do {
-		strv_t name = strv_cstr((char *)data.cFileName);
-#else
-	DIR *dir = opendir(path.data);
-	if (!dir) {
-		return errno;
-	}
-
-	struct dirent *dp;
-
-	while ((dp = readdir(dir))) {
-		strv_t name = strv_cstr(dp->d_name);
-#endif
-		if (strv_eq(name, STRV(".")) || strv_eq(name, STRV(".."))) {
-			continue;
-		}
-
-#if defined(C_WIN)
-		if (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-#else
-		if (dp->d_type != 8)
-#endif
-		{
-			continue;
-		}
-
-		if (strbuf_add(files, name, NULL)) {
-			return ENOMEM;
-		}
-	}
-#if defined(C_WIN)
-	while (FindNextFileA(find, (LPWIN32_FIND_DATAA)&data));
-	FindClose(find);
-#else
-	closedir(dir);
-#endif
-
-	return 0;
+	return i == CERR_END ? 0 : i;
 }
 
 static int vfs_lsfile(fs_t *fs, strv_t path, strbuf_t *files)
@@ -663,16 +541,16 @@ static int vfs_lsfile(fs_t *fs, strv_t path, strbuf_t *files)
 	strv_t dir;
 
 	if (strbuf_find(&fs->paths, path, &index)) {
-		return ENOENT;
+		return CERR_NOT_FOUND;
 	}
 
 	fs_node_t *node = arr_get(&fs->nodes, index);
 	if (node == NULL) {
-		return EINVAL;
+		return CERR_NOT_FOUND;
 	}
 
 	if (node->type != FS_NODE_TYPE_DIR) {
-		return ENOTDIR;
+		return CERR_TYPE;
 	}
 
 	strbuf_foreach(&fs->paths, index, dir)
@@ -686,7 +564,7 @@ static int vfs_lsfile(fs_t *fs, strv_t path, strbuf_t *files)
 
 		node = arr_get(&fs->nodes, index);
 		if (node == NULL) {
-			return EINVAL;
+			return CERR_NOT_FOUND;
 		}
 
 		if (node->type != FS_NODE_TYPE_FILE) {
@@ -694,7 +572,7 @@ static int vfs_lsfile(fs_t *fs, strv_t path, strbuf_t *files)
 		}
 
 		if (strbuf_add(files, name, NULL)) {
-			return ENOMEM;
+			return CERR_MEM;
 		}
 	}
 
@@ -715,6 +593,7 @@ static const fs_ops_t s_fs_ops[] = {
 			.mkfile = ofs_mkfile,
 			.rmdir	= ofs_rmdir,
 			.rmfile = ofs_rmfile,
+			.getcwd = ofs_getcwd,
 			.lsdir	= ofs_lsdir,
 			.lsfile = ofs_lsfile,
 		},
@@ -731,6 +610,7 @@ static const fs_ops_t s_fs_ops[] = {
 			.mkfile = vfs_mkfile,
 			.rmdir	= vfs_rmdir,
 			.rmfile = vfs_rmfile,
+			.getcwd = vfs_getcwd,
 			.lsdir	= vfs_lsdir,
 			.lsfile = vfs_lsfile,
 		},
@@ -748,8 +628,6 @@ fs_t *fs_init(fs_t *fs, uint nodes_cap, int virt, alloc_t alloc)
 	}
 
 	fs->virt = virt;
-
-	fs->ops = s_fs_ops[virt ? 1 : 0];
 
 	return fs;
 }
@@ -772,71 +650,82 @@ void fs_free(fs_t *fs)
 	strbuf_free(&fs->paths);
 }
 
-void *fs_open(fs_t *fs, strv_t path, const char *mode)
+int fs_open(fs_t *fs, strv_t path, const char *mode, void **file)
 {
 	path_t buf = {0};
-	if (fs == NULL || path.data == NULL || mode == NULL || path_init(&buf, path) == NULL) {
-		errno = EINVAL;
-		return NULL;
+	if (fs == NULL || path_init(&buf, path) == NULL) {
+		return CERR_VAL;
 	}
 
-	void *file = fs->ops.open(fs, STRVS(buf), mode);
-
-	if (file == NULL) {
-		int errnum = errno;
-		log_error("cutils", "file", NULL, "failed to open file : %s: \"%s\"", log_strerror(errnum), buf.data);
-		errno = errnum;
-		return NULL;
+	cerr_t err = s_fs_ops[fs->virt].open(fs, STRVS(buf), mode, file);
+	if (err) {
+		log_error("cutils", "file", NULL, "failed to open file: %s: \"%s\"", cerr_str(err), buf.data);
 	}
 
-	return file;
+	return err;
 }
 
 int fs_close(fs_t *fs, void *file)
 {
-	if (fs == NULL || file == NULL) {
-		return EINVAL;
+	if (fs == NULL) {
+		return CERR_VAL;
 	}
 
-	return fs->ops.close(fs, file);
+	cerr_t err = s_fs_ops[fs->virt].close(fs, file);
+	if (err) {
+		log_error("cutils", "file", NULL, "failed to close file: %s", cerr_str(err));
+		return err;
+	}
+
+	return CERR_OK;
 }
 
 int fs_write(fs_t *fs, void *file, strv_t str)
 {
-	if (fs == NULL || file == NULL || str.data == NULL) {
-		return EINVAL;
+	if (fs == NULL) {
+		return CERR_VAL;
 	}
 
-	int ret = fs->ops.write(fs, file, str);
-	if (ret) {
-		log_error("cutils", "file", NULL, "failed to write file: %s", log_strerror(ret));
-		return ret;
+	cerr_t err = s_fs_ops[fs->virt].write(fs, file, str);
+	if (err) {
+		log_error("cutils", "file", NULL, "failed to write file: %s", cerr_str(err));
+		return err;
 	}
 
-	return 0;
+	return CERR_OK;
 }
 
 int fs_read(fs_t *fs, strv_t path, int b, str_t *str)
 {
 	path_t buf = {0};
-	if (fs == NULL || path.data == NULL || str == NULL || path_init(&buf, path) == NULL) {
-		return EINVAL;
+	if (fs == NULL || path_init(&buf, path) == NULL) {
+		return CERR_VAL;
 	}
 
-	FILE *file = fs_open(fs, STRVS(buf), "rb");
-	if (file == NULL) {
-		return errno;
+	cerr_t err;
+
+	void *file;
+	err = fs_open(fs, STRVS(buf), "rb", &file);
+	if (err) {
+		return err;
 	}
 
-	size_t size = fs->ops.du(fs, file);
-	if (str_resize(str, size + 1)) {
+	size_t size;
+	err = fs_du(fs, file, &size);
+	if (err) {
+		return err; // LCOV_EXCL_LINE
+	}
+
+	if (str_resize(str, size + !b)) {
 		fs_close(fs, file);
-		return ENOMEM;
+		return CERR_MEM;
 	}
 
-	fs->ops.read(fs, file, str);
+	s_fs_ops[fs->virt].read(fs, file, *str, size);
 
-	if (!b) {
+	if (b) {
+		str->len = size;
+	} else {
 		str->len = 0;
 		for (size_t i = 0; i < size; i++) {
 			str->data[str->len] = str->data[i];
@@ -844,93 +733,119 @@ int fs_read(fs_t *fs, strv_t path, int b, str_t *str)
 				str->len++;
 			}
 		}
+		str->data[str->len] = '\0';
 	}
 
-	str->data[str->len] = '\0';
-
 	fs_close(fs, file);
+	return CERR_OK;
+}
 
-	return 0;
+int fs_du(fs_t *fs, void *file, size_t *size)
+{
+	if (fs == NULL) {
+		return CERR_VAL;
+	}
+
+	cerr_t err = s_fs_ops[fs->virt].du(fs, file, size);
+	if (err) {
+		log_error("cutils", "file", NULL, "failed to get file size: %s", cerr_str(err));
+	}
+
+	return err;
 }
 
 int fs_isdir(fs_t *fs, strv_t path)
 {
 	path_t buf = {0};
-	if (fs == NULL || path.data == NULL || path_init(&buf, path) == NULL) {
+	if (fs == NULL || path_init(&buf, path) == NULL) {
 		return 0;
 	}
 
-	return fs->ops.isdir(fs, path_trim(STRVS(buf)));
+	return s_fs_ops[fs->virt].isdir(fs, path_trim(STRVS(buf)));
 }
 
 int fs_isfile(fs_t *fs, strv_t path)
 {
 	path_t buf = {0};
-	if (fs == NULL || path.data == NULL || path_init(&buf, path) == NULL) {
+	if (fs == NULL || path_init(&buf, path) == NULL) {
 		return 0;
 	}
 
-	return fs->ops.isfile(fs, STRVS(buf));
+	return s_fs_ops[fs->virt].isfile(fs, STRVS(buf));
 }
 
 int fs_mkdir(fs_t *fs, strv_t path)
 {
 	path_t buf = {0};
-	if (fs == NULL || path.data == NULL || path_init(&buf, path) == NULL) {
-		return EINVAL;
+	if (fs == NULL || path_init(&buf, path) == NULL) {
+		return CERR_VAL;
 	}
 
-	int ret = fs->ops.mkdir(fs, path_trim(STRVS(buf)));
-	if (ret) {
-		log_error("cutils", "file", NULL, "failed to create directory: %s: \"%s\"", log_strerror(ret), buf.data);
+	cerr_t err = s_fs_ops[fs->virt].mkdir(fs, path_trim(STRVS(buf)));
+	if (err) {
+		log_error("cutils", "file", NULL, "failed to create directory: %s: \"%s\"", cerr_str(err), buf.data);
 	}
 
-	return ret;
+	return err;
 }
 
 int fs_mkfile(fs_t *fs, strv_t path)
 {
 	path_t buf = {0};
-	if (fs == NULL || path.data == NULL || path_init(&buf, path) == NULL) {
-		return EINVAL;
+	if (fs == NULL || path_init(&buf, path) == NULL) {
+		return CERR_VAL;
 	}
 
-	int ret = fs->ops.mkfile(fs, STRVS(buf));
-	if (ret) {
-		log_error("cutils", "file", NULL, "failed to create file: %s: \"%s\"", log_strerror(ret), buf.data);
+	cerr_t err = s_fs_ops[fs->virt].mkfile(fs, STRVS(buf));
+	if (err) {
+		log_error("cutils", "file", NULL, "failed to create file: %s: \"%s\"", cerr_str(err), buf.data);
 	}
 
-	return ret;
+	return err;
 }
 
 int fs_rmdir(fs_t *fs, strv_t path)
 {
 	path_t buf = {0};
-	if (fs == NULL || path.data == NULL || path_init(&buf, path) == NULL) {
-		return EINVAL;
+	if (fs == NULL || path_init(&buf, path) == NULL) {
+		return CERR_VAL;
 	}
 
-	int ret = fs->ops.rmdir(fs, path_trim(STRVS(buf)));
-	if (ret) {
-		log_error("cutils", "file", NULL, "failed to remove directory: %s: \"%s\"", log_strerror(ret), buf.data);
+	cerr_t err = s_fs_ops[fs->virt].rmdir(fs, path_trim(STRVS(buf)));
+	if (err) {
+		log_error("cutils", "file", NULL, "failed to remove directory: %s: \"%s\"", cerr_str(err), buf.data);
 	}
 
-	return ret;
+	return err;
 }
 
 int fs_rmfile(fs_t *fs, strv_t path)
 {
 	path_t buf = {0};
-	if (fs == NULL || path.data == NULL || path_init(&buf, path) == NULL) {
-		return EINVAL;
+	if (fs == NULL || path_init(&buf, path) == NULL) {
+		return CERR_VAL;
 	}
 
-	int ret = fs->ops.rmfile(fs, STRVS(buf));
-	if (ret) {
-		log_error("cutils", "file", NULL, "failed to remove file: %s: \"%s\"", log_strerror(ret), buf.data);
+	cerr_t err = s_fs_ops[fs->virt].rmfile(fs, STRVS(buf));
+	if (err) {
+		log_error("cutils", "file", NULL, "failed to remove file: %s: \"%s\"", cerr_str(err), buf.data);
 	}
 
-	return ret;
+	return err;
+}
+
+int fs_getcwd(fs_t *fs, str_t *path)
+{
+	if (fs == NULL || path == NULL) {
+		return CERR_VAL;
+	}
+
+	cerr_t err = s_fs_ops[fs->virt].getcwd(fs, path);
+	if (err) {
+		log_error("cutils", "file", NULL, "failed to get cwd: %s", cerr_str(err));
+	}
+
+	return err;
 }
 
 int fs_lsdir(fs_t *fs, strv_t path, strbuf_t *dirs)
@@ -938,18 +853,19 @@ int fs_lsdir(fs_t *fs, strv_t path, strbuf_t *dirs)
 	path = path_trim(path);
 
 	path_t buf = {0};
-	if (fs == NULL || path.data == NULL || path_init(&buf, path) == NULL || dirs == NULL) {
-		return EINVAL;
+	if (fs == NULL || path_init(&buf, path) == NULL || dirs == NULL) {
+		return CERR_VAL;
 	}
 
-	int ret = fs->ops.lsdir(fs, STRVS(buf), dirs);
-	if (ret) {
-		log_error("cutils", "file", NULL, "failed to list directories: %s: \"%s\"", log_strerror(ret), buf.data);
-	} else {
-		strbuf_sort(dirs);
+	cerr_t err = s_fs_ops[fs->virt].lsdir(fs, STRVS(buf), dirs);
+	if (err) {
+		log_error("cutils", "file", NULL, "failed to list directories: %s: \"%s\"", cerr_str(err), buf.data);
+		return err;
 	}
 
-	return ret;
+	strbuf_sort(dirs);
+
+	return CERR_OK;
 }
 
 int fs_lsfile(fs_t *fs, strv_t path, strbuf_t *files)
@@ -957,16 +873,17 @@ int fs_lsfile(fs_t *fs, strv_t path, strbuf_t *files)
 	path = path_trim(path);
 
 	path_t buf = {0};
-	if (fs == NULL || path.data == NULL || path_init(&buf, path) == NULL || files == NULL) {
-		return EINVAL;
+	if (fs == NULL || path_init(&buf, path) == NULL || files == NULL) {
+		return CERR_VAL;
 	}
 
-	int ret = fs->ops.lsfile(fs, STRVS(buf), files);
-	if (ret) {
-		log_error("cutils", "file", NULL, "failed to list files: %s: \"%s\"", log_strerror(ret), buf.data);
-	} else {
-		strbuf_sort(files);
+	cerr_t err = s_fs_ops[fs->virt].lsfile(fs, STRVS(buf), files);
+	if (err) {
+		log_error("cutils", "file", NULL, "failed to list files: %s: \"%s\"", cerr_str(err), buf.data);
+		return err;
 	}
 
-	return ret;
+	strbuf_sort(files);
+
+	return CERR_OK;
 }
