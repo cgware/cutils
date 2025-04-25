@@ -67,7 +67,7 @@ TEST(fs_open_arr)
 
 	fs_mkfile(&vfs, STRV(TEST_FILE));
 
-	size_t nodes_cnt = vfs.nodes.cnt;
+	uint nodes_cnt = vfs.nodes.cnt;
 
 	vfs.nodes.cnt = 0;
 
@@ -334,7 +334,7 @@ TEST(fs_close_arr)
 	void *vf;
 	fs_open(&vfs, STRV(TEST_FILE), "w", &vf);
 
-	size_t nodes_cnt = vfs.nodes.cnt;
+	uint nodes_cnt = vfs.nodes.cnt;
 
 	vfs.nodes.cnt = 0;
 
@@ -375,6 +375,12 @@ TEST(fs_write)
 	EXPECT_EQ(fs_write(&fs, f, STRV("a")), CERR_DESC);
 	EXPECT_EQ(fs_write(&vfs, vf, STRV("a")), CERR_DESC);
 	log_set_quiet(0, 0);
+
+	fs_close(&fs, f);
+	fs_close(&vfs, vf);
+
+	fs_rmfile(&fs, STRV(TEST_FILE));
+	fs_rmfile(&vfs, STRV(TEST_FILE));
 
 	fs_free(&fs);
 	fs_free(&vfs);
@@ -481,7 +487,7 @@ TEST(fs_read_arr)
 
 	str_t str = strz(1);
 
-	size_t nodes_cnt = vfs.nodes.cnt;
+	uint nodes_cnt = vfs.nodes.cnt;
 
 	vfs.nodes.cnt = 0;
 
@@ -676,7 +682,7 @@ TEST(fs_du_arr)
 	void *vf;
 	fs_open(&vfs, STRV(TEST_FILE), "w", &vf);
 
-	size_t nodes_cnt = vfs.nodes.cnt;
+	uint nodes_cnt = vfs.nodes.cnt;
 
 	vfs.nodes.cnt = 0;
 
@@ -765,7 +771,7 @@ TEST(fs_isdir_arr)
 
 	fs_mkdir(&vfs, STRV(TEST_DIR));
 
-	size_t nodes_cnt = vfs.nodes.cnt;
+	uint nodes_cnt = vfs.nodes.cnt;
 
 	vfs.nodes.cnt = 0;
 
@@ -853,7 +859,7 @@ TEST(fs_isfile_arr)
 
 	fs_mkfile(&vfs, STRV(TEST_FILE));
 
-	size_t nodes_cnt = vfs.nodes.cnt;
+	uint nodes_cnt = vfs.nodes.cnt;
 
 	vfs.nodes.cnt = 0;
 
@@ -1094,7 +1100,7 @@ TEST(fs_rmdir_arr)
 
 	fs_mkdir(&vfs, STRV(TEST_FILE));
 
-	size_t nodes_cnt = vfs.nodes.cnt;
+	uint nodes_cnt = vfs.nodes.cnt;
 
 	vfs.nodes.cnt = 0;
 
@@ -1217,7 +1223,7 @@ TEST(fs_rmfile_arr)
 
 	fs_mkfile(&vfs, STRV(TEST_FILE));
 
-	size_t nodes_cnt = vfs.nodes.cnt;
+	uint nodes_cnt = vfs.nodes.cnt;
 
 	vfs.nodes.cnt = 0;
 
@@ -1501,7 +1507,7 @@ TEST(fs_lsdir_arr)
 
 	fs_mkdir(&vfs, STRV(TEST_DIR));
 
-	size_t nodes_cnt = vfs.nodes.cnt;
+	uint nodes_cnt = vfs.nodes.cnt;
 
 	vfs.nodes.cnt = 0;
 
@@ -1653,7 +1659,7 @@ TEST(fs_lsfile_arr)
 
 	fs_mkdir(&vfs, STRV(TEST_DIR));
 
-	size_t nodes_cnt = vfs.nodes.cnt;
+	uint nodes_cnt = vfs.nodes.cnt;
 
 	vfs.nodes.cnt = 0;
 
