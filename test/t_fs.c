@@ -1705,6 +1705,34 @@ TEST(fs_lsfile_file)
 	END;
 }
 
+TEST(fs_printv_cb)
+{
+	START;
+
+	fs_t vfs = {0};
+
+	fs_init(&vfs, 1, 1, ALLOC_STD);
+
+	void *vf;
+	fs_open(&vfs, STRV(TEST_FILE), "w", &vf);
+	int off = c_dprintf(PRINT_DST_FS(&vfs, vf), "%s", "a");
+	EXPECT_EQ(off, 1);
+	fs_close(&vfs, vf);
+
+	str_t str = strz(1);
+
+	fs_read(&vfs, STRV(TEST_FILE), 0, &str);
+
+	EXPECT_STRN(str.data, "a", str.len);
+
+	fs_rmfile(&vfs, STRV(TEST_FILE));
+
+	str_free(&str);
+	fs_free(&vfs);
+
+	END;
+}
+
 STEST(fs)
 {
 	SSTART;
@@ -1765,6 +1793,7 @@ STEST(fs)
 	RUN(fs_lsfile);
 	RUN(fs_lsfile_arr);
 	RUN(fs_lsfile_file);
+	RUN(fs_printv_cb);
 
 	SEND;
 }

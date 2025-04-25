@@ -1,8 +1,8 @@
 #include "fs.h"
 
+#include "cfs.h"
 #include "log.h"
 #include "path.h"
-#include "cfs.h"
 
 typedef cerr_t (*fs_open_fn)(fs_t *fs, strv_t path, const char *mode, void **file);
 typedef cerr_t (*fs_close_fn)(fs_t *fs, void *file);
@@ -68,6 +68,19 @@ static cerr_t ofs_open(fs_t *fs, strv_t path, const char *mode, void **file)
 	return cfs_open(path.data, mode, file);
 }
 
+static strv_t path_trim(strv_t path)
+{
+	if (path.len <= 0) {
+		return path;
+	}
+
+	if (path.data[path.len - 1] == '/' || path.data[path.len - 1] == '\\') {
+		path.len--;
+	}
+
+	return path;
+}
+
 static cerr_t vfs_open(fs_t *fs, strv_t path, const char *mode, void **file)
 {
 	if (path.data == NULL || mode == NULL || file == NULL) {
@@ -84,10 +97,10 @@ static cerr_t vfs_open(fs_t *fs, strv_t path, const char *mode, void **file)
 	uint index;
 	if (strbuf_find(&fs->paths, path, &index)) {
 		strv_t name = {0};
-		strv_t dir  = pathv_get_dir(path, &name);
+		strv_t dir  = path_trim(pathv_get_dir(path, &name));
 
-		if ((mode[0] == 'w' || mode[0] == 'a') && name.len > 0 && (dir.len == 0 || (dir.len == 1 && dir.data[0] == '.'))) {
-			strbuf_add(&fs->paths, name, &index);
+		if ((mode[0] == 'w' || mode[0] == 'a') && name.len > 0 && (dir.len == 0 || fs_isdir(fs, dir))) {
+			strbuf_add(&fs->paths, path, &index);
 			fs_node_t *node = arr_add(&fs->nodes);
 			if (node == NULL) {
 				return CERR_MEM;
@@ -273,19 +286,6 @@ static cerr_t ofs_mkdir(fs_t *fs, strv_t path)
 {
 	(void)fs;
 	return cfs_mkdir(path.data);
-}
-
-static strv_t path_trim(strv_t path)
-{
-	if (path.len <= 0) {
-		return path;
-	}
-
-	if (path.data[path.len - 1] == '/' || path.data[path.len - 1] == '\\') {
-		path.len--;
-	}
-
-	return path;
 }
 
 static cerr_t vfs_mkdir(fs_t *fs, strv_t path)
@@ -659,7 +659,7 @@ int fs_open(fs_t *fs, strv_t path, const char *mode, void **file)
 
 	cerr_t err = s_fs_ops[fs->virt].open(fs, STRVS(buf), mode, file);
 	if (err) {
-		log_error("cutils", "file", NULL, "failed to open file: %s: \"%s\"", cerr_str(err), buf.data);
+		log_error("cutils", "file", NULL, "failed to open file for %s: %s: \"%s\"", mode, cerr_str(err), buf.data);
 	}
 
 	return err;
@@ -886,4 +886,13 @@ int fs_lsfile(fs_t *fs, strv_t path, strbuf_t *files)
 	strbuf_sort(files);
 
 	return CERR_OK;
+}
+
+int fs_printv_cb(print_dst_t dst, const char *fmt, va_list args)
+{
+	str_t str = strv(fmt, args);
+	int len	  = str.len;
+	fs_write((fs_t *)dst.priv, dst.dst, STRVS(str));
+	str_free(&str);
+	return len;
 }
