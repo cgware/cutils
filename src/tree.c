@@ -79,7 +79,7 @@ tnode_t tree_get_child(const tree_t *tree, tnode_t node)
 	return header == NULL ? TREE_END : header->child;
 }
 
-bool tree_has_child(const tree_t *tree, tnode_t node)
+int tree_has_child(const tree_t *tree, tnode_t node)
 {
 	header_t *header = get_node(tree, node);
 	return header != NULL && header->child < tree->cnt;

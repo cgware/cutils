@@ -18,7 +18,7 @@ int tree_remove(tree_t *tree, tnode_t node);
 tnode_t tree_add_child(tree_t *tree, tnode_t node);
 tnode_t tree_set_child(tree_t *tree, tnode_t node, tnode_t child);
 tnode_t tree_get_child(const tree_t *tree, tnode_t node);
-bool tree_has_child(const tree_t *tree, tnode_t node);
+int tree_has_child(const tree_t *tree, tnode_t node);
 
 tnode_t tree_add_next(tree_t *tree, tnode_t node);
 tnode_t tree_set_next(tree_t *tree, tnode_t node, tnode_t next);
