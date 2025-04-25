@@ -112,7 +112,7 @@ int str_resize(str_t *str, size_t size)
 
 str_t *str_cat(str_t *str, strv_t src)
 {
-	if (str == NULL || src.data == NULL) {
+	if (str == NULL || str->data == NULL || src.data == NULL) {
 		return NULL;
 	}
 
@@ -225,8 +225,7 @@ int str_subreplace(str_t *dst, size_t start, size_t end, strv_t str)
 		return 1;
 	}
 
-	if (dst->len + str.len - (end - start) > dst->size) {
-		log_error("cutils", "str", NULL, "destination too small: %d/%d", dst->size, dst->len + str.len - (end - start));
+	if (str_resize(dst, dst->len + 1 + str.len - (end - start))) {
 		return 1;
 	}
 
