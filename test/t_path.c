@@ -53,30 +53,6 @@ TEST(path_child)
 	END;
 }
 
-TEST(path_is_rel)
-{
-	START;
-
-	path_t path = {0};
-
-	EXPECT_EQ(path_is_rel(NULL), 0);
-#if defined(C_WIN)
-	path_init(&path, STRV("C:"));
-	EXPECT_EQ(path_is_rel(&path), 0);
-	path_init(&path, STRV("a"));
-	EXPECT_EQ(path_is_rel(&path), 1);
-	path_init(&path, STRV("abc"));
-	EXPECT_EQ(path_is_rel(&path), 1);
-#else
-	path_init(&path, STRV("/"));
-	EXPECT_EQ(path_is_rel(&path), 0);
-	path_init(&path, STRV("."));
-	EXPECT_EQ(path_is_rel(&path), 1);
-#endif
-
-	END;
-}
-
 TEST(path_parent)
 {
 	START;
@@ -182,6 +158,23 @@ TEST(path_calc_rel)
 
 	EXPECT_EQ(path_calc_rel(STRV("/a"), STRV("/"), &path), 0);
 	EXPECT_STR(path.data, "");
+
+	END;
+}
+
+TEST(pathv_is_rel)
+{
+	START;
+
+	EXPECT_EQ(pathv_is_rel(STRV_NULL), 0);
+#if defined(C_WIN)
+	EXPECT_EQ(pathv_is_rel(STRV("C:")), 0);
+	EXPECT_EQ(pathv_is_rel(STRV("a")), 1);
+	EXPECT_EQ(pathv_is_rel(STRV("abc")), 1);
+#else
+	EXPECT_EQ(pathv_is_rel(STRV("/")), 0);
+	EXPECT_EQ(pathv_is_rel(STRV(".")), 1);
+#endif
 
 	END;
 }
@@ -301,11 +294,11 @@ STEST(path)
 	RUN(path_init);
 	RUN(path_child_s);
 	RUN(path_child);
-	RUN(path_is_rel);
 	RUN(path_parent);
 	RUN(path_set_len);
 	RUN(path_ends);
 	RUN(path_calc_rel);
+	RUN(pathv_is_rel);
 	RUN(pathv_get_dir);
 	RUN(path_merge);
 	SEND;

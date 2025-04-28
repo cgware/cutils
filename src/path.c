@@ -50,19 +50,6 @@ path_t *path_child(path_t *path, strv_t child)
 	return path_child_s(path, child, CSEP);
 }
 
-int path_is_rel(const path_t *path)
-{
-	if (path == NULL || path->len == 0) {
-		return 0;
-	}
-
-#if defined(C_WIN)
-	return path->len < 2 || !(path->data[0] >= 'A' && path->data[0] <= 'Z' && path->data[1] == ':');
-#else
-	return path->data[0] != '/';
-#endif
-}
-
 path_t *path_parent(path_t *path)
 {
 	if (path == NULL) {
@@ -140,6 +127,19 @@ int path_calc_rel(strv_t path, strv_t dest, path_t *out)
 
 	path_child(out, STRVN(&dest.data[prefix_len + 1], dest.len - prefix_len - 1));
 	return 0;
+}
+
+int pathv_is_rel(strv_t path)
+{
+	if (path.data == NULL || path.len == 0) {
+		return 0;
+	}
+
+#if defined(C_WIN)
+	return path.len < 2 || !(path.data[0] >= 'A' && path.data[0] <= 'Z' && path.data[1] == ':');
+#else
+	return path.data[0] != '/';
+#endif
 }
 
 strv_t pathv_get_dir(strv_t pathv, strv_t *child)
