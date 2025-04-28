@@ -721,6 +721,7 @@ int fs_read(fs_t *fs, strv_t path, int b, str_t *str)
 		return CERR_MEM;
 	}
 
+	str->len = 0;
 	s_fs_ops[fs->virt].read(fs, file, *str, size);
 
 	if (b) {
