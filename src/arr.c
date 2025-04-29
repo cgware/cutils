@@ -116,65 +116,69 @@ void *arr_set(arr_t *arr, uint index, const void *value)
 	return dst;
 }
 
-uint arr_addv(arr_t *arr, const void *value)
+int arr_addv(arr_t *arr, const void *value)
 {
 	if (arr == NULL || value == NULL) {
-		return ARR_END;
+		return 1;
 	}
 
-	uint index = arr->cnt;
 	void *data = arr_add(arr);
 	if (data == NULL) {
-		return ARR_END;
+		return 1;
 	}
 
 	mem_copy(data, arr->size, value, arr->size);
 
-	return index;
+	return 0;
 }
 
-uint arr_addu(arr_t *arr, const void *value)
+int arr_addu(arr_t *arr, const void *value)
 {
 	if (arr == NULL || value == NULL) {
-		return ARR_END;
+		return 1;
 	}
 
-	uint index = arr_find(arr, value);
-	if (index < arr->cnt) {
-		return index;
+	if (arr_find(arr, value, NULL) == 0) {
+		return 0;
 	}
 
 	return arr_addv(arr, value);
 }
 
-uint arr_find(const arr_t *arr, const void *value)
+int arr_find(const arr_t *arr, const void *value, uint *index)
 {
 	if (arr == NULL || value == NULL) {
-		return ARR_END;
+		return 1;
 	}
 
 	for (uint i = 0; i < arr->cnt; i++) {
 		if (mem_cmp(arr_get(arr, i), value, arr->size) == 0) {
-			return i;
+			if (index) {
+				*index = i;
+			}
+			return 0;
 		}
 	}
 
-	return ARR_END;
+	return 1;
 }
 
-uint arr_find_cmp(const arr_t *arr, const void *value, arr_cmp_cb cb, const void *priv)
+int arr_find_cmp(const arr_t *arr, const void *value, arr_cmp_cb cb, const void *priv, uint *index)
 {
 	if (arr == NULL || value == NULL || cb == NULL) {
-		return ARR_END;
+		return 1;
 	}
 
 	for (uint i = 0; i < arr->cnt; i++) {
 		if (cb(arr_get(arr, i), value, priv)) {
-			return i;
+			if (index) {
+				*index = i;
+			}
+			return 0;
 		}
 	}
 
-	return ARR_END;
+	return 1;
 }
 
 arr_t *arr_add_all(arr_t *arr, const arr_t *src)

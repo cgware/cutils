@@ -76,9 +76,9 @@ TEST(arr_get)
 	arr_t arr = {0};
 	arr_init(&arr, 1, sizeof(int), ALLOC_STD);
 
-	EXPECT_EQ(arr_get(NULL, ARR_END), NULL);
+	EXPECT_EQ(arr_get(NULL, 0), NULL);
 	log_set_quiet(0, 1);
-	EXPECT_EQ(arr_get(&arr, ARR_END), NULL);
+	EXPECT_EQ(arr_get(&arr, 0), NULL);
 	log_set_quiet(0, 0);
 	arr_add(&arr);
 	*(int *)arr_get(&arr, 0) = 1;
@@ -101,11 +101,11 @@ TEST(arr_set)
 
 	arr_add(&arr);
 
-	EXPECT_EQ(arr_set(NULL, ARR_END, NULL), NULL);
-	EXPECT_EQ(arr_set(&arr, ARR_END, NULL), NULL);
+	EXPECT_EQ(arr_set(NULL, arr.cnt, NULL), NULL);
+	EXPECT_EQ(arr_set(&arr, arr.cnt, NULL), NULL);
 	EXPECT_EQ(arr_set(&arr, 0, NULL), NULL);
 	log_set_quiet(0, 1);
-	EXPECT_EQ(arr_set(&arr, ARR_END, &value), NULL);
+	EXPECT_EQ(arr_set(&arr, arr.cnt, &value), NULL);
 	log_set_quiet(0, 0);
 	EXPECT_NE(arr_set(&arr, 0, &value), NULL);
 
@@ -128,13 +128,13 @@ TEST(arr_addv)
 	const int v0 = 1;
 	const int v1 = 2;
 
-	EXPECT_EQ(arr_addv(NULL, NULL), ARR_END);
+	EXPECT_EQ(arr_addv(NULL, NULL), 1);
 	mem_oom(1);
-	EXPECT_EQ(arr_addv(&arr, &v0), ARR_END);
+	EXPECT_EQ(arr_addv(&arr, &v0), 1);
 	mem_oom(0);
 
 	EXPECT_EQ(arr_addv(&arr, &v0), 0);
-	EXPECT_EQ(arr_addv(&arr, &v1), 1);
+	EXPECT_EQ(arr_addv(&arr, &v1), 0);
 	EXPECT_EQ(*(int *)arr_get(&arr, 0), 1);
 	EXPECT_EQ(*(int *)arr_get(&arr, 1), 2);
 	EXPECT_EQ(arr.cnt, 2);
@@ -157,15 +157,15 @@ TEST(arr_addu)
 	const int v0 = 1;
 	const int v1 = 2;
 
-	EXPECT_EQ(arr_addu(NULL, NULL), ARR_END);
+	EXPECT_EQ(arr_addu(NULL, NULL), 1);
 	mem_oom(1);
-	EXPECT_EQ(arr_addu(&arr, &v0), ARR_END);
+	EXPECT_EQ(arr_addu(&arr, &v0), 1);
 	mem_oom(0);
 
 	EXPECT_EQ(arr_addu(&arr, &v0), 0);
 	EXPECT_EQ(arr_addu(&arr, &v0), 0);
-	EXPECT_EQ(arr_addu(&arr, &v1), 1);
-	EXPECT_EQ(arr_addu(&arr, &v1), 1);
+	EXPECT_EQ(arr_addu(&arr, &v1), 0);
+	EXPECT_EQ(arr_addu(&arr, &v1), 0);
 
 	arr_free(&arr);
 
@@ -185,10 +185,13 @@ TEST(arr_find)
 	*(int *)arr_add(&arr) = value0;
 	*(int *)arr_add(&arr) = value1;
 
-	EXPECT_EQ(arr_find(NULL, NULL), ARR_END);
-	EXPECT_EQ(arr_find(&arr, NULL), ARR_END);
-	EXPECT_EQ(arr_find(&arr, &value0), 0);
-	EXPECT_EQ(arr_find(&arr, &value1), 1);
+	uint index;
+	EXPECT_EQ(arr_find(NULL, NULL, NULL), 1);
+	EXPECT_EQ(arr_find(&arr, NULL, NULL), 1);
+	EXPECT_EQ(arr_find(&arr, &value0, &index), 0);
+	EXPECT_EQ(index, 0);
+	EXPECT_EQ(arr_find(&arr, &value1, &index), 0);
+	EXPECT_EQ(index, 1);
 
 	arr_free(&arr);
 
@@ -215,12 +218,16 @@ TEST(arr_find_cmp)
 	*(int *)arr_add(&arr) = value0;
 	*(int *)arr_add(&arr) = value1;
 
-	EXPECT_EQ(arr_find_cmp(NULL, NULL, NULL, NULL), ARR_END);
-	EXPECT_EQ(arr_find_cmp(&arr, NULL, NULL, NULL), ARR_END);
-	EXPECT_EQ(arr_find_cmp(&arr, &value0, NULL, NULL), ARR_END);
-	EXPECT_EQ(arr_find_cmp(&arr, &value2, index_cmp_cb, NULL), ARR_END);
-	EXPECT_EQ(arr_find_cmp(&arr, &value0, index_cmp_cb, NULL), 0);
-	EXPECT_EQ(arr_find_cmp(&arr, &value1, index_cmp_cb, NULL), 1);
+	uint index;
+
+	EXPECT_EQ(arr_find_cmp(NULL, NULL, NULL, NULL, NULL), 1);
+	EXPECT_EQ(arr_find_cmp(&arr, NULL, NULL, NULL, NULL), 1);
+	EXPECT_EQ(arr_find_cmp(&arr, &value0, NULL, NULL, NULL), 1);
+	EXPECT_EQ(arr_find_cmp(&arr, &value2, index_cmp_cb, NULL, NULL), 1);
+	EXPECT_EQ(arr_find_cmp(&arr, &value0, index_cmp_cb, NULL, &index), 0);
+	EXPECT_EQ(index, 0);
+	EXPECT_EQ(arr_find_cmp(&arr, &value1, index_cmp_cb, NULL, &index), 0);
+	EXPECT_EQ(index, 1);
 
 	arr_free(&arr);
 

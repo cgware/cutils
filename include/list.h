@@ -3,7 +3,7 @@
 
 #include "arr.h"
 
-#define LIST_END ARR_END
+#define LIST_END ((uint) - 1)
 
 typedef uint lnode_t;
 typedef arr_t list_t;
