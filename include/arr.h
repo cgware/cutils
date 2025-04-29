@@ -18,19 +18,19 @@ void arr_free(arr_t *arr);
 
 void arr_reset(arr_t *arr, int val, uint cnt);
 
-void *arr_add(arr_t *arr);
+void *arr_add(arr_t *arr, uint *id);
 
-void *arr_get(const arr_t *arr, uint index);
+void *arr_get(const arr_t *arr, uint id);
 
-void *arr_set(arr_t *arr, uint index, const void *value);
+void *arr_set(arr_t *arr, uint id, const void *value);
 
-int arr_addv(arr_t *arr, const void *value);
-int arr_addu(arr_t *arr, const void *value);
+int arr_addv(arr_t *arr, const void *value, uint *id);
+int arr_addu(arr_t *arr, const void *value, uint *id);
 
-int arr_find(const arr_t *arr, const void *value, uint *index);
+int arr_find(const arr_t *arr, const void *value, uint *id);
 
 typedef int (*arr_cmp_cb)(const void *value1, const void *value2, const void *priv);
-int arr_find_cmp(const arr_t *arr, const void *value, arr_cmp_cb cb, const void *priv, uint *index);
+int arr_find_cmp(const arr_t *arr, const void *value, arr_cmp_cb cb, const void *priv, uint *id);
 
 arr_t *arr_add_all(arr_t *arr, const arr_t *src);
 

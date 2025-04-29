@@ -45,10 +45,6 @@ int strbuf_add(strbuf_t *buf, strv_t strv, uint *index)
 		return 1;
 	}
 
-	if (index) {
-		*index = buf->off.cnt;
-	}
-
 	if (buf_add(&buf->buf, &strv.len, sizeof(size_t), NULL)) {
 		return 1;
 	}
@@ -59,7 +55,7 @@ int strbuf_add(strbuf_t *buf, strv_t strv, uint *index)
 		return 1;
 	}
 
-	size_t *off = arr_add(&buf->off);
+	size_t *off = arr_add(&buf->off, index);
 	if (off == NULL) {
 		return 1;
 	}

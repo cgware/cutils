@@ -70,7 +70,7 @@ static inline int arr_resize(arr_t *arr)
 	return 0;
 }
 
-void *arr_add(arr_t *arr)
+void *arr_add(arr_t *arr, uint *id)
 {
 	if (arr == NULL) {
 		return NULL;
@@ -81,30 +81,34 @@ void *arr_add(arr_t *arr)
 		return NULL;
 	}
 
+	if (id) {
+		*id = arr->cnt;
+	}
+
 	return (byte *)arr->data + (arr->cnt++) * arr->size;
 }
 
-void *arr_get(const arr_t *arr, uint index)
+void *arr_get(const arr_t *arr, uint id)
 {
 	if (arr == NULL) {
 		return NULL;
 	}
 
-	if (index >= arr->cnt) {
-		log_warn("cutils", "arr", NULL, "invalid id: %d", index);
+	if (id >= arr->cnt) {
+		log_warn("cutils", "arr", NULL, "invalid id: %d", id);
 		return NULL;
 	}
 
-	return (byte *)arr->data + index * arr->size;
+	return (byte *)arr->data + id * arr->size;
 }
 
-void *arr_set(arr_t *arr, uint index, const void *value)
+void *arr_set(arr_t *arr, uint id, const void *value)
 {
 	if (arr == NULL || value == NULL) {
 		return NULL;
 	}
 
-	void *dst = arr_get(arr, index);
+	void *dst = arr_get(arr, id);
 	if (dst == NULL) {
 		return NULL;
 	}
@@ -116,13 +120,13 @@ void *arr_set(arr_t *arr, uint index, const void *value)
 	return dst;
 }
 
-int arr_addv(arr_t *arr, const void *value)
+int arr_addv(arr_t *arr, const void *value, uint *id)
 {
 	if (arr == NULL || value == NULL) {
 		return 1;
 	}
 
-	void *data = arr_add(arr);
+	void *data = arr_add(arr, id);
 	if (data == NULL) {
 		return 1;
 	}
@@ -132,20 +136,20 @@ int arr_addv(arr_t *arr, const void *value)
 	return 0;
 }
 
-int arr_addu(arr_t *arr, const void *value)
+int arr_addu(arr_t *arr, const void *value, uint *id)
 {
 	if (arr == NULL || value == NULL) {
 		return 1;
 	}
 
-	if (arr_find(arr, value, NULL) == 0) {
+	if (arr_find(arr, value, id) == 0) {
 		return 0;
 	}
 
-	return arr_addv(arr, value);
+	return arr_addv(arr, value, id);
 }
 
-int arr_find(const arr_t *arr, const void *value, uint *index)
+int arr_find(const arr_t *arr, const void *value, uint *id)
 {
 	if (arr == NULL || value == NULL) {
 		return 1;
@@ -153,8 +157,8 @@ int arr_find(const arr_t *arr, const void *value, uint *index)
 
 	for (uint i = 0; i < arr->cnt; i++) {
 		if (mem_cmp(arr_get(arr, i), value, arr->size) == 0) {
-			if (index) {
-				*index = i;
+			if (id) {
+				*id = i;
 			}
 			return 0;
 		}
@@ -163,7 +167,7 @@ int arr_find(const arr_t *arr, const void *value, uint *index)
 	return 1;
 }
 
-int arr_find_cmp(const arr_t *arr, const void *value, arr_cmp_cb cb, const void *priv, uint *index)
+int arr_find_cmp(const arr_t *arr, const void *value, arr_cmp_cb cb, const void *priv, uint *id)
 {
 	if (arr == NULL || value == NULL || cb == NULL) {
 		return 1;
@@ -171,8 +175,8 @@ int arr_find_cmp(const arr_t *arr, const void *value, arr_cmp_cb cb, const void 
 
 	for (uint i = 0; i < arr->cnt; i++) {
 		if (cb(arr_get(arr, i), value, priv)) {
-			if (index) {
-				*index = i;
+			if (id) {
+				*id = i;
 			}
 			return 0;
 		}
@@ -201,8 +205,7 @@ arr_t *arr_add_unique(arr_t *arr, const arr_t *src)
 	}
 
 	for (uint i = 0; i < src->cnt; i++) {
-		uint index = arr_addu(arr, arr_get(src, i));
-		if (index >= arr->cnt) {
+		if (arr_addu(arr, arr_get(src, i), NULL)) {
 			return NULL;
 		}
 	}

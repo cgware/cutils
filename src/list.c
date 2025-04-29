@@ -23,8 +23,8 @@ lnode_t list_add(list_t *list)
 		return LIST_END;
 	}
 
-	lnode_t node   = list->cnt;
-	header_t *data = arr_add(list);
+	lnode_t node;
+	header_t *data = arr_add(list, &node);
 	if (data == NULL) {
 		log_error("cutils", "list", NULL, "failed to add element");
 		return LIST_END;

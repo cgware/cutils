@@ -101,7 +101,7 @@ static cerr_t vfs_open(fs_t *fs, strv_t path, const char *mode, void **file)
 
 		if ((mode[0] == 'w' || mode[0] == 'a') && name.len > 0 && (dir.len == 0 || fs_isdir(fs, dir))) {
 			strbuf_add(&fs->paths, path, &index);
-			fs_node_t *node = arr_add(&fs->nodes);
+			fs_node_t *node = arr_add(&fs->nodes, NULL);
 			if (node == NULL) {
 				return CERR_MEM;
 			}
@@ -307,7 +307,7 @@ static cerr_t vfs_mkdir(fs_t *fs, strv_t path)
 	size_t paths_cnt  = fs->paths.off.cnt;
 
 	strbuf_add(&fs->paths, path, NULL);
-	fs_node_t *node = arr_add(&fs->nodes);
+	fs_node_t *node = arr_add(&fs->nodes, NULL);
 	if (node == NULL) {
 		fs->paths.buf.used = paths_used;
 		fs->paths.off.cnt  = paths_cnt;
@@ -342,7 +342,7 @@ static cerr_t vfs_mkfile(fs_t *fs, strv_t path)
 	}
 
 	strbuf_add(&fs->paths, path, NULL);
-	fs_node_t *node = arr_add(&fs->nodes);
+	fs_node_t *node = arr_add(&fs->nodes, NULL);
 	if (node == NULL) {
 		return CERR_MEM;
 	}
