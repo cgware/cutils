@@ -3,7 +3,7 @@
 
 #include "list.h"
 
-#define TREE_END       LIST_END
+#define TREE_END       ((uint) - 1)
 #define TREE_MAX_DEPTH 128
 
 typedef lnode_t tnode_t;

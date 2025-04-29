@@ -1,6 +1,7 @@
 #include "tree.h"
 
 #include "log.h"
+#include "mem.h"
 #include "test.h"
 
 TEST(tree_init_free)
@@ -122,7 +123,11 @@ TEST(tree_add_next)
 	log_set_quiet(0, 1);
 	EXPECT_EQ(tree_add_next(&tree, TREE_END), TREE_END);
 	log_set_quiet(0, 0);
-	EXPECT_EQ(tree_add_next(&tree, tree_add(&tree)), 1);
+	tnode_t root = tree_add(&tree);
+	mem_oom(1);
+	EXPECT_EQ(tree_add_next(&tree, root), TREE_END);
+	mem_oom(0);
+	EXPECT_EQ(tree_add_next(&tree, root), 1);
 
 	EXPECT_EQ(tree.cnt, 2);
 	EXPECT_EQ(tree.cap, 2);
@@ -271,10 +276,10 @@ TEST(tree_set_next)
 	EXPECT_EQ(tree_set_next(&tree, TREE_END, TREE_END), TREE_END);
 	EXPECT_EQ(tree_set_next(&tree, TREE_END, node), TREE_END);
 	log_set_quiet(0, 0);
-	EXPECT_EQ(tree_set_next(&tree, node, node), 0);
+	EXPECT_EQ(tree_set_next(&tree, node, tree_add(&tree)), node);
 
-	EXPECT_EQ(tree.cnt, 1);
-	EXPECT_EQ(tree.cap, 1);
+	EXPECT_EQ(tree.cnt, 2);
+	EXPECT_EQ(tree.cap, 2);
 
 	tree_free(&tree);
 

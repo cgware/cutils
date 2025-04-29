@@ -17,22 +17,21 @@ void list_free(list_t *list)
 	arr_free(list);
 }
 
-lnode_t list_add(list_t *list)
+void *list_add(list_t *list, lnode_t *node)
 {
 	if (list == NULL) {
-		return LIST_END;
+		return NULL;
 	}
 
-	lnode_t node;
-	header_t *data = arr_add(list, &node);
-	if (data == NULL) {
-		log_error("cutils", "list", NULL, "failed to add element");
-		return LIST_END;
+	header_t *header = arr_add(list, node);
+	if (header == NULL) {
+		log_error("cutils", "list", NULL, "failed to add node");
+		return NULL;
 	}
 
-	data->next = LIST_END;
+	header->next = (lnode_t)-1;
 
-	return node;
+	return (byte *)header + sizeof(header_t);
 }
 
 int list_remove(list_t *list, lnode_t node)
@@ -56,19 +55,32 @@ int list_remove(list_t *list, lnode_t node)
 	return 0;
 }
 
-lnode_t list_add_next(list_t *list, lnode_t node)
+void *list_add_next(list_t *list, lnode_t node, lnode_t *next)
 {
 	if (arr_get(list, node) == NULL) {
-		return LIST_END;
+		return NULL;
 	}
-	return list_set_next(list, node, list_add(list));
+
+	lnode_t l;
+	void *data = list_add(list, &l);
+	if (data == NULL) {
+		return NULL;
+	}
+
+	list_set_next(list, node, l);
+
+	if (next) {
+		*next = l;
+	}
+
+	return data;
 }
 
-lnode_t list_set_next(list_t *list, lnode_t node, lnode_t next)
+int list_set_next(list_t *list, lnode_t node, lnode_t next)
 {
 	header_t *header = arr_get(list, node);
-	if (header == NULL) {
-		return LIST_END;
+	if (header == NULL || arr_get(list, next) == NULL) {
+		return 1;
 	}
 
 	lnode_t *target = &header->next;
@@ -78,23 +90,27 @@ lnode_t list_set_next(list_t *list, lnode_t node, lnode_t next)
 
 	*target = next;
 
-	return *target;
+	return 0;
 }
 
-lnode_t list_get_next(const list_t *list, lnode_t node)
+int list_get_next(const list_t *list, lnode_t node, lnode_t *next)
 {
 	header_t *header = arr_get(list, node);
 	if (header == NULL) {
-		return LIST_END;
+		return 1;
 	}
 
-	return header->next;
+	if (next) {
+		*next = header->next;
+	}
+
+	return header->next < list->cnt ? 0 : 1;
 }
 
-lnode_t list_get_at(const list_t *list, lnode_t start, lnode_t index)
+int list_get_at(const list_t *list, lnode_t start, uint index, lnode_t *node)
 {
 	if (list == NULL) {
-		return LIST_END;
+		return 1;
 	}
 
 	lnode_t i   = 0;
@@ -104,7 +120,15 @@ lnode_t list_get_at(const list_t *list, lnode_t start, lnode_t index)
 		i++;
 	}
 
-	return cur;
+	if (cur == start && index > 0) {
+		return 1;
+	}
+
+	if (node) {
+		*node = cur;
+	}
+
+	return 0;
 }
 
 void list_set_cnt(list_t *list, uint cnt)
@@ -119,12 +143,12 @@ void list_set_cnt(list_t *list, uint cnt)
 	arr_foreach(list, val)
 	{
 		if (val->next >= cnt) {
-			val->next = LIST_END;
+			val->next = (uint)-1;
 		}
 	}
 }
 
-void *list_get_data(const list_t *list, lnode_t node)
+void *list_get(const list_t *list, lnode_t node)
 {
 	header_t *header = arr_get(list, node);
 	if (header == NULL) {

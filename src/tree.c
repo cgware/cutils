@@ -9,18 +9,7 @@ typedef struct header_s {
 
 static inline header_t *get_node(const tree_t *tree, tnode_t node)
 {
-	return list_get_data(tree, node);
-}
-
-static inline tnode_t init_node(tree_t *tree, tnode_t node)
-{
-	header_t *data = get_node(tree, node);
-	if (data == NULL) {
-		return TREE_END;
-	}
-
-	data->child = TREE_END;
-	return node;
+	return list_get(tree, node);
 }
 
 tree_t *tree_init(tree_t *tree, uint cap, size_t size, alloc_t alloc)
@@ -35,7 +24,15 @@ void tree_free(tree_t *tree)
 
 tnode_t tree_add(tree_t *tree)
 {
-	return init_node(tree, list_add(tree));
+	tnode_t node;
+	header_t *header = list_add(tree, &node);
+	if (header == NULL) {
+		return TREE_END;
+	}
+
+	header->child = TREE_END;
+
+	return node;
 }
 
 int tree_remove(tree_t *tree, tnode_t node)
@@ -47,7 +44,7 @@ int tree_remove(tree_t *tree, tnode_t node)
 	for (uint i = 0; i < tree->cnt; i++) {
 		header_t *data = get_node(tree, i);
 		if (data->child == node) {
-			data->child = list_get_next(tree, node);
+			list_get_next(tree, node, &data->child);
 		}
 	}
 
@@ -70,7 +67,8 @@ tnode_t tree_set_child(tree_t *tree, tnode_t node, tnode_t child)
 		return TREE_END;
 	}
 
-	return list_set_next_node(tree, header->child, child);
+	list_set_next_node(tree, header->child, child);
+	return child;
 }
 
 tnode_t tree_get_child(const tree_t *tree, tnode_t node)
@@ -91,17 +89,29 @@ tnode_t tree_add_next(tree_t *tree, tnode_t node)
 		return TREE_END;
 	}
 
-	return list_set_next(tree, node, tree_add(tree));
+	tnode_t next = tree_add(tree);
+	if (list_set_next(tree, node, next)) {
+		return TREE_END;
+	}
+
+	return next;
 }
 
 tnode_t tree_set_next(tree_t *tree, tnode_t node, tnode_t next)
 {
-	return list_set_next(tree, node, next);
+	if (list_set_next(tree, node, next)) {
+		return TREE_END;
+	}
+	return node;
 }
 
 tnode_t tree_get_next(const tree_t *tree, tnode_t node)
 {
-	return list_get_next(tree, node);
+	tnode_t next;
+	if (list_get_next(tree, node, &next)) {
+		return TREE_END;
+	}
+	return next;
 }
 
 void tree_set_cnt(tree_t *tree, uint cnt)
