@@ -59,11 +59,11 @@ TEST(strbuf_add)
 	EXPECT_EQ(strbuf_add(&strbuf, STRV("abc"), NULL), 1);
 	EXPECT_EQ(strbuf_add(&strbuf, STRV("de"), NULL), 1);
 	mem_oom(0);
-	uint index;
+	uint id;
 	EXPECT_EQ(strbuf_add(&strbuf, STRV("abc"), NULL), 0);
-	EXPECT_EQ(strbuf_add(&strbuf, STRV("de"), &index), 0);
+	EXPECT_EQ(strbuf_add(&strbuf, STRV("de"), &id), 0);
 
-	EXPECT_EQ(index, 1);
+	EXPECT_EQ(id, 1);
 
 	strbuf_free(&strbuf);
 
@@ -135,14 +135,14 @@ TEST(strbuf_find)
 	strbuf_add(&strbuf, STRV("abc"), NULL);
 	strbuf_add(&strbuf, STRV("de"), NULL);
 
-	uint index;
+	uint id;
 
-	EXPECT_EQ(strbuf_find(NULL, STRV("abc"), &index), 1);
+	EXPECT_EQ(strbuf_find(NULL, STRV("abc"), &id), 1);
 	log_set_quiet(0, 1);
-	EXPECT_EQ(strbuf_find(&strbuf, STRVN("abc", 2), &index), 1);
+	EXPECT_EQ(strbuf_find(&strbuf, STRVN("abc", 2), &id), 1);
 	log_set_quiet(0, 0);
-	EXPECT_EQ(strbuf_find(&strbuf, STRV("de"), &index), 0);
-	EXPECT_EQ(index, 1);
+	EXPECT_EQ(strbuf_find(&strbuf, STRV("de"), &id), 0);
+	EXPECT_EQ(id, 1);
 
 	strbuf_free(&strbuf);
 
@@ -156,16 +156,16 @@ TEST(strbuf_set)
 	strbuf_t strbuf = {0};
 	strbuf_init(&strbuf, 2, 1, ALLOC_STD);
 
-	EXPECT_EQ(strbuf_set(NULL, STRV_NULL, 0), 1);
+	EXPECT_EQ(strbuf_set(NULL, 0, STRV_NULL), 1);
 	log_set_quiet(0, 1);
-	EXPECT_EQ(strbuf_set(&strbuf, STRV("a"), 0), 1);
+	EXPECT_EQ(strbuf_set(&strbuf, 0, STRV("a")), 1);
 	log_set_quiet(0, 0);
 	strbuf_add(&strbuf, STRV("a"), NULL);
 	strbuf_add(&strbuf, STRV("d"), NULL);
 	mem_oom(1);
-	EXPECT_EQ(strbuf_set(&strbuf, STRV("bc"), 0), 1);
+	EXPECT_EQ(strbuf_set(&strbuf, 0, STRV("bc")), 1);
 	mem_oom(0);
-	EXPECT_EQ(strbuf_set(&strbuf, STRV("bc"), 0), 0);
+	EXPECT_EQ(strbuf_set(&strbuf, 0, STRV("bc")), 0);
 
 	{
 		strv_t val = strbuf_get(&strbuf, 0);
@@ -188,16 +188,16 @@ TEST(strbuf_app)
 	strbuf_t strbuf = {0};
 	strbuf_init(&strbuf, 2, 1, ALLOC_STD);
 
-	EXPECT_EQ(strbuf_app(NULL, STRV_NULL, 0), 1);
+	EXPECT_EQ(strbuf_app(NULL, 0, STRV_NULL), 1);
 	log_set_quiet(0, 1);
-	EXPECT_EQ(strbuf_app(&strbuf, STRV("a"), 0), 1);
+	EXPECT_EQ(strbuf_app(&strbuf, 0, STRV("a")), 1);
 	log_set_quiet(0, 0);
 	strbuf_add(&strbuf, STRV("a"), NULL);
 	strbuf_add(&strbuf, STRV("d"), NULL);
 	mem_oom(1);
-	EXPECT_EQ(strbuf_app(&strbuf, STRV("bc"), 0), 1);
+	EXPECT_EQ(strbuf_app(&strbuf, 0, STRV("bc")), 1);
 	mem_oom(0);
-	EXPECT_EQ(strbuf_app(&strbuf, STRV("bc"), 0), 0);
+	EXPECT_EQ(strbuf_app(&strbuf, 0, STRV("bc")), 0);
 
 	{
 		strv_t val = strbuf_get(&strbuf, 0);
@@ -250,17 +250,17 @@ TEST(strbuf_foreach)
 	strbuf_t strbuf = {0};
 	strbuf_init(&strbuf, 1, 1, ALLOC_STD);
 
-	uint index = 0;
+	uint id = 0;
 	strv_t strv;
 
-	strbuf_foreach(&strbuf, index, strv);
+	strbuf_foreach(&strbuf, id, strv);
 
 	strbuf_add(&strbuf, STRV("abc"), NULL);
 	strbuf_add(&strbuf, STRVN("de", 2), NULL);
 
-	strbuf_foreach(&strbuf, index, strv)
+	strbuf_foreach(&strbuf, id, strv)
 	{
-		if (index == 0) {
+		if (id == 0) {
 			EXPECT_STRN(strv.data, "abc", strv.len);
 		} else {
 			EXPECT_STRN(strv.data, "de", strv.len);

@@ -94,13 +94,13 @@ static cerr_t vfs_open(fs_t *fs, strv_t path, const char *mode, void **file)
 	default: return CERR_VAL;
 	}
 
-	uint index;
-	if (strbuf_find(&fs->paths, path, &index)) {
+	uint id;
+	if (strbuf_find(&fs->paths, path, &id)) {
 		strv_t name = {0};
 		strv_t dir  = path_trim(pathv_get_dir(path, &name));
 
 		if ((mode[0] == 'w' || mode[0] == 'a') && name.len > 0 && (dir.len == 0 || fs_isdir(fs, dir))) {
-			strbuf_add(&fs->paths, path, &index);
+			strbuf_add(&fs->paths, path, &id);
 			fs_node_t *node = arr_add(&fs->nodes, NULL);
 			if (node == NULL) {
 				return CERR_MEM;
@@ -112,7 +112,7 @@ static cerr_t vfs_open(fs_t *fs, strv_t path, const char *mode, void **file)
 		}
 	}
 
-	fs_node_t *node = arr_get(&fs->nodes, index);
+	fs_node_t *node = arr_get(&fs->nodes, id);
 	if (node == NULL) {
 		return CERR_VAL;
 	}
@@ -133,7 +133,7 @@ static cerr_t vfs_open(fs_t *fs, strv_t path, const char *mode, void **file)
 
 	node->flags |= 1 << FS_NODE_FLAG_OPEN;
 
-	*file = (void *)((size_t)index + 1);
+	*file = (void *)((size_t)id + 1);
 	return CERR_OK;
 }
 
@@ -149,9 +149,9 @@ static cerr_t vfs_close(fs_t *fs, void *file)
 		return CERR_VAL;
 	}
 
-	uint index = (uint)((size_t)file - 1);
+	uint id = (uint)((size_t)file - 1);
 
-	fs_node_t *node = arr_get(&fs->nodes, index);
+	fs_node_t *node = arr_get(&fs->nodes, id);
 	if (node == NULL) {
 		return CERR_NOT_FOUND;
 	}
@@ -174,9 +174,9 @@ static cerr_t vfs_write(fs_t *fs, void *file, strv_t str)
 		return CERR_VAL;
 	}
 
-	uint index = (uint)((size_t)file - 1);
+	uint id = (uint)((size_t)file - 1);
 
-	fs_node_t *node = arr_get(&fs->nodes, index);
+	fs_node_t *node = arr_get(&fs->nodes, id);
 	if (node == NULL) {
 		return CERR_NOT_FOUND;
 	}
@@ -200,9 +200,9 @@ static cerr_t ofs_read(fs_t *fs, void *file, str_t str, size_t size)
 
 static cerr_t vfs_read(fs_t *fs, void *file, str_t str, size_t size)
 {
-	uint index = (uint)((size_t)file - 1);
+	uint id = (uint)((size_t)file - 1);
 
-	fs_node_t *node = arr_get(&fs->nodes, index);
+	fs_node_t *node = arr_get(&fs->nodes, id);
 
 	str_cat(&str, STRVN(node->data.data, size));
 
@@ -221,9 +221,9 @@ static cerr_t vfs_du(fs_t *fs, void *file, size_t *size)
 		return CERR_VAL;
 	}
 
-	uint index = (uint)((size_t)file - 1);
+	uint id = (uint)((size_t)file - 1);
 
-	fs_node_t *node = arr_get(&fs->nodes, index);
+	fs_node_t *node = arr_get(&fs->nodes, id);
 	if (node == NULL) {
 		return CERR_NOT_FOUND;
 	}
@@ -240,12 +240,12 @@ static int ofs_isdir(fs_t *fs, strv_t path)
 
 static int vfs_isdir(fs_t *fs, strv_t path)
 {
-	uint index = -1;
-	if (strbuf_find(&fs->paths, path, &index)) {
+	uint id = -1;
+	if (strbuf_find(&fs->paths, path, &id)) {
 		return 0;
 	}
 
-	fs_node_t *node = arr_get(&fs->nodes, index);
+	fs_node_t *node = arr_get(&fs->nodes, id);
 	if (node == NULL) {
 		return 0;
 	}
@@ -265,12 +265,12 @@ static int ofs_isfile(fs_t *fs, strv_t path)
 
 static int vfs_isfile(fs_t *fs, strv_t path)
 {
-	uint index = -1;
-	if (strbuf_find(&fs->paths, path, &index)) {
+	uint id = -1;
+	if (strbuf_find(&fs->paths, path, &id)) {
 		return 0;
 	}
 
-	fs_node_t *node = arr_get(&fs->nodes, index);
+	fs_node_t *node = arr_get(&fs->nodes, id);
 	if (node == NULL) {
 		return 0;
 	}
@@ -330,9 +330,9 @@ static cerr_t vfs_mkfile(fs_t *fs, strv_t path)
 		return CERR_NOT_FOUND;
 	}
 
-	uint index;
-	if (strbuf_find(&fs->paths, path, &index) == 0) {
-		fs_node_t *node = arr_get(&fs->nodes, index);
+	uint id;
+	if (strbuf_find(&fs->paths, path, &id) == 0) {
+		fs_node_t *node = arr_get(&fs->nodes, id);
 		return node->type == FS_NODE_TYPE_FILE ? CERR_EXIST : CERR_TYPE;
 	}
 
@@ -360,12 +360,12 @@ static cerr_t ofs_rmdir(fs_t *fs, strv_t path)
 
 static cerr_t vfs_rmdir(fs_t *fs, strv_t path)
 {
-	uint index = -1;
-	if (strbuf_find(&fs->paths, path, &index)) {
+	uint id = -1;
+	if (strbuf_find(&fs->paths, path, &id)) {
 		return CERR_NOT_FOUND;
 	}
 
-	fs_node_t *node = arr_get(&fs->nodes, index);
+	fs_node_t *node = arr_get(&fs->nodes, id);
 	if (node == NULL) {
 		return CERR_NOT_FOUND;
 	}
@@ -385,7 +385,7 @@ static cerr_t vfs_rmdir(fs_t *fs, strv_t path)
 		}
 	}
 
-	strbuf_set(&fs->paths, STRV(""), index);
+	strbuf_set(&fs->paths, id, STRV(""));
 	node->type = FS_NODE_TYPE_UNKNOWN;
 
 	return CERR_OK;
@@ -399,12 +399,12 @@ static cerr_t ofs_rmfile(fs_t *fs, strv_t path)
 
 static cerr_t vfs_rmfile(fs_t *fs, strv_t path)
 {
-	uint index = -1;
-	if (strbuf_find(&fs->paths, path, &index)) {
+	uint id;
+	if (strbuf_find(&fs->paths, path, &id)) {
 		return CERR_NOT_FOUND;
 	}
 
-	fs_node_t *node = arr_get(&fs->nodes, index);
+	fs_node_t *node = arr_get(&fs->nodes, id);
 	if (node == NULL) {
 		return CERR_NOT_FOUND;
 	}
@@ -418,7 +418,7 @@ static cerr_t vfs_rmfile(fs_t *fs, strv_t path)
 		node->data = STR_NULL;
 	}
 
-	strbuf_set(&fs->paths, STRV(""), index);
+	strbuf_set(&fs->paths, id, STRV(""));
 	node->type = FS_NODE_TYPE_UNKNOWN;
 
 	return CERR_OK;
@@ -474,14 +474,14 @@ static int ofs_lsdir(fs_t *fs, strv_t path, strbuf_t *dirs)
 
 static int vfs_lsdir(fs_t *fs, strv_t path, strbuf_t *dirs)
 {
-	uint index = 0;
+	uint id;
 	strv_t dir;
 
-	if (strbuf_find(&fs->paths, path, &index)) {
+	if (strbuf_find(&fs->paths, path, &id)) {
 		return CERR_NOT_FOUND;
 	}
 
-	fs_node_t *node = arr_get(&fs->nodes, index);
+	fs_node_t *node = arr_get(&fs->nodes, id);
 	if (node == NULL) {
 		return CERR_NOT_FOUND;
 	}
@@ -490,8 +490,8 @@ static int vfs_lsdir(fs_t *fs, strv_t path, strbuf_t *dirs)
 		return CERR_TYPE;
 	}
 
-	index = 0;
-	strbuf_foreach(&fs->paths, index, dir)
+	id = 0;
+	strbuf_foreach(&fs->paths, id, dir)
 	{
 		strv_t name;
 		strv_t parent = path_trim(pathv_get_dir(dir, &name));
@@ -500,7 +500,7 @@ static int vfs_lsdir(fs_t *fs, strv_t path, strbuf_t *dirs)
 			continue;
 		}
 
-		node = arr_get(&fs->nodes, index);
+		node = arr_get(&fs->nodes, id);
 		if (node == NULL) {
 			return CERR_NOT_FOUND;
 		}
@@ -537,14 +537,14 @@ static int ofs_lsfile(fs_t *fs, strv_t path, strbuf_t *files)
 
 static int vfs_lsfile(fs_t *fs, strv_t path, strbuf_t *files)
 {
-	uint index = 0;
+	uint id = 0;
 	strv_t dir;
 
-	if (strbuf_find(&fs->paths, path, &index)) {
+	if (strbuf_find(&fs->paths, path, &id)) {
 		return CERR_NOT_FOUND;
 	}
 
-	fs_node_t *node = arr_get(&fs->nodes, index);
+	fs_node_t *node = arr_get(&fs->nodes, id);
 	if (node == NULL) {
 		return CERR_NOT_FOUND;
 	}
@@ -553,7 +553,7 @@ static int vfs_lsfile(fs_t *fs, strv_t path, strbuf_t *files)
 		return CERR_TYPE;
 	}
 
-	strbuf_foreach(&fs->paths, index, dir)
+	strbuf_foreach(&fs->paths, id, dir)
 	{
 		strv_t name;
 		strv_t parent = path_trim(pathv_get_dir(dir, &name));
@@ -562,7 +562,7 @@ static int vfs_lsfile(fs_t *fs, strv_t path, strbuf_t *files)
 			continue;
 		}
 
-		node = arr_get(&fs->nodes, index);
+		node = arr_get(&fs->nodes, id);
 		if (node == NULL) {
 			return CERR_NOT_FOUND;
 		}

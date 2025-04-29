@@ -39,7 +39,7 @@ void strbuf_reset(strbuf_t *buf, uint cnt)
 	buf->off.cnt  = cnt;
 }
 
-int strbuf_add(strbuf_t *buf, strv_t strv, uint *index)
+int strbuf_add(strbuf_t *buf, strv_t strv, uint *id)
 {
 	if (buf == NULL) {
 		return 1;
@@ -55,7 +55,7 @@ int strbuf_add(strbuf_t *buf, strv_t strv, uint *index)
 		return 1;
 	}
 
-	size_t *off = arr_add(&buf->off, index);
+	size_t *off = arr_add(&buf->off, id);
 	if (off == NULL) {
 		return 1;
 	}
@@ -65,13 +65,13 @@ int strbuf_add(strbuf_t *buf, strv_t strv, uint *index)
 	return 0;
 }
 
-strv_t strbuf_get(const strbuf_t *buf, uint index)
+strv_t strbuf_get(const strbuf_t *buf, uint id)
 {
 	if (buf == NULL) {
 		return STRV_NULL;
 	}
 
-	size_t *off = arr_get(&buf->off, index);
+	size_t *off = arr_get(&buf->off, id);
 	if (off == NULL) {
 		return STRV_NULL;
 	}
@@ -84,7 +84,7 @@ strv_t strbuf_get(const strbuf_t *buf, uint index)
 	};
 }
 
-int strbuf_find(const strbuf_t *buf, strv_t strv, uint *index)
+int strbuf_find(const strbuf_t *buf, strv_t strv, uint *id)
 {
 	if (buf == NULL) {
 		return 1;
@@ -96,8 +96,8 @@ int strbuf_find(const strbuf_t *buf, strv_t strv, uint *index)
 	strbuf_foreach(buf, i, val)
 	{
 		if (strv_eq(val, strv)) {
-			if (index) {
-				*index = i;
+			if (id) {
+				*id = i;
 			}
 			return 0;
 		}
@@ -106,13 +106,13 @@ int strbuf_find(const strbuf_t *buf, strv_t strv, uint *index)
 	return 1;
 }
 
-int strbuf_set(strbuf_t *buf, strv_t strv, uint index)
+int strbuf_set(strbuf_t *buf, uint id, strv_t strv)
 {
 	if (buf == NULL) {
 		return 1;
 	}
 
-	size_t *off = arr_get(&buf->off, index);
+	size_t *off = arr_get(&buf->off, id);
 	if (off == NULL) {
 		return 1;
 	}
@@ -123,11 +123,11 @@ int strbuf_set(strbuf_t *buf, strv_t strv, uint index)
 		return 1;
 	}
 
-	off = arr_get(&buf->off, index);
+	off = arr_get(&buf->off, id);
 	len = (size_t *)buf_get(&buf->buf, *off) - 1;
 
-	index++;
-	arr_foreach_i(&buf->off, off, index)
+	id++;
+	arr_foreach_i(&buf->off, off, id)
 	{
 		*off += (strv.len - *len);
 	}
@@ -137,13 +137,13 @@ int strbuf_set(strbuf_t *buf, strv_t strv, uint index)
 	return 0;
 }
 
-int strbuf_app(strbuf_t *buf, strv_t strv, uint index)
+int strbuf_app(strbuf_t *buf, uint id, strv_t strv)
 {
 	if (buf == NULL) {
 		return 1;
 	}
 
-	size_t *off = arr_get(&buf->off, index);
+	size_t *off = arr_get(&buf->off, id);
 	if (off == NULL) {
 		return 1;
 	}
@@ -154,11 +154,11 @@ int strbuf_app(strbuf_t *buf, strv_t strv, uint index)
 		return 1;
 	}
 
-	off = arr_get(&buf->off, index);
+	off = arr_get(&buf->off, id);
 	len = (size_t *)buf_get(&buf->buf, *off) - 1;
 
-	index++;
-	arr_foreach_i(&buf->off, off, index)
+	id++;
+	arr_foreach_i(&buf->off, off, id)
 	{
 		*off += strv.len;
 	}

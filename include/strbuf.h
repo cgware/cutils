@@ -16,13 +16,13 @@ void strbuf_free(strbuf_t *buf);
 
 void strbuf_reset(strbuf_t *buf, uint cnt);
 
-int strbuf_add(strbuf_t *buf, strv_t strv, uint *index);
+int strbuf_add(strbuf_t *buf, strv_t strv, uint *id);
 
-strv_t strbuf_get(const strbuf_t *buf, uint index);
-int strbuf_find(const strbuf_t *buf, strv_t strv, uint *index);
+strv_t strbuf_get(const strbuf_t *buf, uint id);
+int strbuf_find(const strbuf_t *buf, strv_t strv, uint *id);
 
-int strbuf_set(strbuf_t *buf, strv_t strv, uint index);
-int strbuf_app(strbuf_t *buf, strv_t strv, uint index);
+int strbuf_set(strbuf_t *buf, uint id, strv_t strv);
+int strbuf_app(strbuf_t *buf, uint id, strv_t strv);
 
 strbuf_t *strbuf_sort(strbuf_t *buf);
 
