@@ -256,11 +256,12 @@ arr_t *arr_sort(arr_t *arr, arr_cmp_cb cb, const void *priv)
 	}
 
 	void *v1;
-	arr_foreach(arr, v1)
+	uint i = 0;
+	arr_foreach(arr, i, v1)
 	{
 		void *v2;
-		uint j = _i + 1;
-		arr_foreach_i(arr, v2, j)
+		uint j = i + 1;
+		arr_foreach(arr, j, v2)
 		{
 			if (cb(v1, v2, priv) > 0) {
 				mem_swap(v1, v2, arr->size);
@@ -279,7 +280,8 @@ int arr_print(const arr_t *arr, arr_print_cb cb, print_dst_t dst, const void *pr
 
 	int off = dst.off;
 	void *value;
-	arr_foreach(arr, value)
+	uint i = 0;
+	arr_foreach(arr, i, value)
 	{
 		dst.off += cb(value, dst, priv);
 	}

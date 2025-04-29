@@ -127,7 +127,7 @@ int strbuf_set(strbuf_t *buf, uint id, strv_t strv)
 	len = (size_t *)buf_get(&buf->buf, *off) - 1;
 
 	id++;
-	arr_foreach_i(&buf->off, off, id)
+	arr_foreach(&buf->off, id, off)
 	{
 		*off += (strv.len - *len);
 	}
@@ -158,7 +158,7 @@ int strbuf_app(strbuf_t *buf, uint id, strv_t strv)
 	len = (size_t *)buf_get(&buf->buf, *off) - 1;
 
 	id++;
-	arr_foreach_i(&buf->off, off, id)
+	arr_foreach(&buf->off, id, off)
 	{
 		*off += strv.len;
 	}

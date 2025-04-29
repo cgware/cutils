@@ -440,17 +440,15 @@ TEST(arr_foreach)
 	START;
 
 	arr_t arr = {0};
-	arr_init(&arr, 2, sizeof(int), ALLOC_STD);
-	*(int *)arr_add(&arr, NULL) = 0;
-	*(int *)arr_add(&arr, NULL) = 1;
+	arr_init(&arr, 2, sizeof(uint), ALLOC_STD);
+	*(uint *)arr_add(&arr, NULL) = 0;
+	*(uint *)arr_add(&arr, NULL) = 1;
 
-	int *value = NULL;
-
-	int i = 0;
-	arr_foreach(&arr, value)
+	uint *value;
+	uint i = 0;
+	arr_foreach(&arr, i, value)
 	{
 		EXPECT_EQ(*value, i);
-		i++;
 	}
 
 	EXPECT_EQ(i, 2);

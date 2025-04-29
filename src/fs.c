@@ -639,7 +639,8 @@ void fs_free(fs_t *fs)
 	}
 
 	fs_node_t *node;
-	arr_foreach(&fs->nodes, node)
+	uint i = 0;
+	arr_foreach(&fs->nodes, i, node)
 	{
 		if (node->type == FS_NODE_TYPE_FILE && node->data.data) {
 			str_free(&node->data);

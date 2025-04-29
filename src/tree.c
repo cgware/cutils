@@ -22,17 +22,16 @@ void tree_free(tree_t *tree)
 	list_free(tree);
 }
 
-tnode_t tree_add(tree_t *tree)
+void *tree_add(tree_t *tree, tnode_t *node)
 {
-	tnode_t node;
-	header_t *header = list_add(tree, &node);
+	header_t *header = list_add(tree, node);
 	if (header == NULL) {
-		return TREE_END;
+		return NULL;
 	}
 
-	header->child = TREE_END;
+	header->child = (tnode_t)-1;
 
-	return node;
+	return header + 1;
 }
 
 int tree_remove(tree_t *tree, tnode_t node)
@@ -51,30 +50,58 @@ int tree_remove(tree_t *tree, tnode_t node)
 	return list_remove(tree, node);
 }
 
-tnode_t tree_add_child(tree_t *tree, tnode_t node)
+void *tree_add_child(tree_t *tree, tnode_t node, tnode_t *child)
 {
 	if (get_node(tree, node) == NULL) {
-		return TREE_END;
+		return NULL;
 	}
 
-	return tree_set_child(tree, node, tree_add(tree));
+	tnode_t t;
+	void *data = tree_add(tree, &t);
+	if (data == NULL) {
+		return NULL;
+	}
+
+	tree_set_child(tree, node, t);
+
+	if (child) {
+		*child = t;
+	}
+
+	return data;
 }
 
-tnode_t tree_set_child(tree_t *tree, tnode_t node, tnode_t child)
+int tree_set_child(tree_t *tree, tnode_t node, tnode_t child)
+{
+	header_t *header = get_node(tree, node);
+	if (header == NULL || tree_get(tree, child) == NULL) {
+		return 1;
+	}
+
+	if (header->child == (tnode_t)-1) {
+		header->child = child;
+		return 0;
+	}
+
+	return list_set_next(tree, header->child, child);
+}
+
+void *tree_get_child(const tree_t *tree, tnode_t node, tnode_t *child)
 {
 	header_t *header = get_node(tree, node);
 	if (header == NULL) {
-		return TREE_END;
+		return NULL;
 	}
 
-	list_set_next_node(tree, header->child, child);
-	return child;
-}
+	if (child) {
+		*child = header->child;
+	}
 
-tnode_t tree_get_child(const tree_t *tree, tnode_t node)
-{
-	header_t *header = get_node(tree, node);
-	return header == NULL ? TREE_END : header->child;
+	if (header->child == (tnode_t)-1) {
+		return NULL;
+	}
+
+	return tree_get(tree, header->child);
 }
 
 int tree_has_child(const tree_t *tree, tnode_t node)
@@ -83,35 +110,35 @@ int tree_has_child(const tree_t *tree, tnode_t node)
 	return header != NULL && header->child < tree->cnt;
 }
 
-tnode_t tree_add_next(tree_t *tree, tnode_t node)
+void *tree_add_next(tree_t *tree, tnode_t node, tnode_t *next)
 {
 	if (get_node(tree, node) == NULL) {
-		return TREE_END;
+		return NULL;
 	}
 
-	tnode_t next = tree_add(tree);
-	if (list_set_next(tree, node, next)) {
-		return TREE_END;
+	tnode_t t;
+	void *data = tree_add(tree, &t);
+	if (data == NULL) {
+		return NULL;
 	}
 
-	return next;
+	tree_set_next(tree, node, t);
+
+	if (next) {
+		*next = t;
+	}
+
+	return data;
 }
 
-tnode_t tree_set_next(tree_t *tree, tnode_t node, tnode_t next)
+int tree_set_next(tree_t *tree, tnode_t node, tnode_t next)
 {
-	if (list_set_next(tree, node, next)) {
-		return TREE_END;
-	}
-	return node;
+	return list_set_next(tree, node, next);
 }
 
-tnode_t tree_get_next(const tree_t *tree, tnode_t node)
+void *tree_get_next(const tree_t *tree, tnode_t node, tnode_t *next)
 {
-	tnode_t next;
-	if (list_get_next(tree, node, &next)) {
-		return TREE_END;
-	}
-	return next;
+	return list_get_next(tree, node, next);
 }
 
 void tree_set_cnt(tree_t *tree, uint cnt)
@@ -122,17 +149,17 @@ void tree_set_cnt(tree_t *tree, uint cnt)
 
 	list_set_cnt(tree, cnt);
 
-	tnode_t node;
+	tnode_t node = 0;
 	tree_foreach_all(tree, node)
 	{
 		header_t *header = get_node(tree, node);
 		if (header->child >= cnt) {
-			header->child = TREE_END;
+			header->child = (tnode_t)-1;
 		}
 	}
 }
 
-void *tree_get_data(const tree_t *tree, tnode_t node)
+void *tree_get(const tree_t *tree, tnode_t node)
 {
 	header_t *header = get_node(tree, node);
 	return header == NULL ? NULL : header + 1;
@@ -140,19 +167,23 @@ void *tree_get_data(const tree_t *tree, tnode_t node)
 
 static int node_iterate_pre(const tree_t *tree, tnode_t node, tree_iterate_cb cb, int ret, void *priv, int depth, int last)
 {
-	if (tree == NULL || node >= tree->cnt) {
+	void *data = tree_get(tree, node);
+	if (data == NULL) {
 		return ret;
 	}
 
 	if (cb) {
-		ret = cb(tree, node, tree_get_data(tree, node), ret, depth, last, priv);
+		ret = cb(tree, node, data, ret, depth, last, priv);
 	}
 
-	tnode_t child = tree_get_child(tree, node);
-	tnode_t next;
+	tnode_t child;
+	if (tree_get_child(tree, node, &child) == NULL) {
+		return ret;
+	}
 
+	tnode_t next;
 	while (child < tree->cnt) {
-		next  = tree_get_next(tree, child);
+		tree_get_next(tree, child, &next);
 		ret   = node_iterate_pre(tree, child, cb, ret, priv, depth + 1, last | ((next >= tree->cnt) << depth));
 		child = next;
 	}
@@ -167,12 +198,15 @@ int tree_iterate_pre(const tree_t *tree, tnode_t node, tree_iterate_cb cb, int r
 
 int tree_iterate_childs(const tree_t *tree, tnode_t node, tree_iterate_childs_cb cb, int ret, void *priv)
 {
-	tnode_t child = tree_get_child(tree, node);
-	tnode_t next;
+	tnode_t child;
+	if (tree_get_child(tree, node, &child) == NULL) {
+		return ret;
+	}
 
+	tnode_t next;
 	while (child < tree->cnt) {
-		next  = tree_get_next(tree, child);
-		ret   = cb(tree, child, tree_get_data(tree, child), ret, next >= tree->cnt, priv);
+		tree_get_next(tree, child, &next);
+		ret   = cb(tree, child, tree_get(tree, child), ret, next >= tree->cnt, priv);
 		child = next;
 	}
 
@@ -190,15 +224,18 @@ int tree_print(const tree_t *tree, tnode_t node, tree_print_cb cb, print_dst_t d
 	int depth;
 	tree_foreach(tree, node, cur, depth)
 	{
+		tnode_t next;
 		for (int i = 0; i < depth - 1; i++) {
-			dst.off += c_dprintf(dst, tree_get_next(tree, _it.stack[i + 1]) < tree->cnt ? "│ " : "  ");
+			tree_get_next(tree, _it.stack[i + 1], &next);
+			dst.off += c_dprintf(dst, next < tree->cnt ? "│ " : "  ");
 		}
 
 		if (depth > 0) {
-			dst.off += c_dprintf(dst, tree_get_next(tree, _it.stack[depth]) < tree->cnt ? "├─" : "└─");
+			tree_get_next(tree, _it.stack[depth], &next);
+			dst.off += c_dprintf(dst, next < tree->cnt ? "├─" : "└─");
 		}
 
-		dst.off += cb(tree_get_data(tree, cur), dst, priv);
+		dst.off += cb(tree_get(tree, cur), dst, priv);
 	}
 
 	return dst.off - off;
@@ -218,25 +255,26 @@ tree_it tree_it_begin(const tree_t *tree, tnode_t node)
 	return it;
 }
 
-void tree_it_next(tree_it *it)
+void *tree_it_next(tree_it *it)
 {
 	if (it == NULL || it->tree == NULL) {
-		return;
+		return NULL;
 	}
 
-	const tnode_t node  = it->stack[it->top - 1];
-	const tnode_t child = tree_get_child(it->tree, node);
-
-	if (child < it->tree->cnt) {
+	const tnode_t node = it->stack[it->top - 1];
+	tnode_t child;
+	void *data;
+	if ((data = tree_get_child(it->tree, node, &child))) {
 		if (it->top >= TREE_MAX_DEPTH) {
 			log_error("cutils", "tree", NULL, "exceeded max depth of %d", TREE_MAX_DEPTH);
-			it->stack[it->top - 1] = TREE_END;
-			return;
+			it->stack[it->top - 1] = (tnode_t)-1;
+			return NULL;
 		}
 		it->stack[it->top++] = child;
 	} else {
-		do {
-			it->stack[it->top - 1] = tree_get_next(it->tree, it->stack[it->top - 1]);
-		} while (it->stack[it->top - 1] >= it->tree->cnt && --it->top > 0);
+		while ((data = tree_get_next(it->tree, it->stack[it->top - 1], &it->stack[it->top - 1])) == NULL && --it->top > 0) {
+		}
 	}
+
+	return data;
 }

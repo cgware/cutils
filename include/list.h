@@ -14,8 +14,8 @@ int list_remove(list_t *list, lnode_t node);
 
 void *list_add_next(list_t *list, lnode_t node, lnode_t *next);
 int list_set_next(list_t *list, lnode_t node, lnode_t next);
-int list_get_next(const list_t *list, lnode_t node, lnode_t *next);
-int list_get_at(const list_t *list, lnode_t start, uint index, lnode_t *node);
+void *list_get_next(const list_t *list, lnode_t node, lnode_t *next);
+void *list_get_at(const list_t *list, lnode_t start, uint index, lnode_t *node);
 
 void list_set_cnt(list_t *list, uint cnt);
 
@@ -27,28 +27,5 @@ int list_print(const list_t *list, lnode_t node, list_print_cb cb, print_dst_t d
 #define list_foreach(_list, _i, _val) for (; _i < (_list)->cnt && (_val = list_get(_list, _i)); list_get_next(_list, _i, &(_i)))
 
 #define list_foreach_all(_list, _i, _val) for (; _i < (_list)->cnt && (_val = list_get(_list, _i)); _i++)
-
-#define list_add_node(_list, _start, _node)                                                                                                \
-	if (_start >= (_list)->cnt) {                                                                                                      \
-		list_add(_list, _node);                                                                                                    \
-		_start = _node;                                                                                                            \
-	} else {                                                                                                                           \
-		_node = _start;                                                                                                            \
-	}
-
-#define list_add_next_node(_list, _start, _node)                                                                                           \
-	if (_start >= (_list)->cnt) {                                                                                                      \
-		list_add(_list, _node);                                                                                                    \
-		_start = _node;                                                                                                            \
-	} else {                                                                                                                           \
-		list_add_next(_list, _start, _node);                                                                                       \
-	}
-
-#define list_set_next_node(_list, _node, _next)                                                                                            \
-	if (_node >= (_list)->cnt) {                                                                                                       \
-		_node = _next;                                                                                                             \
-	} else {                                                                                                                           \
-		list_set_next(_list, _node, _next);                                                                                        \
-	}
 
 #endif

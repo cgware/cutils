@@ -45,7 +45,6 @@ arr_t *arr_sort(arr_t *arr, arr_cmp_cb cb, const void *priv);
 typedef int (*arr_print_cb)(void *value, print_dst_t dst, const void *priv);
 int arr_print(const arr_t *arr, arr_print_cb cb, print_dst_t dst, const void *priv);
 
-#define arr_foreach(_arr, _val)	      for (uint _i = 0; _i < (_arr)->cnt && (_val = (void *)((byte *)(_arr)->data + _i * (_arr)->size)); _i++)
-#define arr_foreach_i(_arr, _val, _i) for (; _i < (_arr)->cnt && (_val = (void *)((byte *)(_arr)->data + _i * (_arr)->size)); _i++)
+#define arr_foreach(_arr, _i, _val) for (; _i < (_arr)->cnt && (_val = (void *)((byte *)(_arr)->data + _i * (_arr)->size)); _i++)
 
 #endif
