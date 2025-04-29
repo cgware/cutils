@@ -304,7 +304,7 @@ static cerr_t vfs_mkdir(fs_t *fs, strv_t path)
 	}
 
 	size_t paths_used = fs->paths.buf.used;
-	size_t paths_cnt  = fs->paths.off.cnt;
+	uint paths_cnt	  = fs->paths.off.cnt;
 
 	strbuf_add(&fs->paths, path, NULL);
 	fs_node_t *node = arr_add(&fs->nodes, NULL);
@@ -892,9 +892,9 @@ int fs_lsfile(fs_t *fs, strv_t path, strbuf_t *files)
 
 int fs_printv_cb(print_dst_t dst, const char *fmt, va_list args)
 {
-	str_t str = strv(fmt, args);
-	int len	  = str.len;
+	str_t str  = strv(fmt, args);
+	size_t len = str.len;
 	fs_write((fs_t *)dst.priv, dst.dst, STRVS(str));
 	str_free(&str);
-	return len;
+	return (int)len;
 }
