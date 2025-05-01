@@ -150,8 +150,8 @@ TEST(strv_print)
 	strv_t str = STRVN("abc\r\n\t\0", 7);
 
 	char buf[12] = {0};
-	EXPECT_EQ(strv_print(STRV_NULL, PRINT_DST_BUF(buf, sizeof(buf), 0)), 0);
-	EXPECT_EQ(strv_print(str, PRINT_DST_BUF(buf, sizeof(buf), 0)), 11);
+	EXPECT_EQ(strv_print(STRV_NULL, DST_BUF(buf)), 0);
+	EXPECT_EQ(strv_print(str, DST_BUF(buf)), 11);
 
 	EXPECT_STR(buf, "abc\\r\\n\\t\\0");
 

@@ -11,12 +11,12 @@ TEST(args_parse_no_opts_short)
 
 	{
 		const char *argv[] = {"test"};
-		EXPECT_EQ(args_parse(1, argv, NULL, 0, PRINT_DST_BUF(buf, sizeof(buf), 0)), 0);
+		EXPECT_EQ(args_parse(1, argv, NULL, 0, DST_BUF(buf)), 0);
 	}
 
 	{
 		const char *argv[] = {"test", "a"};
-		EXPECT_EQ(args_parse(2, argv, NULL, 0, PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_EQ(args_parse(2, argv, NULL, 0, DST_BUF(buf)), 1);
 		EXPECT_STR(buf,
 			   "Usage: test [options]\n"
 			   "\n"
@@ -26,19 +26,19 @@ TEST(args_parse_no_opts_short)
 
 	{
 		const char *argv[] = {"test", "-"};
-		EXPECT_EQ(args_parse(2, argv, NULL, 0, PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_EQ(args_parse(2, argv, NULL, 0, DST_BUF(buf)), 1);
 		EXPECT_STR(buf, "Unknown option: -\n");
 	}
 
 	{
 		const char *argv[] = {"test", "-a"};
-		EXPECT_EQ(args_parse(2, argv, NULL, 0, PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_EQ(args_parse(2, argv, NULL, 0, DST_BUF(buf)), 1);
 		EXPECT_STR(buf, "Unknown option: -a\n");
 	}
 
 	{
 		const char *argv[] = {"test", "-h"};
-		EXPECT_EQ(args_parse(2, argv, NULL, 0, PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_EQ(args_parse(2, argv, NULL, 0, DST_BUF(buf)), 1);
 		EXPECT_STR(buf,
 			   "Usage: test [options]\n"
 			   "\n"
@@ -51,7 +51,7 @@ TEST(args_parse_no_opts_short)
 			OPT('a', NULL, OPT_NONE, NULL, NULL, NULL, {0}, OPT_OPT),
 		};
 		const char *argv[] = {"test", "-h"};
-		EXPECT_EQ(args_parse(2, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_EQ(args_parse(2, argv, opts, sizeof(opts), DST_BUF(buf)), 1);
 		EXPECT_STR(buf,
 			   "Usage: test [options]\n"
 			   "\n"
@@ -71,19 +71,19 @@ TEST(args_parse_no_opts_long)
 
 	{
 		const char *argv[] = {"test", "--"};
-		EXPECT_EQ(args_parse(2, argv, NULL, 0, PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_EQ(args_parse(2, argv, NULL, 0, DST_BUF(buf)), 1);
 		EXPECT_STR(buf, "Unknown option: --\n");
 	}
 
 	{
 		const char *argv[] = {"test", "--a"};
-		EXPECT_EQ(args_parse(2, argv, NULL, 0, PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_EQ(args_parse(2, argv, NULL, 0, DST_BUF(buf)), 1);
 		EXPECT_STR(buf, "Unknown option: --a\n");
 	}
 
 	{
 		const char *argv[] = {"test", "--help"};
-		EXPECT_EQ(args_parse(2, argv, NULL, 0, PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_EQ(args_parse(2, argv, NULL, 0, DST_BUF(buf)), 1);
 		EXPECT_STR(buf,
 			   "Usage: test [options]\n"
 			   "\n"
@@ -96,7 +96,7 @@ TEST(args_parse_no_opts_long)
 			OPT(0, "a", OPT_NONE, NULL, NULL, NULL, {0}, OPT_OPT),
 		};
 		const char *argv[] = {"test", "-h"};
-		EXPECT_EQ(args_parse(2, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_EQ(args_parse(2, argv, opts, sizeof(opts), DST_BUF(buf)), 1);
 		EXPECT_STR(buf,
 			   "Usage: test [options]\n"
 			   "\n"
@@ -121,19 +121,19 @@ TEST(args_parse_no_param)
 
 	{
 		const char *argv[] = {"test", "-a"};
-		EXPECT_EQ(args_parse(2, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_EQ(args_parse(2, argv, opts, sizeof(opts), DST_BUF(buf)), 1);
 		EXPECT_STR(buf, "No <a> specified for -a\n");
 	}
 
 	{
 		const char *argv[] = {"test", "-a", "-b"};
-		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), DST_BUF(buf)), 1);
 		EXPECT_STR(buf, "No <a> specified for -a\n");
 	}
 
 	{
 		const char *argv[] = {"test", "--a"};
-		EXPECT_EQ(args_parse(2, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_EQ(args_parse(2, argv, opts, sizeof(opts), DST_BUF(buf)), 1);
 		EXPECT_STR(buf, "No <a> specified for --a\n");
 	}
 
@@ -152,12 +152,12 @@ TEST(args_parse_none)
 
 	{
 		const char *argv[] = {"test", "-a"};
-		EXPECT_EQ(args_parse(2, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 0);
+		EXPECT_EQ(args_parse(2, argv, opts, sizeof(opts), DST_BUF(buf)), 0);
 	}
 
 	{
 		const char *argv[] = {"test", "--a"};
-		EXPECT_EQ(args_parse(2, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 0);
+		EXPECT_EQ(args_parse(2, argv, opts, sizeof(opts), DST_BUF(buf)), 0);
 	}
 
 	{
@@ -167,12 +167,12 @@ TEST(args_parse_none)
 			OPT('a', "a", OPT_NONE, NULL, NULL, &val, {0}, OPT_OPT),
 		};
 		const char *argv[] = {"test", "-a", "val"};
-		EXPECT_EQ(args_parse(3, argv, optsv, sizeof(optsv), PRINT_DST_BUF(buf, sizeof(buf), 0)), 0);
+		EXPECT_EQ(args_parse(3, argv, optsv, sizeof(optsv), DST_BUF(buf)), 0);
 	}
 
 	{
 		const char *argv[] = {"test", "-h"};
-		EXPECT_EQ(args_parse(2, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_EQ(args_parse(2, argv, opts, sizeof(opts), DST_BUF(buf)), 1);
 		EXPECT_STR(buf,
 			   "Usage: test [options]\n"
 			   "\n"
@@ -198,14 +198,14 @@ TEST(args_parse_str)
 
 	{
 		const char *argv[] = {"test", "-a", "val"};
-		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 0);
+		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), DST_BUF(buf)), 0);
 		EXPECT_STRN(val.data, "val", val.len);
 		val = STRV("");
 	}
 
 	{
 		const char *argv[] = {"test", "--a", "val"};
-		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 0);
+		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), DST_BUF(buf)), 0);
 		EXPECT_STRN(val.data, "val", val.len);
 		val = STRV("");
 	}
@@ -213,7 +213,7 @@ TEST(args_parse_str)
 	{
 
 		const char *argv[] = {"test", "-h"};
-		EXPECT_EQ(args_parse(2, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_EQ(args_parse(2, argv, opts, sizeof(opts), DST_BUF(buf)), 1);
 		EXPECT_STR(buf,
 			   "Usage: test [options]\n"
 			   "\n"
@@ -239,27 +239,27 @@ TEST(args_parse_int)
 
 	{
 		const char *argv[] = {"test", "-a", "a"};
-		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), DST_BUF(buf)), 1);
 		val = 1;
 	}
 
 	{
 		const char *argv[] = {"test", "-a", "2"};
-		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 0);
+		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), DST_BUF(buf)), 0);
 		EXPECT_EQ(val, 2);
 		val = 1;
 	}
 
 	{
 		const char *argv[] = {"test", "--a", "2"};
-		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 0);
+		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), DST_BUF(buf)), 0);
 		EXPECT_EQ(val, 2);
 		val = 1;
 	}
 
 	{
 		const char *argv[] = {"test", "-h"};
-		EXPECT_EQ(args_parse(2, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_EQ(args_parse(2, argv, opts, sizeof(opts), DST_BUF(buf)), 1);
 		EXPECT_STR(buf,
 			   "Usage: test [options]\n"
 			   "\n"
@@ -285,40 +285,40 @@ TEST(args_parse_bool)
 
 	{
 		const char *argv[] = {"test", "-a", "a"};
-		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), DST_BUF(buf)), 1);
 		val = 1;
 	}
 
 	{
 		const char *argv[] = {"test", "-a", "aa"};
-		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), DST_BUF(buf)), 1);
 		val = 1;
 	}
 
 	{
 		const char *argv[] = {"test", "-a", "0"};
-		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 0);
+		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), DST_BUF(buf)), 0);
 		EXPECT_EQ(val, 0);
 		val = 1;
 	}
 
 	{
 		const char *argv[] = {"test", "-a", "1"};
-		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 0);
+		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), DST_BUF(buf)), 0);
 		EXPECT_EQ(val, 1);
 		val = 1;
 	}
 
 	{
 		const char *argv[] = {"test", "--a", "0"};
-		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 0);
+		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), DST_BUF(buf)), 0);
 		EXPECT_EQ(val, 0);
 		val = 1;
 	}
 
 	{
 		const char *argv[] = {"test", "-h"};
-		EXPECT_EQ(args_parse(2, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_EQ(args_parse(2, argv, opts, sizeof(opts), DST_BUF(buf)), 1);
 		EXPECT_STR(buf,
 			   "Usage: test [options]\n"
 			   "\n"
@@ -356,33 +356,33 @@ TEST(args_parse_enum)
 
 	{
 		const char *argv[] = {"test", "-a", "d"};
-		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), DST_BUF(buf)), 1);
 		EXPECT_STR(buf, "Unknown <a> specified for -a: 'd'\n");
 	}
 
 	{
 		const char *argv[] = {"test", "-a", "c"};
-		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 0);
+		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), DST_BUF(buf)), 0);
 		EXPECT_EQ(val, 2);
 		val = 1;
 	}
 
 	{
 		const char *argv[] = {"test", "--a", "d"};
-		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), DST_BUF(buf)), 1);
 		EXPECT_STR(buf, "Unknown <a> specified for --a: 'd'\n");
 	}
 
 	{
 		const char *argv[] = {"test", "--a", "c"};
-		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 0);
+		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), DST_BUF(buf)), 0);
 		EXPECT_EQ(val, 2);
 		val = 1;
 	}
 
 	{
 		const char *argv[] = {"test", "-h"};
-		EXPECT_EQ(args_parse(2, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_EQ(args_parse(2, argv, opts, sizeof(opts), DST_BUF(buf)), 1);
 		EXPECT_STR(buf,
 			   "Usage: test [options]\n"
 			   "\n"
@@ -413,13 +413,13 @@ TEST(args_parse_other)
 
 	{
 		const char *argv[] = {"test"};
-		EXPECT_EQ(args_parse(1, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_EQ(args_parse(1, argv, opts, sizeof(opts), DST_BUF(buf)), 1);
 		EXPECT_STR(buf, "Missing required option: -a / --a\n");
 	}
 
 	{
 		const char *argv[] = {"test", "-h"};
-		EXPECT_EQ(args_parse(2, argv, opts, sizeof(opts), PRINT_DST_BUF(buf, sizeof(buf), 0)), 1);
+		EXPECT_EQ(args_parse(2, argv, opts, sizeof(opts), DST_BUF(buf)), 1);
 		EXPECT_STR(buf,
 			   "Usage: test [options]\n"
 			   "\n"
@@ -435,7 +435,7 @@ TEST(args_parse_other)
 		};
 		const char *argv[] = {"test", "-a", "val"};
 		log_set_quiet(0, 1);
-		EXPECT_EQ(args_parse(3, argv, optsv, sizeof(optsv), PRINT_DST_BUF(buf, sizeof(buf), 0)), 0);
+		EXPECT_EQ(args_parse(3, argv, optsv, sizeof(optsv), DST_BUF(buf)), 0);
 		log_set_quiet(0, 0);
 	}
 

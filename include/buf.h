@@ -2,7 +2,7 @@
 #define BUF_H
 
 #include "alloc.h"
-#include "print.h"
+#include "dst.h"
 
 #include <stdint.h>
 
@@ -20,6 +20,6 @@ int buf_add(buf_t *buf, const void *data, size_t size, size_t *off);
 buf_t *buf_replace(buf_t *buf, size_t off, const void *data, size_t old_len, size_t new_len);
 #define buf_get(_buf, _off) ((_buf)->data + _off)
 
-int buf_print(const buf_t *buf, print_dst_t dst);
+size_t buf_print(const buf_t *buf, dst_t dst);
 
 #endif

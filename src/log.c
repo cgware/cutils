@@ -10,7 +10,7 @@ static const char *level_strs[] = {"TRACE", "DEBUG", "INFO", "WARN", "ERROR", "F
 
 static const char *level_colors[] = {"\033[94m", "\033[36m", "\033[32m", "\033[33m", "\033[31m", "\033[35m"};
 
-int log_std_cb(log_event_t *ev)
+size_t log_std_cb(log_event_t *ev)
 {
 	const char *tag_s = "";
 	const char *tag_e = "";
@@ -21,43 +21,43 @@ int log_std_cb(log_event_t *ev)
 		tag   = ev->tag;
 	}
 
-	int off = ev->print.off;
+	size_t off = ev->dst.off;
 
 	if (ev->header) {
 		if (ev->colors) {
-			ev->print.off += c_dprintf(ev->print,
-						   "\033[90m%s %s%-5s\033[0m [%s:%s] \033[90m%s:%d:\033[0m %s%s%s",
-						   ev->time,
-						   level_colors[ev->level],
-						   level_strs[ev->level],
-						   ev->pkg,
-						   ev->file,
-						   ev->func,
-						   ev->line,
-						   tag_s,
-						   tag,
-						   tag_e);
+			ev->dst.off += dputf(ev->dst,
+					     "\033[90m%s %s%-5s\033[0m [%s:%s] \033[90m%s:%d:\033[0m %s%s%s",
+					     ev->time,
+					     level_colors[ev->level],
+					     level_strs[ev->level],
+					     ev->pkg,
+					     ev->file,
+					     ev->func,
+					     ev->line,
+					     tag_s,
+					     tag,
+					     tag_e);
 		} else {
-			ev->print.off += c_dprintf(ev->print,
-						   "%s %-5s [%s:%s] %s:%d: %s%s%s",
-						   ev->time,
-						   level_strs[ev->level],
-						   ev->pkg,
-						   ev->file,
-						   ev->func,
-						   ev->line,
-						   tag_s,
-						   tag,
-						   tag_e);
+			ev->dst.off += dputf(ev->dst,
+					     "%s %-5s [%s:%s] %s:%d: %s%s%s",
+					     ev->time,
+					     level_strs[ev->level],
+					     ev->pkg,
+					     ev->file,
+					     ev->func,
+					     ev->line,
+					     tag_s,
+					     tag,
+					     tag_e);
 		}
 	} else {
-		ev->print.off += c_dprintf(ev->print, "%s%s%s", tag_s, tag, tag_e);
+		ev->dst.off += dputf(ev->dst, "%s%s%s", tag_s, tag, tag_e);
 	}
 
-	ev->print.off += c_dprintv(ev->print, ev->fmt, ev->ap);
-	ev->print.off += c_dprintf(ev->print, "\n");
+	ev->dst.off += dputv(ev->dst, ev->fmt, ev->ap);
+	ev->dst.off += dputs(ev->dst, STRV("\n"));
 
-	return ev->print.off - off;
+	return ev->dst.off - off;
 }
 
 log_t *log_set(log_t *log)
@@ -118,7 +118,7 @@ int log_set_header(int cb, int enable)
 	return header;
 }
 
-int log_add_callback(log_cb log, print_dst_t print, int level, int header, int colors)
+int log_add_callback(log_cb log, dst_t dst, int level, int header, int colors)
 {
 	if (s_log == NULL) {
 		return -1;
@@ -131,7 +131,7 @@ int log_add_callback(log_cb log, print_dst_t print, int level, int header, int c
 
 		s_log->callbacks[i] = (log_callback_t){
 			.log	= log,
-			.print	= print,
+			.dst	= dst,
 			.level	= level,
 			.header = header,
 			.colors = colors,
@@ -155,13 +155,13 @@ int log_remove_callback(int cb)
 	return 0;
 }
 
-static int init_event(log_event_t *ev, print_dst_t print, int header, int colors)
+static int init_event(log_event_t *ev, dst_t dst, int header, int colors)
 {
 	if (!ev->time[0]) {
 		c_time_str(ev->time);
 	}
 
-	ev->print  = print;
+	ev->dst	   = dst;
 	ev->header = header;
 	ev->colors = colors;
 
@@ -190,9 +190,9 @@ int log_log(int level, const char *pkg, const char *file, const char *func, int 
 			continue;
 		}
 
-		init_event(&ev, cb->print, cb->header, cb->colors);
+		init_event(&ev, cb->dst, cb->header, cb->colors);
 		va_start(ev.ap, fmt);
-		cb->print.off += cb->log(&ev);
+		cb->dst.off += cb->log(&ev);
 		va_end(ev.ap);
 	}
 

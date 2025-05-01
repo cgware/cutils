@@ -1705,7 +1705,7 @@ TEST(fs_lsfile_file)
 	END;
 }
 
-TEST(fs_printv_cb)
+TEST(dput_fs)
 {
 	START;
 
@@ -1714,16 +1714,21 @@ TEST(fs_printv_cb)
 	fs_init(&vfs, 1, 1, ALLOC_STD);
 
 	void *vf;
+	void *n = (void *)2;
 	fs_open(&vfs, STRV(TEST_FILE), "w", &vf);
-	int off = c_dprintf(PRINT_DST_FS(&vfs, vf), "%s", "a");
-	EXPECT_EQ(off, 1);
+	log_set_quiet(0, 1);
+	EXPECT_EQ(dputf(DST_FS(&vfs, n), "%s", "a"), 0);
+	EXPECT_EQ(dputs(DST_FS(&vfs, n), STRV("b")), 0);
+	log_set_quiet(0, 0);
+	EXPECT_EQ(dputf(DST_FS(&vfs, vf), "%s", "a"), 1);
+	EXPECT_EQ(dputs(DST_FS(&vfs, vf), STRV("b")), 1);
 	fs_close(&vfs, vf);
 
 	str_t str = strz(1);
 
 	fs_read(&vfs, STRV(TEST_FILE), 0, &str);
 
-	EXPECT_STRN(str.data, "a", str.len);
+	EXPECT_STRN(str.data, "ab", str.len);
 
 	fs_rmfile(&vfs, STRV(TEST_FILE));
 
@@ -1793,7 +1798,7 @@ STEST(fs)
 	RUN(fs_lsfile);
 	RUN(fs_lsfile_arr);
 	RUN(fs_lsfile_file);
-	RUN(fs_printv_cb);
+	RUN(dput_fs);
 
 	SEND;
 }

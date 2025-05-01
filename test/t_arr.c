@@ -458,10 +458,10 @@ TEST(arr_foreach)
 	END;
 }
 
-static int print_arr(void *data, print_dst_t dst, const void *priv)
+static size_t print_arr(void *data, dst_t dst, const void *priv)
 {
 	(void)priv;
-	return c_dprintf(dst, "%d\n", *(int *)data);
+	return dputf(dst, "%d\n", *(int *)data);
 }
 
 TEST(arr_print)
@@ -476,10 +476,10 @@ TEST(arr_print)
 	*(int *)arr_add(&arr, NULL) = 2;
 
 	char buf[16] = {0};
-	EXPECT_EQ(arr_print(NULL, NULL, PRINT_DST_BUF(buf, sizeof(buf), 0), NULL), 0);
-	EXPECT_EQ(arr_print(&arr, NULL, PRINT_DST_BUF(buf, sizeof(buf), 0), NULL), 0);
+	EXPECT_EQ(arr_print(NULL, NULL, DST_BUF(buf), NULL), 0);
+	EXPECT_EQ(arr_print(&arr, NULL, DST_BUF(buf), NULL), 0);
 
-	EXPECT_EQ(arr_print(&arr, print_arr, PRINT_DST_BUF(buf, sizeof(buf), 0), NULL), 6);
+	EXPECT_EQ(arr_print(&arr, print_arr, DST_BUF(buf), NULL), 6);
 	EXPECT_STR(buf,
 		   "0\n"
 		   "1\n"

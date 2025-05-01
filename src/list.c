@@ -154,13 +154,13 @@ void *list_get(const list_t *list, lnode_t node)
 	return header == NULL ? NULL : header + 1;
 }
 
-int list_print(const list_t *list, lnode_t node, list_print_cb cb, print_dst_t dst, const void *priv)
+size_t list_print(const list_t *list, lnode_t node, list_print_cb cb, dst_t dst, const void *priv)
 {
 	if (list == NULL || cb == NULL) {
 		return 0;
 	}
 
-	int off = dst.off;
+	size_t off = dst.off;
 	void *value;
 	list_foreach(list, node, value)
 	{

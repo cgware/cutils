@@ -14,18 +14,18 @@ TEST(mem_print)
 	char buf[256] = {0};
 
 	mem->peak = 10;
-	EXPECT_GT(mem_print(PRINT_DST_BUF(buf, sizeof(buf), 0)), 0);
+	EXPECT_GT(mem_print(DST_BUF(buf)), 0);
 
 	mem->peak = 1024 + 10;
-	EXPECT_GT(mem_print(PRINT_DST_BUF(buf, sizeof(buf), 0)), 0);
+	EXPECT_GT(mem_print(DST_BUF(buf)), 0);
 
 	mem->peak = 1024 * 1024 + 10;
-	EXPECT_GT(mem_print(PRINT_DST_BUF(buf, sizeof(buf), 0)), 0);
+	EXPECT_GT(mem_print(DST_BUF(buf)), 0);
 
 	mem->peak = peak;
 
 	mem_stats_set(NULL);
-	EXPECT_EQ(mem_print(PRINT_DST_BUF(buf, sizeof(buf), 0)), 0);
+	EXPECT_EQ(mem_print(DST_BUF(buf)), 0);
 	mem_stats_set(mem);
 
 	END;

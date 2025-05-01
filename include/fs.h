@@ -35,8 +35,9 @@ int fs_getcwd(fs_t *fs, str_t *path);
 int fs_lsdir(fs_t *fs, strv_t path, strbuf_t *dirs);
 int fs_lsfile(fs_t *fs, strv_t path, strbuf_t *files);
 
-int fs_printv_cb(print_dst_t dst, const char *fmt, va_list args);
+size_t dputs_fs(dst_t dst, strv_t str);
+size_t dputv_fs(dst_t dst, const char *fmt, va_list args);
 
-#define PRINT_DST_FS(_fs, _file) ((print_dst_t){.cb = fs_printv_cb, .dst = _file, .priv = _fs})
+#define DST_FS(_fs, _file) ((dst_t){.puts = dputs_fs, .putv = dputv_fs, .dst = _file, .priv = _fs})
 
 #endif

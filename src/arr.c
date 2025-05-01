@@ -272,13 +272,13 @@ arr_t *arr_sort(arr_t *arr, arr_cmp_cb cb, const void *priv)
 	return arr;
 }
 
-int arr_print(const arr_t *arr, arr_print_cb cb, print_dst_t dst, const void *priv)
+size_t arr_print(const arr_t *arr, arr_print_cb cb, dst_t dst, const void *priv)
 {
 	if (arr == NULL || cb == NULL) {
 		return 0;
 	}
 
-	int off = dst.off;
+	size_t off = dst.off;
 	void *value;
 	uint i = 0;
 	arr_foreach(arr, i, value)

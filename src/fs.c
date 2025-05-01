@@ -890,11 +890,22 @@ int fs_lsfile(fs_t *fs, strv_t path, strbuf_t *files)
 	return CERR_OK;
 }
 
-int fs_printv_cb(print_dst_t dst, const char *fmt, va_list args)
+size_t dputs_fs(dst_t dst, strv_t str)
+{
+	size_t len = str.len;
+	if (fs_write((fs_t *)dst.priv, dst.dst, STRVS(str))) {
+		len = 0;
+	}
+	return len;
+}
+
+size_t dputv_fs(dst_t dst, const char *fmt, va_list args)
 {
 	str_t str  = strv(fmt, args);
 	size_t len = str.len;
-	fs_write((fs_t *)dst.priv, dst.dst, STRVS(str));
+	if (fs_write((fs_t *)dst.priv, dst.dst, STRVS(str))) {
+		len = 0;
+	}
 	str_free(&str);
-	return (int)len;
+	return len;
 }

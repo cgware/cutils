@@ -2,7 +2,7 @@
 #define LOG_H
 
 #include "ctime.h"
-#include "print.h"
+#include "dst.h"
 
 typedef struct log_event_s {
 	va_list ap;
@@ -13,17 +13,17 @@ typedef struct log_event_s {
 	const char *fmt;
 	char time[CTIME_BUF_SIZE];
 	int line;
-	print_dst_t print;
+	dst_t dst;
 	int colors;
 	int level;
 	int header;
 } log_event_t;
 
-typedef int (*log_cb)(log_event_t *ev);
+typedef size_t (*log_cb)(log_event_t *ev);
 
 typedef struct log_callback_s {
 	log_cb log;
-	print_dst_t print;
+	dst_t dst;
 	int level;
 	int header;
 	int colors;
@@ -56,13 +56,13 @@ enum {
 log_t *log_set(log_t *log);
 const log_t *log_get();
 
-int log_std_cb(log_event_t *ev);
+size_t log_std_cb(log_event_t *ev);
 
 const char *log_level_str(int level);
 int log_set_level(int cb, int level);
 int log_set_quiet(int cb, int quiet);
 int log_set_header(int cb, int enable);
-int log_add_callback(log_cb log, print_dst_t print, int level, int header, int colors);
+int log_add_callback(log_cb log, dst_t print, int level, int header, int colors);
 int log_remove_callback(int cb);
 
 int log_log(int level, const char *pkg, const char *file, const char *func, int line, const char *tag, const char *fmt, ...);

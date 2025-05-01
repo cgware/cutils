@@ -213,13 +213,13 @@ int tree_iterate_childs(const tree_t *tree, tnode_t node, tree_iterate_childs_cb
 	return ret;
 }
 
-int tree_print(const tree_t *tree, tnode_t node, tree_print_cb cb, print_dst_t dst, const void *priv)
+size_t tree_print(const tree_t *tree, tnode_t node, tree_print_cb cb, dst_t dst, const void *priv)
 {
 	if (tree == NULL || cb == NULL) {
 		return 0;
 	}
 
-	int off = dst.off;
+	size_t off = dst.off;
 	tnode_t cur;
 	int depth;
 	tree_foreach(tree, node, cur, depth)
@@ -227,12 +227,12 @@ int tree_print(const tree_t *tree, tnode_t node, tree_print_cb cb, print_dst_t d
 		tnode_t next;
 		for (int i = 0; i < depth - 1; i++) {
 			tree_get_next(tree, _it.stack[i + 1], &next);
-			dst.off += c_dprintf(dst, next < tree->cnt ? "│ " : "  ");
+			dst.off += dputs(dst, next < tree->cnt ? STRV("│ ") : STRV("  "));
 		}
 
 		if (depth > 0) {
 			tree_get_next(tree, _it.stack[depth], &next);
-			dst.off += c_dprintf(dst, next < tree->cnt ? "├─" : "└─");
+			dst.off += dputs(dst, next < tree->cnt ? STRV("├─") : STRV("└─"));
 		}
 
 		dst.off += cb(tree_get(tree, cur), dst, priv);

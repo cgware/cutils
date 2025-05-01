@@ -21,7 +21,7 @@ static void get_max_unit(size_t *size, char *u)
 	}
 }
 
-static int print_mem(size_t mem, print_dst_t dst)
+static size_t print_mem(size_t mem, dst_t dst)
 {
 	size_t umem = mem;
 
@@ -29,35 +29,35 @@ static int print_mem(size_t mem, print_dst_t dst)
 
 	get_max_unit(&umem, &u);
 
-	int off = dst.off;
+	size_t off = dst.off;
 
 	if (u == '\0') {
-		dst.off += c_dprintf(dst, "%zu B\n", mem);
+		dst.off += dputf(dst, "%zu B\n", mem);
 	} else {
-		dst.off += c_dprintf(dst, "%zu %cB (%zu B)\n", umem, u, mem);
+		dst.off += dputf(dst, "%zu %cB (%zu B)\n", umem, u, mem);
 	}
 
 	return dst.off - off;
 }
 
-int mem_print(print_dst_t dst)
+size_t mem_print(dst_t dst)
 {
 	const mem_stats_t *stats = mem_stats_get();
 	if (stats == NULL) {
 		return 0;
 	}
 
-	int off = dst.off;
+	size_t off = dst.off;
 
-	dst.off += c_dprintf(dst, "memory stats:\n");
-	dst.off += c_dprintf(dst, "    unfreed:  ");
+	dst.off += dputs(dst, STRV("memory stats:\n"));
+	dst.off += dputs(dst, STRV("    unfreed:  "));
 	dst.off += print_mem(stats->mem, dst);
-	dst.off += c_dprintf(dst, "    peak:     ");
+	dst.off += dputs(dst, STRV("    peak:     "));
 	dst.off += print_mem(stats->peak, dst);
-	dst.off += c_dprintf(dst, "    total:    ");
+	dst.off += dputs(dst, STRV("    total:    "));
 	dst.off += print_mem(stats->total, dst);
-	dst.off += c_dprintf(dst, "    allocs:   %d\n", stats->allocs);
-	dst.off += c_dprintf(dst, "    reallocs: %d\n", stats->reallocs);
+	dst.off += dputf(dst, "    allocs:   %d\n", stats->allocs);
+	dst.off += dputf(dst, "    reallocs: %d\n", stats->reallocs);
 
 	return dst.off - off;
 }

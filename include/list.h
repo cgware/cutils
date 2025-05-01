@@ -21,8 +21,8 @@ void list_set_cnt(list_t *list, uint cnt);
 
 void *list_get(const list_t *list, lnode_t node);
 
-typedef int (*list_print_cb)(void *value, print_dst_t dst, const void *priv);
-int list_print(const list_t *list, lnode_t node, list_print_cb cb, print_dst_t dst, const void *priv);
+typedef size_t (*list_print_cb)(void *value, dst_t dst, const void *priv);
+size_t list_print(const list_t *list, lnode_t node, list_print_cb cb, dst_t dst, const void *priv);
 
 #define list_foreach(_list, _i, _val) for (; _i < (_list)->cnt && (_val = list_get(_list, _i)); list_get_next(_list, _i, &(_i)))
 

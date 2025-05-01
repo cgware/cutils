@@ -33,8 +33,8 @@ int tree_iterate_pre(const tree_t *tree, tnode_t node, tree_iterate_cb cb, int r
 typedef int (*tree_iterate_childs_cb)(const tree_t *tree, tnode_t node, void *value, int ret, int last, void *priv);
 int tree_iterate_childs(const tree_t *tree, tnode_t node, tree_iterate_childs_cb cb, int ret, void *priv);
 
-typedef int (*tree_print_cb)(void *data, print_dst_t dst, const void *priv);
-int tree_print(const tree_t *tree, tnode_t node, tree_print_cb cb, print_dst_t dst, const void *priv);
+typedef size_t (*tree_print_cb)(void *data, dst_t dst, const void *priv);
+size_t tree_print(const tree_t *tree, tnode_t node, tree_print_cb cb, dst_t dst, const void *priv);
 
 typedef struct tree_it {
 	const tree_t *tree;

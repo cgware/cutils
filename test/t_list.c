@@ -447,10 +447,10 @@ TEST(list_foreachs)
 	SEND;
 }
 
-static int print_list(void *data, print_dst_t dst, const void *priv)
+static size_t print_list(void *data, dst_t dst, const void *priv)
 {
 	(void)priv;
-	return c_dprintf(dst, "%d\n", *(int *)data);
+	return dputf(dst, "%d\n", *(int *)data);
 }
 
 TEST(list_print)
@@ -467,11 +467,11 @@ TEST(list_print)
 	*(int *)list_add_next(&list, node, NULL) = 2;
 
 	char buf[16] = {0};
-	EXPECT_EQ(list_print(NULL, list.cnt, NULL, PRINT_DST_BUF(buf, sizeof(buf), 0), NULL), 0);
-	EXPECT_EQ(list_print(&list, list.cnt, NULL, PRINT_DST_BUF(buf, sizeof(buf), 0), NULL), 0);
-	EXPECT_EQ(list_print(&list, node, NULL, PRINT_DST_BUF(buf, sizeof(buf), 0), NULL), 0);
+	EXPECT_EQ(list_print(NULL, list.cnt, NULL, DST_BUF(buf), NULL), 0);
+	EXPECT_EQ(list_print(&list, list.cnt, NULL, DST_BUF(buf), NULL), 0);
+	EXPECT_EQ(list_print(&list, node, NULL, DST_BUF(buf), NULL), 0);
 
-	EXPECT_EQ(list_print(&list, node, print_list, PRINT_DST_BUF(buf, sizeof(buf), 0), 0), 6);
+	EXPECT_EQ(list_print(&list, node, print_list, DST_BUF(buf), 0), 6);
 	EXPECT_STR(buf,
 		   "0\n"
 		   "1\n"

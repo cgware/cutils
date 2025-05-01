@@ -77,26 +77,26 @@ buf_t *buf_replace(buf_t *buf, size_t off, const void *data, size_t old_len, siz
 	return buf;
 }
 
-int buf_print(const buf_t *buf, print_dst_t dst)
+size_t buf_print(const buf_t *buf, dst_t dst)
 {
 	if (buf == 0) {
 		return 0;
 	}
 
-	int off = dst.off;
+	size_t off = dst.off;
 
-	dst.off += c_dprintf(dst, "%08X  ", 0);
+	dst.off += dputf(dst, "%08X  ", 0);
 	for (size_t i = 0; i < buf->used; i++) {
-		dst.off += c_dprintf(dst, "%02x ", buf->data[i]);
+		dst.off += dputf(dst, "%02x ", buf->data[i]);
 		if (i > 0 && (i + 1) % 16 == 0) {
 			if (i + 1 < buf->used) {
-				dst.off += c_dprintf(dst, "\n%08X  ", i + 1);
+				dst.off += dputf(dst, "\n%08X  ", i + 1);
 			}
 		} else if (i > 0 && (i + 1) % 8 == 0) {
-			dst.off += c_dprintf(dst, " ");
+			dst.off += dputs(dst, STRV(" "));
 		}
 	}
 
-	dst.off += c_dprintf(dst, "\n");
+	dst.off += dputs(dst, STRV("\n"));
 	return dst.off - off;
 }

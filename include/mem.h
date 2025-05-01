@@ -1,10 +1,10 @@
 #ifndef MEM_H
 #define MEM_H
 
+#include "dst.h"
 #include "mem_stats.h"
-#include "print.h"
 
-int mem_print(print_dst_t dst);
+size_t mem_print(dst_t dst);
 int mem_check();
 
 void *mem_alloc(size_t size);

@@ -2,7 +2,7 @@
 #define ARR_H
 
 #include "alloc.h"
-#include "print.h"
+#include "dst.h"
 #include "type.h"
 
 typedef struct arr_s {
@@ -42,8 +42,8 @@ arr_t *arr_merge_unique(arr_t *arr, const arr_t *arr1, const arr_t *arr2);
 
 arr_t *arr_sort(arr_t *arr, arr_cmp_cb cb, const void *priv);
 
-typedef int (*arr_print_cb)(void *value, print_dst_t dst, const void *priv);
-int arr_print(const arr_t *arr, arr_print_cb cb, print_dst_t dst, const void *priv);
+typedef size_t (*arr_print_cb)(void *value, dst_t dst, const void *priv);
+size_t arr_print(const arr_t *arr, arr_print_cb cb, dst_t dst, const void *priv);
 
 #define arr_foreach(_arr, _i, _val) for (; _i < (_arr)->cnt && (_val = (void *)((byte *)(_arr)->data + _i * (_arr)->size)); _i++)
 

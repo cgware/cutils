@@ -1251,10 +1251,10 @@ TEST(tree_foreach)
 	SEND;
 }
 
-static int print_tree(void *data, print_dst_t dst, const void *priv)
+static size_t print_tree(void *data, dst_t dst, const void *priv)
 {
 	(void)priv;
-	return c_dprintf(dst, "%d\n", *(int *)data);
+	return dputf(dst, "%d\n", *(int *)data);
 }
 
 TEST(tree_print)
@@ -1277,12 +1277,12 @@ TEST(tree_print)
 	*(int *)tree_add_child(&tree, n11, &n111) = 111;
 
 	char buf[64] = {0};
-	EXPECT_EQ(tree_print(NULL, tree.cnt, NULL, PRINT_DST_BUF(buf, sizeof(buf), 0), NULL), 0);
-	EXPECT_EQ(tree_print(&tree, tree.cnt, NULL, PRINT_DST_BUF(buf, sizeof(buf), 0), NULL), 0);
-	EXPECT_EQ(tree_print(&tree, root, NULL, PRINT_DST_BUF(buf, sizeof(buf), 0), NULL), 0);
+	EXPECT_EQ(tree_print(NULL, tree.cnt, NULL, DST_BUF(buf), NULL), 0);
+	EXPECT_EQ(tree_print(&tree, tree.cnt, NULL, DST_BUF(buf), NULL), 0);
+	EXPECT_EQ(tree_print(&tree, root, NULL, DST_BUF(buf), NULL), 0);
 
-	EXPECT_EQ(tree_print(&tree, root, NULL, PRINT_DST_BUF(buf, sizeof(buf), 0), NULL), 0);
-	EXPECT_EQ(tree_print(&tree, root, print_tree, PRINT_DST_BUF(buf, sizeof(buf), 0), NULL), 47);
+	EXPECT_EQ(tree_print(&tree, root, NULL, DST_BUF(buf), NULL), 0);
+	EXPECT_EQ(tree_print(&tree, root, print_tree, DST_BUF(buf), NULL), 47);
 	EXPECT_STR(buf,
 		   "0\n"
 		   "├─1\n"
@@ -1295,7 +1295,7 @@ TEST(tree_print)
 	END;
 }
 
-static int print_tree_depth(void *data, print_dst_t dst, const void *priv)
+static size_t print_tree_depth(void *data, dst_t dst, const void *priv)
 {
 	(void)data;
 	(void)dst;
@@ -1320,7 +1320,7 @@ TEST(tree_print_depth)
 
 	char buf[32000] = {0};
 	log_set_quiet(0, 1);
-	EXPECT_EQ(tree_print(&tree, root, print_tree_depth, PRINT_DST_BUF(buf, sizeof(buf), 0), NULL), 16764);
+	EXPECT_EQ(tree_print(&tree, root, print_tree_depth, DST_BUF(buf), NULL), 16764);
 	log_set_quiet(0, 0);
 
 	tree_free(&tree);

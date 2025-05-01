@@ -1,7 +1,7 @@
 #ifndef ARGS_H
 #define ARGS_H
 
-#include "print.h"
+#include "dst.h"
 #include "strv.h"
 
 typedef enum opt_type_e {
@@ -41,9 +41,11 @@ typedef struct {
 	int set;
 } opt_t;
 
-int args_parse(int argc, const char **argv, opt_t *opts, size_t opts_size, print_dst_t dst);
+int args_parse(int argc, const char **argv, opt_t *opts, size_t opts_size, dst_t dst);
 
 #define OPT(short_opt, long_opt, type, placeholder, desc, value, enums, required)                                                          \
-	{short_opt, STRVT(long_opt), type, placeholder, desc, value, enums, required, 0}
+	{                                                                                                                                  \
+		short_opt, STRVT(long_opt), type, placeholder, desc, value, enums, required, 0                                             \
+	}
 
 #endif

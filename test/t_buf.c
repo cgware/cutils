@@ -106,8 +106,8 @@ TEST(buf_print)
 	}
 
 	char tmp[128] = {0};
-	EXPECT_EQ(buf_print(NULL, PRINT_DST_BUF(tmp, sizeof(tmp), 0)), 0);
-	EXPECT_EQ(buf_print(&buf, PRINT_DST_BUF(tmp, sizeof(tmp), 0)), 120);
+	EXPECT_EQ(buf_print(NULL, DST_BUF(tmp)), 0);
+	EXPECT_EQ(buf_print(&buf, DST_BUF(tmp)), 120);
 
 	EXPECT_STR(tmp,
 		   "00000000  00 00 00 00 01 00 00 00  02 00 00 00 03 00 00 00 \n"
