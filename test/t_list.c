@@ -308,18 +308,23 @@ TEST(list_get_at)
 	list_t list = {0};
 	list_init(&list, 1, sizeof(int), ALLOC_STD);
 
-	lnode_t root, next, node;
-	list_add(&list, &root);
-	list_add_next(&list, root, &next);
+	lnode_t root, n1, n2, node;
+	*(int *)list_add(&list, &root)		= 1;
+	*(int *)list_add_next(&list, root, &n1) = 2;
+	*(int *)list_add_next(&list, root, &n2) = 3;
 
 	EXPECT_EQ(list_get_at(NULL, list.cnt, list.cnt, NULL), NULL);
 	log_set_quiet(0, 1);
 	EXPECT_EQ(list_get_at(&list, list.cnt, list.cnt, NULL), NULL);
 	log_set_quiet(0, 0);
-	EXPECT_NE(list_get_at(&list, root, 0, &node), NULL);
+	EXPECT_EQ(*(int *)list_get_at(&list, root, 0, &node), 1);
 	EXPECT_EQ(node, root);
-	EXPECT_NE(list_get_at(&list, root, 1, &node), NULL);
-	EXPECT_EQ(node, next);
+	EXPECT_EQ(*(int *)list_get_at(&list, root, 1, &node), 2);
+	EXPECT_EQ(node, n1);
+	EXPECT_EQ(*(int *)list_get_at(&list, root, 2, &node), 3);
+	EXPECT_EQ(node, n2);
+	EXPECT_EQ(list_get_at(&list, root, 3, &node), NULL);
+	EXPECT_EQ(node, (uint)-1);
 
 	list_free(&list);
 

@@ -119,7 +119,8 @@ void *list_get_at(const list_t *list, lnode_t start, uint index, lnode_t *node)
 
 	lnode_t cur	 = start;
 	header_t *header = arr_get(list, cur);
-	for (lnode_t i = 0; i < index && cur < list->cnt; i++, cur = header->next) {
+	for (uint i = 0; i < index && header && cur < list->cnt; i++) {
+		cur    = header->next;
 		header = arr_get(list, cur);
 	}
 
