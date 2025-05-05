@@ -323,7 +323,9 @@ TEST(list_get_at)
 	EXPECT_EQ(node, n1);
 	EXPECT_EQ(*(int *)list_get_at(&list, root, 2, &node), 3);
 	EXPECT_EQ(node, n2);
+	log_set_quiet(0, 1);
 	EXPECT_EQ(list_get_at(&list, root, 3, &node), NULL);
+	log_set_quiet(0, 0);
 	EXPECT_EQ(node, (uint)-1);
 
 	list_free(&list);
