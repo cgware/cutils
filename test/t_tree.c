@@ -444,18 +444,19 @@ TEST(tree_get_next)
 	tree_t tree = {0};
 	tree_init(&tree, 1, sizeof(int), ALLOC_STD);
 
-	tnode_t root, n1, n2, next1, next2;
+	tnode_t root, n1, n2, next;
 	tree_add(&tree, &root);
-	tree_add_next(&tree, root, &n1);
-	tree_add_next(&tree, root, &n2);
+	*(int *)tree_add_next(&tree, root, &n1) = 1;
+	*(int *)tree_add_next(&tree, root, &n2) = 2;
 
-	tree_get_next(&tree, root, &next1);
-	tree_get_next(&tree, next1, &next2);
+	EXPECT_EQ(*(int *)tree_get_next(&tree, root, &next), 1);
+	EXPECT_EQ(next, n1);
 
-	EXPECT_EQ(n1, 1);
-	EXPECT_EQ(n2, 2);
-	EXPECT_EQ(next1, 1);
-	EXPECT_EQ(next2, 2);
+	EXPECT_EQ(*(int *)tree_get_next(&tree, n1, &next), 2);
+	EXPECT_EQ(next, n2);
+
+	EXPECT_EQ(tree_get_next(&tree, n2, &next), NULL);
+	EXPECT_EQ(next, (tnode_t)-1);
 
 	tree_free(&tree);
 
@@ -1137,7 +1138,8 @@ TEST(tree_foreach_child_root)
 	tnode_t node;
 
 	int i = 0;
-	tree_foreach_child(&tree, root, node)
+	int *value;
+	tree_foreach_child(&tree, root, node, value)
 	{
 	}
 
@@ -1162,14 +1164,24 @@ TEST(tree_foreach_child_child)
 	tnode_t node;
 
 	int i = 0;
-	tree_foreach_child(&tree, root, node)
+	int *value;
+	tree_foreach_child(&tree, root, node, value)
 	{
-		const int *value = tree_get(&tree, node);
 		EXPECT_EQ(*value, i);
 		i++;
 	}
 
 	EXPECT_EQ(i, 1);
+
+	log_set_quiet(0, 1);
+	i = 0;
+	tree_foreach_child(&tree, tree.cnt, node, value)
+	{
+		i++;
+	}
+	log_set_quiet(0, 0);
+
+	EXPECT_EQ(i, 0);
 
 	tree_free(&tree);
 
@@ -1191,9 +1203,9 @@ TEST(tree_foreach_child_childs)
 	tnode_t node;
 
 	int i = 0;
-	tree_foreach_child(&tree, root, node)
+	int *value;
+	tree_foreach_child(&tree, root, node, value)
 	{
-		const int *value = tree_get(&tree, node);
 		EXPECT_EQ(*value, i);
 		i++;
 	}
@@ -1221,9 +1233,9 @@ TEST(tree_foreach_child_grand_child)
 	tnode_t node;
 
 	int i = 0;
-	tree_foreach_child(&tree, root, node)
+	int *value;
+	tree_foreach_child(&tree, root, node, value)
 	{
-		const int *value = tree_get(&tree, node);
 		EXPECT_EQ(*value, i);
 		i++;
 	}

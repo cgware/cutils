@@ -138,7 +138,8 @@ int tree_set_next(tree_t *tree, tnode_t node, tnode_t next)
 
 void *tree_get_next(const tree_t *tree, tnode_t node, tnode_t *next)
 {
-	return list_get_next(tree, node, next);
+	header_t *header = list_get_next(tree, node, next);
+	return header == NULL ? NULL : header + 1;
 }
 
 void tree_set_cnt(tree_t *tree, uint cnt)

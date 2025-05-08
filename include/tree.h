@@ -52,7 +52,7 @@ void *tree_it_next(tree_it *it);
 
 #define tree_foreach_all(_tree, _node) for (; _node < (_tree)->cnt; _node++)
 
-#define tree_foreach_child(_tree, _parent, _node)                                                                                          \
-	for (tree_get_child(_tree, _parent, &(_node)); _node < (_tree)->cnt; tree_get_next(_tree, _node, &(_node)))
+#define tree_foreach_child(_tree, _parent, _node, _data)                                                                                   \
+	for ((_data) = tree_get_child(_tree, _parent, &(_node)); (_data); (_data) = tree_get_next(_tree, _node, &(_node)))
 
 #endif
