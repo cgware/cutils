@@ -9,6 +9,8 @@ typedef arr_t list_t;
 list_t *list_init(list_t *list, uint cap, size_t size, alloc_t alloc);
 void list_free(list_t *list);
 
+void list_reset(list_t *list, uint cnt);
+
 void *list_add(list_t *list, lnode_t *node);
 int list_remove(list_t *list, lnode_t node);
 

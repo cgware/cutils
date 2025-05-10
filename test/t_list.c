@@ -32,6 +32,20 @@ TEST(list_init_free)
 	END;
 }
 
+TEST(list_reset)
+{
+	START;
+
+	list_t list = {0};
+
+	list_reset(NULL, 0);
+	list_reset(&list, 1);
+
+	EXPECT_EQ(list.cnt, 0);
+
+	END;
+}
+
 TEST(list_add)
 {
 	START;
@@ -494,6 +508,7 @@ STEST(list)
 	SSTART;
 
 	RUN(list_init_free);
+	RUN(list_reset);
 	RUN(list_add_remove);
 	RUN(list_next);
 	RUN(list_get_at);

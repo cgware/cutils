@@ -17,6 +17,11 @@ void list_free(list_t *list)
 	arr_free(list);
 }
 
+void list_reset(list_t *list, uint cnt)
+{
+	arr_reset(list, cnt);
+}
+
 void *list_add(list_t *list, lnode_t *node)
 {
 	if (list == NULL) {
