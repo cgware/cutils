@@ -94,7 +94,7 @@ void *arr_get(const arr_t *arr, uint id)
 	}
 
 	if (id >= arr->cnt) {
-		log_warn("cutils", "arr", NULL, "invalid id: %d", id);
+		log_error("cutils", "arr", NULL, "invalid id: %d", id);
 		return NULL;
 	}
 
