@@ -42,7 +42,7 @@ int strbuf_add(strbuf_t *buf, strv_t strv, uint *id)
 		return 1;
 	}
 
-	size_t cnt = buf->off.cnt;
+	uint cnt = buf->off.cnt;
 
 	size_t *off = arr_add(&buf->off, id);
 	if (off == NULL) {
