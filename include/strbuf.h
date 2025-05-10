@@ -2,12 +2,12 @@
 #define STRBUF_H
 
 #include "arr.h"
-#include "buf.h"
 #include "strv.h"
+#include "strvbuf.h"
 #include "type.h"
 
 typedef struct strbuf_s {
-	buf_t buf;
+	strvbuf_t buf;
 	arr_t off;
 } strbuf_t;
 

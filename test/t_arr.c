@@ -38,8 +38,8 @@ TEST(arr_reset)
 
 	arr_t arr = {0};
 
-	arr_reset(NULL, 0, 0);
-	arr_reset(&arr, 0, 1);
+	arr_reset(NULL, 0);
+	arr_reset(&arr, 1);
 
 	EXPECT_EQ(arr.cnt, 0);
 

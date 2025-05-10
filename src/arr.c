@@ -36,17 +36,16 @@ void arr_free(arr_t *arr)
 	arr->size = 0;
 }
 
-void arr_reset(arr_t *arr, int val, uint cnt)
+void arr_reset(arr_t *arr, uint cnt)
 {
 	if (arr == NULL) {
 		return;
 	}
 
-	if (cnt > arr->cap) {
-		cnt = arr->cap;
+	if (cnt > arr->cnt) {
+		cnt = arr->cnt;
 	}
 
-	mem_set(arr->data, val, arr->size * cnt);
 	arr->cnt = cnt;
 }
 

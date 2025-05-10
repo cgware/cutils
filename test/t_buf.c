@@ -30,6 +30,20 @@ TEST(buf_init_free)
 	END;
 }
 
+TEST(buf_reset)
+{
+	START;
+
+	buf_t buf = {0};
+
+	buf_reset(NULL, 0);
+	buf_reset(&buf, 1);
+
+	EXPECT_EQ(buf.used, 0);
+
+	END;
+}
+
 TEST(buf_add)
 {
 	START;
@@ -46,6 +60,29 @@ TEST(buf_add)
 	size_t index;
 	EXPECT_EQ(buf_add(&buf, &val, sizeof(val), &index), 0);
 	EXPECT_EQ(index, 0);
+
+	buf_free(&buf);
+
+	END;
+}
+
+TEST(buf_get)
+{
+	START;
+
+	buf_t buf = {0};
+	buf_init(&buf, 1, ALLOC_STD);
+
+	uint val = 1;
+	size_t index;
+	buf_add(&buf, &val, sizeof(uint), &index);
+	*(uint *)buf_get(&buf, index) = 1;
+
+	EXPECT_EQ(buf_get(NULL, 0), NULL);
+	log_set_quiet(0, 1);
+	EXPECT_EQ(buf_get(&buf, buf.used + 1), NULL);
+	log_set_quiet(0, 0);
+	EXPECT_EQ(*(uint *)buf_get(&buf, 0), 1);
 
 	buf_free(&buf);
 
@@ -69,25 +106,6 @@ TEST(buf_replace)
 
 	EXPECT_STRN((char *)buf.data, "abc", 3);
 	EXPECT_EQ(buf.used, 3);
-
-	buf_free(&buf);
-
-	END;
-}
-
-TEST(buf_get)
-{
-	START;
-
-	buf_t buf = {0};
-	buf_init(&buf, 1, ALLOC_STD);
-
-	uint val = 1;
-	size_t index;
-	buf_add(&buf, &val, sizeof(uint), &index);
-	*(uint *)buf_get(&buf, index) = 1;
-
-	EXPECT_EQ(*(uint *)buf_get(&buf, 0), 1);
 
 	buf_free(&buf);
 
@@ -123,9 +141,10 @@ STEST(buf)
 	SSTART;
 
 	RUN(buf_init_free);
+	RUN(buf_reset);
 	RUN(buf_add);
-	RUN(buf_replace);
 	RUN(buf_get);
+	RUN(buf_replace);
 	RUN(buf_print);
 
 	SEND;

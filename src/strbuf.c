@@ -1,12 +1,15 @@
 #include "strbuf.h"
 
+#include "log.h"
+
 strbuf_t *strbuf_init(strbuf_t *buf, uint cap, size_t len, alloc_t alloc)
 {
 	if (buf == NULL) {
 		return NULL;
 	}
 
-	if (buf_init(&buf->buf, cap * (sizeof(size_t) + len), alloc) == NULL || arr_init(&buf->off, cap, sizeof(size_t), alloc) == NULL) {
+	if (strvbuf_init(&buf->buf, cap, len, alloc) == NULL || arr_init(&buf->off, cap, sizeof(size_t), alloc) == NULL) {
+		log_error("cutils", "strbuf", NULL, "failed to intialize buffer or array");
 		return NULL;
 	}
 
@@ -19,7 +22,7 @@ void strbuf_free(strbuf_t *buf)
 		return;
 	}
 
-	buf_free(&buf->buf);
+	strvbuf_free(&buf->buf);
 	arr_free(&buf->off);
 }
 
@@ -29,14 +32,8 @@ void strbuf_reset(strbuf_t *buf, uint cnt)
 		return;
 	}
 
-	if (cnt > buf->off.cap) {
-		cnt = buf->off.cap;
-	}
-
-	arr_reset(&buf->off, 0, cnt);
-
-	buf->buf.used = 0;
-	buf->off.cnt  = cnt;
+	strvbuf_reset(&buf->buf, cnt);
+	arr_reset(&buf->off, cnt);
 }
 
 int strbuf_add(strbuf_t *buf, strv_t strv, uint *id)
@@ -45,22 +42,19 @@ int strbuf_add(strbuf_t *buf, strv_t strv, uint *id)
 		return 1;
 	}
 
-	if (buf_add(&buf->buf, &strv.len, sizeof(size_t), NULL)) {
-		return 1;
-	}
-
-	size_t used = buf->buf.used;
-
-	if (buf_add(&buf->buf, strv.data, strv.len, NULL)) {
-		return 1;
-	}
+	size_t cnt = buf->off.cnt;
 
 	size_t *off = arr_add(&buf->off, id);
 	if (off == NULL) {
+		log_error("cutils", "strbuf", NULL, "failed to add offset");
 		return 1;
 	}
 
-	*off = used;
+	if (strvbuf_add(&buf->buf, strv, off)) {
+		arr_reset(&buf->off, cnt);
+		log_error("cutils", "strbuf", NULL, "failed to add string");
+		return 1;
+	}
 
 	return 0;
 }
@@ -73,15 +67,17 @@ strv_t strbuf_get(const strbuf_t *buf, uint id)
 
 	size_t *off = arr_get(&buf->off, id);
 	if (off == NULL) {
+		log_error("cutils", "strbuf", NULL, "failed to get offset");
 		return STRV_NULL;
 	}
 
-	void *ptr = buf_get(&buf->buf, *off);
+	strv_t str = strvbuf_get(&buf->buf, *off);
+	if (str.data == NULL) {
+		log_error("cutils", "strbuf", NULL, "failed to get string");
+		return STRV_NULL;
+	}
 
-	return (strv_t){
-		.len  = *((size_t *)ptr - 1),
-		.data = (const char *)ptr,
-	};
+	return str;
 }
 
 int strbuf_find(const strbuf_t *buf, strv_t strv, uint *id)
@@ -117,14 +113,14 @@ int strbuf_set(strbuf_t *buf, uint id, strv_t strv)
 		return 1;
 	}
 
-	size_t *len = (size_t *)buf_get(&buf->buf, *off) - 1;
+	size_t *len = buf_get(&buf->buf, *off);
 
-	if (buf_replace(&buf->buf, *off, strv.data, *len, strv.len) == NULL) {
+	if (buf_replace(&buf->buf, *off + sizeof(size_t), strv.data, *len, strv.len) == NULL) {
 		return 1;
 	}
 
 	off = arr_get(&buf->off, id);
-	len = (size_t *)buf_get(&buf->buf, *off) - 1;
+	len = buf_get(&buf->buf, *off);
 
 	id++;
 	arr_foreach(&buf->off, id, off)
@@ -148,14 +144,14 @@ int strbuf_app(strbuf_t *buf, uint id, strv_t strv)
 		return 1;
 	}
 
-	size_t *len = (size_t *)buf_get(&buf->buf, *off) - 1;
+	size_t *len = buf_get(&buf->buf, *off);
 
-	if (buf_replace(&buf->buf, *off + *len, strv.data, 0, strv.len) == NULL) {
+	if (buf_replace(&buf->buf, *off + sizeof(size_t) + *len, strv.data, 0, strv.len) == NULL) {
 		return 1;
 	}
 
 	off = arr_get(&buf->off, id);
-	len = (size_t *)buf_get(&buf->buf, *off) - 1;
+	len = buf_get(&buf->buf, *off);
 
 	id++;
 	arr_foreach(&buf->off, id, off)
@@ -170,12 +166,7 @@ int strbuf_app(strbuf_t *buf, uint id, strv_t strv)
 
 static int cmp(const void *v1, const void *v2, const void *priv)
 {
-	const buf_t *buf = priv;
-
-	const void *p1 = buf_get(buf, *(size_t *)v1);
-	const void *p2 = buf_get(buf, *(size_t *)v2);
-
-	return strv_cmp(STRVN((const char *)p1, *((const size_t *)p1 - 1)), STRVN((const char *)p2, *((const size_t *)p2 - 1)));
+	return strv_cmp(strvbuf_get(priv, *(size_t *)v1), strvbuf_get(priv, *(size_t *)v2));
 }
 
 strbuf_t *strbuf_sort(strbuf_t *buf)

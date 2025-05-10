@@ -122,6 +122,24 @@ TEST(strbuf_get)
 
 	END;
 }
+TEST(strbuf_get_off)
+{
+	START;
+
+	strbuf_t strbuf = {0};
+	strbuf_init(&strbuf, 1, 1, ALLOC_STD);
+
+	uint id;
+	*(size_t *)arr_add(&strbuf.off, &id) = 0;
+
+	log_set_quiet(0, 1);
+	EXPECT_EQ(strbuf_get(&strbuf, id).data, NULL);
+	log_set_quiet(0, 0);
+
+	strbuf_free(&strbuf);
+
+	END;
+}
 
 TEST(strbuf_find)
 {
@@ -281,6 +299,7 @@ STEST(strbuf)
 	RUN(strbuf_add);
 	RUN(strbuf_add_off);
 	RUN(strbuf_get);
+	RUN(strbuf_get_off);
 	RUN(strbuf_find);
 	RUN(strbuf_set);
 	RUN(strbuf_app);
