@@ -37,16 +37,35 @@ TEST(list_reset)
 	START;
 
 	list_t list = {0};
+	list_init(&list, 1, sizeof(list_node_t), ALLOC_STD);
+
+	list_node_t root, n1;
+	list_node_t *data = list_node(&list, &root);
+
+	*data = 10;
+
+	list_node(&list, &n1);
+	list_app(&list, root, n1);
 
 	list_reset(NULL, 0);
 	list_reset(&list, 1);
 
-	EXPECT_EQ(list.cnt, 0);
+	data = list_get(&list, root);
+
+	list_node_t *next = data - 1;
+
+	EXPECT_EQ(*next, (list_node_t)-1);
+	EXPECT_EQ(*data, 10);
+
+	list_reset(&list, 2);
+	EXPECT_EQ(list.cnt, 1);
+
+	list_free(&list);
 
 	END;
 }
 
-TEST(list_add)
+TEST(list_node)
 {
 	START;
 
@@ -55,13 +74,13 @@ TEST(list_add)
 	list_init(&list, 0, sizeof(int), ALLOC_STD);
 	log_set_quiet(0, 0);
 
-	lnode_t node;
+	list_node_t node;
 
 	mem_oom(1);
-	EXPECT_EQ(list_add(&list, NULL), NULL);
+	EXPECT_EQ(list_node(&list, NULL), NULL);
 	mem_oom(0);
-	EXPECT_EQ(list_add(NULL, NULL), NULL);
-	EXPECT_NE(list_add(&list, &node), NULL);
+	EXPECT_EQ(list_node(NULL, NULL), NULL);
+	EXPECT_NE(list_node(&list, &node), NULL);
 
 	EXPECT_EQ(node, 0);
 	EXPECT_EQ(list.cnt, 1);
@@ -72,19 +91,45 @@ TEST(list_add)
 	END;
 }
 
-TEST(list_adds)
+TEST(list_nodes)
 {
 	START;
 
 	list_t list = {0};
 	list_init(&list, 1, sizeof(int), ALLOC_STD);
 
-	lnode_t node;
+	list_node_t node;
 
-	EXPECT_NE(list_add(&list, &node), NULL);
+	EXPECT_NE(list_node(&list, &node), NULL);
 	EXPECT_EQ(node, 0);
-	EXPECT_NE(list_add(&list, &node), NULL);
+	EXPECT_NE(list_node(&list, &node), NULL);
 	EXPECT_EQ(node, 1);
+
+	EXPECT_EQ(list.cnt, 2);
+	EXPECT_EQ(list.cap, 2);
+
+	list_free(&list);
+
+	END;
+}
+
+TEST(list_app)
+{
+	START;
+
+	list_t list = {0};
+	list_init(&list, 1, sizeof(int), ALLOC_STD);
+
+	list_node_t root, node;
+	list_node(&list, &root);
+
+	EXPECT_EQ(list_app(NULL, list.cnt, list.cnt), 1);
+	log_set_quiet(0, 1);
+	EXPECT_EQ(list_app(&list, list.cnt, list.cnt), 1);
+	EXPECT_EQ(list_app(&list, root, list.cnt), 1);
+	log_set_quiet(0, 0);
+	list_node(&list, &node);
+	EXPECT_EQ(list_app(&list, root, node), 0);
 
 	EXPECT_EQ(list.cnt, 2);
 	EXPECT_EQ(list.cap, 2);
@@ -101,8 +146,8 @@ TEST(list_remove)
 	list_t list = {0};
 	list_init(&list, 1, sizeof(int), ALLOC_STD);
 
-	lnode_t node;
-	list_add(&list, &node);
+	list_node_t node;
+	list_node(&list, &node);
 
 	EXPECT_EQ(list_remove(NULL, list.cnt), 1);
 	log_set_quiet(0, 1);
@@ -124,11 +169,13 @@ TEST(list_remove_middle)
 	list_t list = {0};
 	list_init(&list, 1, sizeof(int), ALLOC_STD);
 
-	lnode_t root, n1, n2, node;
+	list_node_t root, n1, n2, node;
 
-	list_add(&list, &root);
-	list_add_next(&list, root, &n1);
-	list_add_next(&list, root, &n2);
+	list_node(&list, &root);
+	list_node(&list, &n1);
+	list_node(&list, &n2);
+	list_app(&list, root, n1);
+	list_app(&list, root, n2);
 
 	list_remove(&list, n1);
 
@@ -147,129 +194,43 @@ TEST(list_remove_last)
 	list_t list = {0};
 	list_init(&list, 1, sizeof(int), ALLOC_STD);
 
-	lnode_t root, n1, n2, node;
+	list_node_t root, n1, n2, node;
 
-	list_add(&list, &root);
-	list_add_next(&list, root, &n1);
-	list_add_next(&list, root, &n2);
+	list_node(&list, &root);
+	list_node(&list, &n1);
+	list_node(&list, &n2);
+	list_app(&list, root, n1);
+	list_app(&list, root, n2);
 
 	list_remove(&list, n2);
 
 	EXPECT_EQ(list_get_next(&list, n1, &node), 0);
-	EXPECT_EQ(node, (lnode_t)-1);
+	EXPECT_EQ(node, (list_node_t)-1);
 
 	list_free(&list);
 
 	END;
 }
 
-TEST(list_add_remove)
-{
-	SSTART;
-	RUN(list_add);
-	RUN(list_adds);
-	RUN(list_remove);
-	RUN(list_remove_middle);
-	RUN(list_remove_last);
-	SEND;
-}
-
-TEST(list_add_next)
+TEST(list_get)
 {
 	START;
 
 	list_t list = {0};
-
 	list_init(&list, 1, sizeof(int), ALLOC_STD);
 
-	lnode_t root, next;
+	list_node_t node;
+	list_node(&list, &node);
 
-	EXPECT_EQ(list_add_next(NULL, list.cnt, NULL), NULL);
+	EXPECT_EQ(list_get(NULL, list.cnt), NULL);
 	log_set_quiet(0, 1);
-	EXPECT_EQ(list_add_next(&list, list.cnt, NULL), NULL);
+	EXPECT_EQ(list_get(&list, list.cnt), NULL);
 	log_set_quiet(0, 0);
-	list_add(&list, &root);
-	mem_oom(1);
-	EXPECT_EQ(list_add_next(&list, root, NULL), NULL);
-	mem_oom(0);
-	EXPECT_NE(list_add_next(&list, root, &next), NULL);
+	*(int *)list_get(&list, node) = 8;
 
-	EXPECT_EQ(list.cnt, 2);
-	EXPECT_EQ(list.cap, 2);
-
-	list_free(&list);
-
-	END;
-}
-
-TEST(list_add_nexts)
-{
-	START;
-
-	list_t list = {0};
-	list_init(&list, 1, sizeof(int), ALLOC_STD);
-
-	lnode_t root, next1, next2;
-
-	list_add(&list, &root);
-	list_add_next(&list, root, &next1);
-	list_add_next(&list, root, &next2);
-
-	EXPECT_EQ(next1, 1);
-	EXPECT_EQ(next2, 2);
-	EXPECT_EQ(list.cnt, 3);
-	EXPECT_EQ(list.cap, 4);
-
-	list_free(&list);
-
-	END;
-}
-
-TEST(list_add_and_next)
-{
-	START;
-
-	list_t list = {0};
-	list_init(&list, 1, sizeof(int), ALLOC_STD);
-
-	lnode_t n1, n2, next1, next2;
-
-	list_add(&list, &n1);
-	list_add(&list, &n2);
-
-	list_add_next(&list, n1, &next1);
-	list_add_next(&list, n2, &next2);
-
-	EXPECT_EQ(next1, 2);
-	EXPECT_EQ(next2, 3);
-	EXPECT_EQ(list.cnt, 4);
-	EXPECT_EQ(list.cap, 4);
-
-	list_free(&list);
-
-	END;
-}
-
-TEST(list_set_next)
-{
-	START;
-
-	list_t list = {0};
-	list_init(&list, 1, sizeof(int), ALLOC_STD);
-
-	lnode_t root, node;
-	list_add(&list, &root);
-
-	EXPECT_EQ(list_set_next(NULL, list.cnt, list.cnt), 1);
-	log_set_quiet(0, 1);
-	EXPECT_EQ(list_set_next(&list, list.cnt, list.cnt), 1);
-	EXPECT_EQ(list_set_next(&list, root, list.cnt), 1);
-	log_set_quiet(0, 0);
-	list_add(&list, &node);
-	EXPECT_EQ(list_set_next(&list, root, node), 0);
-
-	EXPECT_EQ(list.cnt, 2);
-	EXPECT_EQ(list.cap, 2);
+	EXPECT_EQ(list.cnt, 1);
+	EXPECT_EQ(list.cap, 1);
+	EXPECT_EQ(*(int *)list_get(&list, node), 8);
 
 	list_free(&list);
 
@@ -283,9 +244,10 @@ TEST(list_get_next)
 	list_t list = {0};
 	list_init(&list, 1, sizeof(int), ALLOC_STD);
 
-	lnode_t root, next, node;
-	list_add(&list, &root);
-	list_add_next(&list, root, &next);
+	list_node_t root, next, node;
+	list_node(&list, &root);
+	list_node(&list, &next);
+	list_app(&list, root, next);
 
 	uint cnt = list.cnt;
 
@@ -304,17 +266,6 @@ TEST(list_get_next)
 	END;
 }
 
-TEST(list_next)
-{
-	SSTART;
-	RUN(list_add_next);
-	RUN(list_add_nexts);
-	RUN(list_add_and_next);
-	RUN(list_set_next);
-	RUN(list_get_next);
-	SEND;
-}
-
 TEST(list_get_at)
 {
 	START;
@@ -322,10 +273,13 @@ TEST(list_get_at)
 	list_t list = {0};
 	list_init(&list, 1, sizeof(int), ALLOC_STD);
 
-	lnode_t root, n1, n2, node;
-	*(int *)list_add(&list, &root)		= 1;
-	*(int *)list_add_next(&list, root, &n1) = 2;
-	*(int *)list_add_next(&list, root, &n2) = 3;
+	list_node_t root, n1, n2, node;
+	*(int *)list_node(&list, &root) = 1;
+	*(int *)list_node(&list, &n1)	= 2;
+	*(int *)list_node(&list, &n2)	= 3;
+
+	list_app(&list, root, n1);
+	list_app(&list, root, n2);
 
 	EXPECT_EQ(list_get_at(NULL, list.cnt, list.cnt, NULL), NULL);
 	log_set_quiet(0, 1);
@@ -347,60 +301,6 @@ TEST(list_get_at)
 	END;
 }
 
-TEST(list_set_cnt)
-{
-	START;
-
-	list_t list = {0};
-	list_init(&list, 1, sizeof(lnode_t), ALLOC_STD);
-
-	lnode_t root;
-	lnode_t *data = list_add(&list, &root);
-
-	*data = 10;
-
-	list_add_next(&list, root, NULL);
-
-	list_set_cnt(NULL, 0);
-	list_set_cnt(&list, 1);
-
-	data = list_get(&list, root);
-
-	lnode_t *next = data - 1;
-
-	EXPECT_EQ(*next, (lnode_t)-1);
-	EXPECT_EQ(*data, 10);
-
-	list_free(&list);
-
-	END;
-}
-
-TEST(list_get)
-{
-	START;
-
-	list_t list = {0};
-	list_init(&list, 1, sizeof(int), ALLOC_STD);
-
-	lnode_t node;
-	list_add(&list, &node);
-
-	EXPECT_EQ(list_get(NULL, list.cnt), NULL);
-	log_set_quiet(0, 1);
-	EXPECT_EQ(list_get(&list, list.cnt), NULL);
-	log_set_quiet(0, 0);
-	*(int *)list_get(&list, node) = 8;
-
-	EXPECT_EQ(list.cnt, 1);
-	EXPECT_EQ(list.cap, 1);
-	EXPECT_EQ(*(int *)list_get(&list, node), 8);
-
-	list_free(&list);
-
-	END;
-}
-
 TEST(list_foreach)
 {
 	START;
@@ -408,11 +308,13 @@ TEST(list_foreach)
 	list_t list = {0};
 	list_init(&list, 1, sizeof(int), ALLOC_STD);
 
-	lnode_t node;
+	list_node_t node, n1, n2;
 
-	*(int *)list_add(&list, &node)		 = 0;
-	*(int *)list_add_next(&list, node, NULL) = 1;
-	*(int *)list_add_next(&list, node, NULL) = 2;
+	*(int *)list_node(&list, &node) = 0;
+	*(int *)list_node(&list, &n1)	= 1;
+	*(int *)list_node(&list, &n2)	= 2;
+	list_app(&list, node, n1);
+	list_app(&list, node, n2);
 
 	int *value;
 
@@ -437,16 +339,17 @@ TEST(list_foreach_all)
 	list_t list = {0};
 	list_init(&list, 1, sizeof(int), ALLOC_STD);
 
-	lnode_t node;
+	list_node_t node, n1;
 
-	*(int *)list_add(&list, &node)		 = 0;
-	*(int *)list_add_next(&list, node, NULL) = 1;
-	*(int *)list_add(&list, NULL)		 = 2;
+	*(int *)list_node(&list, &node) = 0;
+	*(int *)list_node(&list, &n1)	= 1;
+	list_app(&list, node, n1);
+	*(int *)list_node(&list, NULL) = 2;
 
 	int *value;
 
-	lnode_t i = 0;
-	int cnt	  = 0;
+	list_node_t i = 0;
+	int cnt	      = 0;
 	list_foreach_all(&list, i, value)
 	{
 		EXPECT_EQ(*value, cnt);
@@ -458,14 +361,6 @@ TEST(list_foreach_all)
 	list_free(&list);
 
 	END;
-}
-
-TEST(list_foreachs)
-{
-	SSTART;
-	RUN(list_foreach);
-	RUN(list_foreach_all);
-	SEND;
 }
 
 static size_t print_list(void *data, dst_t dst, const void *priv)
@@ -481,11 +376,13 @@ TEST(list_print)
 	list_t list = {0};
 	list_init(&list, 1, sizeof(int), ALLOC_STD);
 
-	lnode_t node;
+	list_node_t node, n1, n2;
 
-	*(int *)list_add(&list, &node)		 = 0;
-	*(int *)list_add_next(&list, node, NULL) = 1;
-	*(int *)list_add_next(&list, node, NULL) = 2;
+	*(int *)list_node(&list, &node) = 0;
+	*(int *)list_node(&list, &n1)	= 1;
+	*(int *)list_node(&list, &n2)	= 2;
+	list_app(&list, node, n1);
+	list_app(&list, node, n2);
 
 	char buf[16] = {0};
 	EXPECT_EQ(list_print(NULL, list.cnt, NULL, DST_BUF(buf), NULL), 0);
@@ -509,12 +406,17 @@ STEST(list)
 
 	RUN(list_init_free);
 	RUN(list_reset);
-	RUN(list_add_remove);
-	RUN(list_next);
-	RUN(list_get_at);
-	RUN(list_set_cnt);
+	RUN(list_node);
+	RUN(list_nodes);
+	RUN(list_app)
+	RUN(list_remove);
+	RUN(list_remove_middle);
+	RUN(list_remove_last);
 	RUN(list_get);
-	RUN(list_foreachs);
+	RUN(list_get_next);
+	RUN(list_get_at);
+	RUN(list_foreach);
+	RUN(list_foreach_all);
 	RUN(list_print);
 
 	SEND;

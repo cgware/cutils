@@ -5,7 +5,7 @@
 
 #define TREE_MAX_DEPTH 128
 
-typedef lnode_t tnode_t;
+typedef list_node_t tnode_t;
 typedef list_t tree_t;
 
 tree_t *tree_init(tree_t *tree, uint cap, size_t size, alloc_t alloc);

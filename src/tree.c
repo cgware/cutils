@@ -24,7 +24,7 @@ void tree_free(tree_t *tree)
 
 void *tree_add(tree_t *tree, tnode_t *node)
 {
-	header_t *header = list_add(tree, node);
+	header_t *header = list_node(tree, node);
 	if (header == NULL) {
 		return NULL;
 	}
@@ -83,7 +83,7 @@ int tree_set_child(tree_t *tree, tnode_t node, tnode_t child)
 		return 0;
 	}
 
-	return list_set_next(tree, header->child, child);
+	return list_app(tree, header->child, child);
 }
 
 void *tree_get_child(const tree_t *tree, tnode_t node, tnode_t *child)
@@ -133,7 +133,7 @@ void *tree_add_next(tree_t *tree, tnode_t node, tnode_t *next)
 
 int tree_set_next(tree_t *tree, tnode_t node, tnode_t next)
 {
-	return list_set_next(tree, node, next);
+	return list_app(tree, node, next);
 }
 
 void *tree_get_next(const tree_t *tree, tnode_t node, tnode_t *next)
@@ -148,7 +148,7 @@ void tree_set_cnt(tree_t *tree, uint cnt)
 		return;
 	}
 
-	list_set_cnt(tree, cnt);
+	list_reset(tree, cnt);
 
 	tnode_t node = 0;
 	tree_foreach_all(tree, node)
