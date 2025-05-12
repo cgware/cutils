@@ -106,8 +106,17 @@ int list_remove(list_t *list, list_node_t node)
 
 void *list_get(const list_t *list, list_node_t node)
 {
+	if (list == NULL) {
+		return NULL;
+	}
+
 	header_t *header = arr_get(list, node);
-	return header == NULL ? NULL : header + 1;
+	if (header == NULL) {
+		log_error("cutils", "list", NULL, "invalid node: %d", node);
+		return NULL;
+	}
+
+	return header + 1;
 }
 
 void *list_get_next(const list_t *list, list_node_t node, list_node_t *next)

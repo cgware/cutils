@@ -5,44 +5,39 @@
 
 #define TREE_MAX_DEPTH 128
 
-typedef list_node_t tnode_t;
+typedef list_node_t tree_node_t;
 typedef list_t tree_t;
 
 tree_t *tree_init(tree_t *tree, uint cap, size_t size, alloc_t alloc);
 void tree_free(tree_t *tree);
 
-void *tree_add(tree_t *tree, tnode_t *node);
-int tree_remove(tree_t *tree, tnode_t node);
+void tree_reset(tree_t *tree, uint cnt);
 
-void *tree_add_child(tree_t *tree, tnode_t node, tnode_t *child);
-int tree_set_child(tree_t *tree, tnode_t node, tnode_t child);
-void *tree_get_child(const tree_t *tree, tnode_t node, tnode_t *child);
-int tree_has_child(const tree_t *tree, tnode_t node);
+void *tree_node(tree_t *tree, tree_node_t *node);
+int tree_add(tree_t *tree, tree_node_t node, tree_node_t child);
+int tree_app(tree_t *tree, tree_node_t node, tree_node_t next);
+int tree_remove(tree_t *tree, tree_node_t node);
 
-void *tree_add_next(tree_t *tree, tnode_t node, tnode_t *next);
-int tree_set_next(tree_t *tree, tnode_t node, tnode_t next);
-void *tree_get_next(const tree_t *tree, tnode_t node, tnode_t *next);
+void *tree_get(const tree_t *tree, tree_node_t node);
+void *tree_get_child(const tree_t *tree, tree_node_t node, tree_node_t *child);
+void *tree_get_next(const tree_t *tree, tree_node_t node, tree_node_t *next);
 
-void tree_set_cnt(tree_t *tree, uint cnt);
+typedef int (*tree_iterate_cb)(const tree_t *tree, tree_node_t node, void *value, int ret, int depth, int last, void *priv);
+int tree_iterate_pre(const tree_t *tree, tree_node_t node, tree_iterate_cb cb, int ret, void *priv);
 
-void *tree_get(const tree_t *tree, tnode_t node);
-
-typedef int (*tree_iterate_cb)(const tree_t *tree, tnode_t node, void *value, int ret, int depth, int last, void *priv);
-int tree_iterate_pre(const tree_t *tree, tnode_t node, tree_iterate_cb cb, int ret, void *priv);
-
-typedef int (*tree_iterate_childs_cb)(const tree_t *tree, tnode_t node, void *value, int ret, int last, void *priv);
-int tree_iterate_childs(const tree_t *tree, tnode_t node, tree_iterate_childs_cb cb, int ret, void *priv);
+typedef int (*tree_iterate_childs_cb)(const tree_t *tree, tree_node_t node, void *value, int ret, int last, void *priv);
+int tree_iterate_childs(const tree_t *tree, tree_node_t node, tree_iterate_childs_cb cb, int ret, void *priv);
 
 typedef size_t (*tree_print_cb)(void *data, dst_t dst, const void *priv);
-size_t tree_print(const tree_t *tree, tnode_t node, tree_print_cb cb, dst_t dst, const void *priv);
+size_t tree_print(const tree_t *tree, tree_node_t node, tree_print_cb cb, dst_t dst, const void *priv);
 
 typedef struct tree_it {
 	const tree_t *tree;
-	tnode_t stack[TREE_MAX_DEPTH];
+	tree_node_t stack[TREE_MAX_DEPTH];
 	int top;
 } tree_it;
 
-tree_it tree_it_begin(const tree_t *tree, tnode_t node);
+tree_it tree_it_begin(const tree_t *tree, tree_node_t node);
 void *tree_it_next(tree_it *it);
 
 #define tree_foreach(_tree, _start, _node, _depth)                                                                                         \
