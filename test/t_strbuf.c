@@ -36,11 +36,24 @@ TEST(strbuf_reset)
 	START;
 
 	strbuf_t strbuf = {0};
+	strbuf_init(&strbuf, 2, 3, ALLOC_STD);
 
 	strbuf_reset(NULL, 0);
 	strbuf_reset(&strbuf, 1);
 
 	EXPECT_EQ(strbuf.off.cnt, 0);
+
+	uint id;
+	strbuf_add(&strbuf, STRV("abc"), &id);
+
+	strbuf_reset(&strbuf, 1);
+
+	strbuf_add(&strbuf, STRV("def"), NULL);
+
+	strv_t str = strbuf_get(&strbuf, id);
+	EXPECT_STRN(str.data, "abc", str.len);
+
+	strbuf_free(&strbuf);
 
 	END;
 }

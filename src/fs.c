@@ -310,7 +310,7 @@ static cerr_t vfs_mkdir(fs_t *fs, strv_t path)
 	fs_node_t *node = arr_add(&fs->nodes, NULL);
 	if (node == NULL) {
 		fs->paths.buf.used = paths_used;
-		fs->paths.off.cnt  = paths_cnt;
+		strbuf_reset(&fs->paths, paths_cnt);
 		return CERR_MEM;
 	}
 	node->type = FS_NODE_TYPE_DIR;

@@ -21,7 +21,7 @@ void strvbuf_free(strvbuf_t *buf)
 	buf_free(buf);
 }
 
-void strvbuf_reset(strvbuf_t *buf, uint used)
+void strvbuf_reset(strvbuf_t *buf, size_t used)
 {
 	buf_reset(buf, used);
 }

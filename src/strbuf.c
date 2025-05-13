@@ -32,7 +32,21 @@ void strbuf_reset(strbuf_t *buf, uint cnt)
 		return;
 	}
 
-	strvbuf_reset(&buf->buf, cnt);
+	if (cnt > buf->off.cnt) {
+		cnt = buf->off.cnt;
+	}
+
+	size_t used;
+
+	if (cnt > 0) {
+		size_t *off = arr_get(&buf->off, cnt - 1);
+		strv_t last = strvbuf_get(&buf->buf, *off);
+		used	    = *off + sizeof(size_t) + last.len;
+	} else {
+		used = 0;
+	}
+
+	strvbuf_reset(&buf->buf, used);
 	arr_reset(&buf->off, cnt);
 }
 
