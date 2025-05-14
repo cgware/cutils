@@ -139,6 +139,29 @@ TEST(list_app)
 	END;
 }
 
+TEST(list_app_loop)
+{
+	START;
+
+	list_t list = {0};
+	list_init(&list, 1, sizeof(int), ALLOC_STD);
+
+	list_node_t root, node;
+	list_node(&list, &root);
+	list_node(&list, &node);
+
+	list_app(&list, root, node);
+	list_app(&list, node, root);
+
+	log_set_quiet(0, 1);
+	EXPECT_EQ(list_app(&list, root, node), 1);
+	log_set_quiet(0, 0);
+
+	list_free(&list);
+
+	END;
+}
+
 TEST(list_remove)
 {
 	START;
@@ -409,6 +432,7 @@ STEST(list)
 	RUN(list_node);
 	RUN(list_nodes);
 	RUN(list_app)
+	RUN(list_app_loop)
 	RUN(list_remove);
 	RUN(list_remove_middle);
 	RUN(list_remove_last);
