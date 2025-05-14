@@ -1,6 +1,7 @@
 #include "fs.h"
 
 #include "cfs.h"
+#include "loc.h"
 #include "log.h"
 #include "path.h"
 
@@ -59,6 +60,7 @@ typedef enum fs_node_flag_e {
 typedef struct fs_node_s {
 	fs_node_type_t type;
 	str_t data;
+	loc_t path;
 	int flags;
 } fs_node_t;
 
@@ -81,6 +83,27 @@ static strv_t path_trim(strv_t path)
 	return path;
 }
 
+static fs_node_t *find_node(fs_t *fs, strv_t path, uint *id)
+{
+	uint i = 0;
+	fs_node_t *node;
+	arr_foreach(&fs->nodes, i, node)
+	{
+		if (node->type == FS_NODE_TYPE_UNKNOWN) {
+			continue;
+		}
+
+		if (strv_eq(STRVN(buf_get(&fs->paths, node->path.off), node->path.len), path)) {
+			if (id) {
+				*id = i;
+			}
+			return node;
+		}
+	}
+
+	return NULL;
+}
+
 static cerr_t vfs_open(fs_t *fs, strv_t path, const char *mode, void **file)
 {
 	if (path.data == NULL || mode == NULL || file == NULL) {
@@ -95,26 +118,25 @@ static cerr_t vfs_open(fs_t *fs, strv_t path, const char *mode, void **file)
 	}
 
 	uint id;
-	if (strbuf_find(&fs->paths, path, &id)) {
+	fs_node_t *node = find_node(fs, path, &id);
+	if (node == NULL) {
 		strv_t name = {0};
 		strv_t dir  = path_trim(pathv_get_dir(path, &name));
 
 		if ((mode[0] == 'w' || mode[0] == 'a') && name.len > 0 && (dir.len == 0 || fs_isdir(fs, dir))) {
-			strbuf_add(&fs->paths, path, &id);
-			fs_node_t *node = arr_add(&fs->nodes, NULL);
+			size_t off;
+			buf_add(&fs->paths, path.data, path.len, &off);
+			node = arr_add(&fs->nodes, &id);
 			if (node == NULL) {
 				return CERR_MEM;
 			}
-			node->type = FS_NODE_TYPE_FILE;
-			node->data = STR_NULL;
+			node->path.off = off;
+			node->path.len = path.len;
+			node->type     = FS_NODE_TYPE_FILE;
+			node->data     = STR_NULL;
 		} else {
 			return CERR_NOT_FOUND;
 		}
-	}
-
-	fs_node_t *node = arr_get(&fs->nodes, id);
-	if (node == NULL) {
-		return CERR_VAL;
 	}
 
 	if (node->type != FS_NODE_TYPE_FILE) {
@@ -240,12 +262,8 @@ static int ofs_isdir(fs_t *fs, strv_t path)
 
 static int vfs_isdir(fs_t *fs, strv_t path)
 {
-	uint id = -1;
-	if (strbuf_find(&fs->paths, path, &id)) {
-		return 0;
-	}
-
-	fs_node_t *node = arr_get(&fs->nodes, id);
+	uint id;
+	fs_node_t *node = find_node(fs, path, &id);
 	if (node == NULL) {
 		return 0;
 	}
@@ -265,12 +283,8 @@ static int ofs_isfile(fs_t *fs, strv_t path)
 
 static int vfs_isfile(fs_t *fs, strv_t path)
 {
-	uint id = -1;
-	if (strbuf_find(&fs->paths, path, &id)) {
-		return 0;
-	}
-
-	fs_node_t *node = arr_get(&fs->nodes, id);
+	uint id;
+	fs_node_t *node = find_node(fs, path, &id);
 	if (node == NULL) {
 		return 0;
 	}
@@ -294,7 +308,7 @@ static cerr_t vfs_mkdir(fs_t *fs, strv_t path)
 		return CERR_NOT_FOUND;
 	}
 
-	if (strbuf_find(&fs->paths, path, NULL) == 0) {
+	if (find_node(fs, path, NULL)) {
 		return CERR_EXIST;
 	}
 
@@ -303,17 +317,18 @@ static cerr_t vfs_mkdir(fs_t *fs, strv_t path)
 		return CERR_NOT_FOUND;
 	}
 
-	size_t paths_used = fs->paths.buf.used;
-	uint paths_cnt	  = fs->paths.off.cnt;
+	size_t paths_used = fs->paths.used;
 
-	strbuf_add(&fs->paths, path, NULL);
+	size_t off;
+	buf_add(&fs->paths, path.data, path.len, &off);
 	fs_node_t *node = arr_add(&fs->nodes, NULL);
 	if (node == NULL) {
-		fs->paths.buf.used = paths_used;
-		strbuf_reset(&fs->paths, paths_cnt);
+		buf_reset(&fs->paths, paths_used);
 		return CERR_MEM;
 	}
-	node->type = FS_NODE_TYPE_DIR;
+	node->path.off = off;
+	node->path.len = path.len;
+	node->type     = FS_NODE_TYPE_DIR;
 
 	return CERR_OK;
 }
@@ -330,9 +345,8 @@ static cerr_t vfs_mkfile(fs_t *fs, strv_t path)
 		return CERR_NOT_FOUND;
 	}
 
-	uint id;
-	if (strbuf_find(&fs->paths, path, &id) == 0) {
-		fs_node_t *node = arr_get(&fs->nodes, id);
+	fs_node_t *node = find_node(fs, path, NULL);
+	if (node) {
 		return node->type == FS_NODE_TYPE_FILE ? CERR_EXIST : CERR_TYPE;
 	}
 
@@ -341,13 +355,16 @@ static cerr_t vfs_mkfile(fs_t *fs, strv_t path)
 		return CERR_NOT_FOUND;
 	}
 
-	strbuf_add(&fs->paths, path, NULL);
-	fs_node_t *node = arr_add(&fs->nodes, NULL);
+	size_t off;
+	buf_add(&fs->paths, path.data, path.len, &off);
+	node = arr_add(&fs->nodes, NULL);
 	if (node == NULL) {
 		return CERR_MEM;
 	}
-	node->type = FS_NODE_TYPE_FILE;
-	node->data = STR_NULL;
+	node->path.off = off;
+	node->path.len = path.len;
+	node->type     = FS_NODE_TYPE_FILE;
+	node->data     = STR_NULL;
 
 	return CERR_OK;
 }
@@ -358,14 +375,26 @@ static cerr_t ofs_rmdir(fs_t *fs, strv_t path)
 	return cfs_rmdir(path.data);
 }
 
-static cerr_t vfs_rmdir(fs_t *fs, strv_t path)
+static int rmnode(fs_t *fs, uint id, fs_node_t *node)
 {
-	uint id = -1;
-	if (strbuf_find(&fs->paths, path, &id)) {
-		return CERR_NOT_FOUND;
+	buf_replace(&fs->paths, node->path.off, NULL, node->path.len, 0);
+
+	id++;
+	fs_node_t *n;
+	arr_foreach(&fs->nodes, id, n)
+	{
+		n->path.off -= node->path.len;
 	}
 
-	fs_node_t *node = arr_get(&fs->nodes, id);
+	node->type = FS_NODE_TYPE_UNKNOWN;
+
+	return 0;
+}
+
+static cerr_t vfs_rmdir(fs_t *fs, strv_t path)
+{
+	uint id;
+	fs_node_t *node = find_node(fs, path, &id);
 	if (node == NULL) {
 		return CERR_NOT_FOUND;
 	}
@@ -375,18 +404,21 @@ static cerr_t vfs_rmdir(fs_t *fs, strv_t path)
 	}
 
 	uint i = 0;
-	strv_t s;
-	strbuf_foreach(&fs->paths, i, s)
+	fs_node_t *n;
+	arr_foreach(&fs->nodes, i, n)
 	{
-		strv_t parent = path_trim(pathv_get_dir(s, NULL));
+		if (n->type == FS_NODE_TYPE_UNKNOWN) {
+			continue;
+		}
+
+		strv_t parent = path_trim(pathv_get_dir(STRVN(buf_get(&fs->paths, n->path.off), n->path.len), NULL));
 
 		if (strv_eq(parent, path)) {
 			return CERR_NOT_EMPTY;
 		}
 	}
 
-	strbuf_set(&fs->paths, id, STRV(""));
-	node->type = FS_NODE_TYPE_UNKNOWN;
+	rmnode(fs, id, node);
 
 	return CERR_OK;
 }
@@ -400,11 +432,7 @@ static cerr_t ofs_rmfile(fs_t *fs, strv_t path)
 static cerr_t vfs_rmfile(fs_t *fs, strv_t path)
 {
 	uint id;
-	if (strbuf_find(&fs->paths, path, &id)) {
-		return CERR_NOT_FOUND;
-	}
-
-	fs_node_t *node = arr_get(&fs->nodes, id);
+	fs_node_t *node = find_node(fs, path, &id);
 	if (node == NULL) {
 		return CERR_NOT_FOUND;
 	}
@@ -418,8 +446,7 @@ static cerr_t vfs_rmfile(fs_t *fs, strv_t path)
 		node->data = STR_NULL;
 	}
 
-	strbuf_set(&fs->paths, id, STRV(""));
-	node->type = FS_NODE_TYPE_UNKNOWN;
+	rmnode(fs, id, node);
 
 	return CERR_OK;
 }
@@ -475,13 +502,7 @@ static int ofs_lsdir(fs_t *fs, strv_t path, strbuf_t *dirs)
 static int vfs_lsdir(fs_t *fs, strv_t path, strbuf_t *dirs)
 {
 	uint id;
-	strv_t dir;
-
-	if (strbuf_find(&fs->paths, path, &id)) {
-		return CERR_NOT_FOUND;
-	}
-
-	fs_node_t *node = arr_get(&fs->nodes, id);
+	fs_node_t *node = find_node(fs, path, &id);
 	if (node == NULL) {
 		return CERR_NOT_FOUND;
 	}
@@ -490,22 +511,16 @@ static int vfs_lsdir(fs_t *fs, strv_t path, strbuf_t *dirs)
 		return CERR_TYPE;
 	}
 
-	id = 0;
-	strbuf_foreach(&fs->paths, id, dir)
+	arr_foreach(&fs->nodes, id, node)
 	{
-		strv_t name;
-		strv_t parent = path_trim(pathv_get_dir(dir, &name));
-
-		if (!strv_eq(parent, path)) {
+		if (node->type != FS_NODE_TYPE_DIR) {
 			continue;
 		}
 
-		node = arr_get(&fs->nodes, id);
-		if (node == NULL) {
-			return CERR_NOT_FOUND;
-		}
+		strv_t name;
+		strv_t parent = path_trim(pathv_get_dir(STRVN(buf_get(&fs->paths, node->path.off), node->path.len), &name));
 
-		if (node->type != FS_NODE_TYPE_DIR) {
+		if (!strv_eq(parent, path)) {
 			continue;
 		}
 
@@ -537,14 +552,8 @@ static int ofs_lsfile(fs_t *fs, strv_t path, strbuf_t *files)
 
 static int vfs_lsfile(fs_t *fs, strv_t path, strbuf_t *files)
 {
-	uint id = 0;
-	strv_t dir;
-
-	if (strbuf_find(&fs->paths, path, &id)) {
-		return CERR_NOT_FOUND;
-	}
-
-	fs_node_t *node = arr_get(&fs->nodes, id);
+	uint id;
+	fs_node_t *node = find_node(fs, path, &id);
 	if (node == NULL) {
 		return CERR_NOT_FOUND;
 	}
@@ -553,21 +562,16 @@ static int vfs_lsfile(fs_t *fs, strv_t path, strbuf_t *files)
 		return CERR_TYPE;
 	}
 
-	strbuf_foreach(&fs->paths, id, dir)
+	arr_foreach(&fs->nodes, id, node)
 	{
-		strv_t name;
-		strv_t parent = path_trim(pathv_get_dir(dir, &name));
-
-		if (!strv_eq(parent, path)) {
+		if (node->type != FS_NODE_TYPE_FILE) {
 			continue;
 		}
 
-		node = arr_get(&fs->nodes, id);
-		if (node == NULL) {
-			return CERR_NOT_FOUND;
-		}
+		strv_t name;
+		strv_t parent = path_trim(pathv_get_dir(STRVN(buf_get(&fs->paths, node->path.off), node->path.len), &name));
 
-		if (node->type != FS_NODE_TYPE_FILE) {
+		if (!strv_eq(parent, path)) {
 			continue;
 		}
 
@@ -623,7 +627,7 @@ fs_t *fs_init(fs_t *fs, uint nodes_cap, int virt, alloc_t alloc)
 	}
 
 	if (virt &&
-	    (strbuf_init(&fs->paths, nodes_cap, 16, alloc) == NULL || arr_init(&fs->nodes, nodes_cap, sizeof(fs_node_t), alloc) == NULL)) {
+	    (buf_init(&fs->paths, nodes_cap * 16, alloc) == NULL || arr_init(&fs->nodes, nodes_cap, sizeof(fs_node_t), alloc) == NULL)) {
 		return NULL;
 	}
 
@@ -648,7 +652,7 @@ void fs_free(fs_t *fs)
 	}
 
 	arr_free(&fs->nodes);
-	strbuf_free(&fs->paths);
+	buf_free(&fs->paths);
 }
 
 int fs_open(fs_t *fs, strv_t path, const char *mode, void **file)

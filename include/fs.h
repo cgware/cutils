@@ -5,7 +5,7 @@
 #include "strbuf.h"
 
 typedef struct fs_s {
-	strbuf_t paths;
+	buf_t paths;
 	arr_t nodes;
 	int virt;
 } fs_t;

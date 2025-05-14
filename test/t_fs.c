@@ -67,17 +67,17 @@ TEST(fs_open_arr)
 
 	fs_mkfile(&vfs, STRV(TEST_FILE));
 
-	uint nodes_cnt = vfs.nodes.cnt;
+	size_t paths_used = vfs.paths.used;
 
-	vfs.nodes.cnt = 0;
+	vfs.paths.used = 0;
 
 	void *file;
 
 	log_set_quiet(0, 1);
-	EXPECT_EQ(fs_open(&vfs, STRV(TEST_FILE), "r", &file), CERR_VAL);
+	EXPECT_EQ(fs_open(&vfs, STRV(TEST_FILE), "r", &file), CERR_NOT_FOUND);
 	log_set_quiet(0, 0);
 
-	vfs.nodes.cnt = nodes_cnt;
+	vfs.paths.used = paths_used;
 
 	fs_rmfile(&vfs, STRV(TEST_FILE));
 
@@ -487,15 +487,15 @@ TEST(fs_read_arr)
 
 	str_t str = strz(1);
 
-	uint nodes_cnt = vfs.nodes.cnt;
+	size_t paths_used = vfs.paths.used;
 
 	vfs.nodes.cnt = 0;
 
 	log_set_quiet(0, 1);
-	EXPECT_EQ(fs_read(&vfs, STRV(TEST_FILE), 0, &str), CERR_VAL);
+	EXPECT_EQ(fs_read(&vfs, STRV(TEST_FILE), 0, &str), CERR_NOT_FOUND);
 	log_set_quiet(0, 0);
 
-	vfs.nodes.cnt = nodes_cnt;
+	vfs.paths.used = paths_used;
 
 	str_free(&str);
 
@@ -1079,13 +1079,30 @@ TEST(fs_rmdir)
 {
 	START;
 
-	fs_t fs = {0};
+	fs_t fs	 = {0};
+	fs_t vfs = {0};
 
 	fs_init(&fs, 0, 0, ALLOC_STD);
+	fs_init(&vfs, 1, 1, ALLOC_STD);
+
+	fs_mkfile(&fs, STRV(TEST_FILE));
+	fs_mkfile(&vfs, STRV(TEST_FILE));
+
+	fs_mkdir(&fs, STRV(TEST_DIR));
+	fs_mkdir(&vfs, STRV(TEST_DIR));
 
 	EXPECT_EQ(fs_rmdir(NULL, STRV_NULL), CERR_VAL);
 
+	fs_rmfile(&fs, STRV(TEST_FILE));
+	fs_rmfile(&vfs, STRV(TEST_FILE));
+	EXPECT_EQ(fs_rmdir(&fs, STRV(TEST_DIR)), 0);
+	EXPECT_EQ(fs_rmdir(&vfs, STRV(TEST_DIR)), 0);
+
+	EXPECT_EQ(fs_isdir(&fs, STRV(TEST_DIR)), 0);
+	EXPECT_EQ(fs_isdir(&vfs, STRV(TEST_DIR)), 0);
+
 	fs_free(&fs);
+	fs_free(&vfs);
 
 	END;
 }
@@ -1100,15 +1117,15 @@ TEST(fs_rmdir_arr)
 
 	fs_mkdir(&vfs, STRV(TEST_FILE));
 
-	uint nodes_cnt = vfs.nodes.cnt;
+	size_t paths_used = vfs.paths.used;
 
-	vfs.nodes.cnt = 0;
+	vfs.paths.used = 0;
 
 	log_set_quiet(0, 1);
 	EXPECT_EQ(fs_rmdir(&vfs, STRV(TEST_FILE)), CERR_NOT_FOUND);
 	log_set_quiet(0, 0);
 
-	vfs.nodes.cnt = nodes_cnt;
+	vfs.paths.used = paths_used;
 
 	fs_rmdir(&vfs, STRV(TEST_FILE));
 
@@ -1202,13 +1219,31 @@ TEST(fs_rmfile)
 {
 	START;
 
-	fs_t fs = {0};
+	fs_t fs	 = {0};
+	fs_t vfs = {0};
 
 	fs_init(&fs, 0, 0, ALLOC_STD);
+	fs_init(&vfs, 1, 1, ALLOC_STD);
+
+	fs_mkdir(&fs, STRV(TEST_DIR));
+	fs_mkdir(&vfs, STRV(TEST_DIR));
+
+	fs_mkfile(&fs, STRV(TEST_FILE));
+	fs_mkfile(&vfs, STRV(TEST_FILE));
 
 	EXPECT_EQ(fs_rmfile(NULL, STRV_NULL), CERR_VAL);
 
+	fs_rmdir(&fs, STRV(TEST_DIR));
+	fs_rmdir(&vfs, STRV(TEST_DIR));
+
+	EXPECT_EQ(fs_rmfile(&fs, STRV(TEST_FILE)), 0);
+	EXPECT_EQ(fs_rmfile(&vfs, STRV(TEST_FILE)), 0);
+
+	EXPECT_EQ(fs_isfile(&fs, STRV(TEST_DIR)), 0);
+	EXPECT_EQ(fs_isfile(&vfs, STRV(TEST_DIR)), 0);
+
 	fs_free(&fs);
+	fs_free(&vfs);
 
 	END;
 }
@@ -1421,6 +1456,8 @@ TEST(fs_lsdir)
 
 	fs_mkdir(&fs, STRV(TEST_DIR));
 	fs_mkdir(&vfs, STRV(TEST_DIR));
+	fs_mkdir(&fs, STRV(TEST_DIR "_"));
+	fs_mkdir(&vfs, STRV(TEST_DIR "_"));
 
 	fs_mkfile(&fs, STRV(TEST_DIR "/a.txt"));
 	fs_mkfile(&vfs, STRV(TEST_DIR "/a.txt"));
@@ -1430,6 +1467,8 @@ TEST(fs_lsdir)
 	fs_mkdir(&vfs, STRV(TEST_DIR "/b"));
 	fs_mkdir(&fs, STRV(TEST_DIR "/c"));
 	fs_mkdir(&vfs, STRV(TEST_DIR "/c"));
+	fs_mkdir(&fs, STRV(TEST_DIR "_/a"));
+	fs_mkdir(&vfs, STRV(TEST_DIR "_/a"));
 
 	EXPECT_EQ(fs_lsdir(&fs, STRV_NULL, NULL), CERR_VAL);
 	EXPECT_EQ(fs_lsdir(&vfs, STRV_NULL, NULL), CERR_VAL);
@@ -1474,6 +1513,8 @@ TEST(fs_lsdir)
 	EXPECT_EQ(fs_lsdir(&vfs, path, &vdirs), CERR_MEM);
 	mem_oom(0);
 
+	fs_rmdir(&fs, STRV(TEST_DIR "_/a"));
+	fs_rmdir(&vfs, STRV(TEST_DIR "_/a"));
 	fs_rmdir(&fs, STRV(TEST_DIR "/c"));
 	fs_rmdir(&vfs, STRV(TEST_DIR "/c"));
 	fs_rmdir(&fs, STRV(TEST_DIR "/b"));
@@ -1483,6 +1524,8 @@ TEST(fs_lsdir)
 	fs_rmfile(&fs, STRV(TEST_DIR "/a.txt"));
 	fs_rmfile(&vfs, STRV(TEST_DIR "/a.txt"));
 
+	fs_rmdir(&fs, STRV(TEST_DIR "_"));
+	fs_rmdir(&vfs, STRV(TEST_DIR "_"));
 	fs_rmdir(&fs, STRV(TEST_DIR));
 	fs_rmdir(&vfs, STRV(TEST_DIR));
 
@@ -1579,12 +1622,16 @@ TEST(fs_lsfile)
 
 	fs_mkdir(&fs, STRV(TEST_DIR "/a"));
 	fs_mkdir(&vfs, STRV(TEST_DIR "/a"));
+	fs_mkdir(&fs, STRV(TEST_DIR "/b"));
+	fs_mkdir(&vfs, STRV(TEST_DIR "/b"));
 	fs_mkfile(&fs, STRV(TEST_DIR "/a.txt"));
 	fs_mkfile(&vfs, STRV(TEST_DIR "/a.txt"));
 	fs_mkfile(&fs, STRV(TEST_DIR "/b.txt"));
 	fs_mkfile(&vfs, STRV(TEST_DIR "/b.txt"));
 	fs_mkfile(&fs, STRV(TEST_DIR "/c.txt"));
 	fs_mkfile(&vfs, STRV(TEST_DIR "/c.txt"));
+	fs_mkfile(&fs, STRV(TEST_DIR "/b/a.txt"));
+	fs_mkfile(&vfs, STRV(TEST_DIR "/b/a.txt"));
 
 	EXPECT_EQ(fs_lsfile(&fs, STRV_NULL, NULL), CERR_VAL);
 	EXPECT_EQ(fs_lsfile(&vfs, STRV_NULL, NULL), CERR_VAL);
@@ -1626,12 +1673,16 @@ TEST(fs_lsfile)
 	EXPECT_EQ(fs_lsfile(&vfs, path, &vfiles), CERR_MEM);
 	mem_oom(0);
 
+	fs_rmfile(&fs, STRV(TEST_DIR "/b/a.txt"));
+	fs_rmfile(&vfs, STRV(TEST_DIR "/b/a.txt"));
 	fs_rmfile(&fs, STRV(TEST_DIR "/c.txt"));
 	fs_rmfile(&vfs, STRV(TEST_DIR "/c.txt"));
 	fs_rmfile(&fs, STRV(TEST_DIR "/b.txt"));
 	fs_rmfile(&vfs, STRV(TEST_DIR "/b.txt"));
 	fs_rmfile(&fs, STRV(TEST_DIR "/a.txt"));
 	fs_rmfile(&vfs, STRV(TEST_DIR "/a.txt"));
+	fs_rmdir(&fs, STRV(TEST_DIR "/b"));
+	fs_rmdir(&vfs, STRV(TEST_DIR "/b"));
 	fs_rmdir(&fs, STRV(TEST_DIR "/a"));
 	fs_rmdir(&vfs, STRV(TEST_DIR "/a"));
 

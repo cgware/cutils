@@ -181,7 +181,7 @@ void *mem_move(void *dst, size_t size, const void *src, size_t len)
 
 void *mem_replace(void *dst, size_t size, size_t len, const void *src, size_t old_len, size_t new_len)
 {
-	if (dst == NULL || src == NULL) {
+	if (dst == NULL) {
 		return NULL;
 	}
 
@@ -191,7 +191,9 @@ void *mem_replace(void *dst, size_t size, size_t len, const void *src, size_t ol
 	}
 
 	mem_move((byte *)dst + new_len, size - new_len, (byte *)dst + old_len, len - old_len);
-	mem_copy(dst, new_len, src, new_len);
+	if (src) {
+		mem_copy(dst, new_len, src, new_len);
+	}
 
 	return dst;
 }
