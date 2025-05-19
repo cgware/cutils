@@ -62,7 +62,7 @@ static int buf_grow(buf_t *buf, size_t size)
 
 int buf_add(buf_t *buf, const void *data, size_t size, size_t *off)
 {
-	if (buf_grow(buf, size)) {
+	if (buf == NULL || buf_grow(buf, size)) {
 		return 1;
 	}
 
@@ -71,6 +71,21 @@ int buf_add(buf_t *buf, const void *data, size_t size, size_t *off)
 		*off = buf->used;
 	}
 	buf->used += size;
+	return 0;
+}
+
+int buf_adds(buf_t *buf, strv_t str, loc_t *loc)
+{
+	size_t off;
+	if (buf_add(buf, str.data, str.len, &off)) {
+		return 1;
+	}
+
+	if (loc) {
+		loc->off = off;
+		loc->len = str.len;
+	}
+
 	return 0;
 }
 
@@ -86,6 +101,15 @@ void *buf_get(const buf_t *buf, size_t off)
 	}
 
 	return (uint8_t *)buf->data + off;
+}
+
+strv_t buf_gets(const buf_t *buf, loc_t loc)
+{
+	if (loc.len == 0) {
+		return STRV_NULL;
+	}
+
+	return STRVN(buf_get(buf, loc.off), loc.len);
 }
 
 buf_t *buf_replace(buf_t *buf, size_t off, const void *data, size_t old_len, size_t new_len)

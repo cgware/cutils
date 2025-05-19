@@ -77,7 +77,7 @@ int list_app(list_t *list, list_node_t node, list_node_t next)
 	while (*target < list->cnt) {
 		target = &((header_t *)arr_get(list, *target))->next;
 		if (*target == header->next) {
-			log_error("cutils", "list", NULL, "loop detected");
+			log_error("cutils", "list", NULL, "loop detected: %d", *target);
 			return 1;
 		}
 	}

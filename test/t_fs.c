@@ -923,6 +923,34 @@ TEST(fs_mkdir)
 	END;
 }
 
+TEST(fs_mkdir_oom)
+{
+	START;
+
+	fs_t vfs = {0};
+
+	fs_init(&vfs, 1, 1, ALLOC_STD);
+
+	size_t paths_size = vfs.paths.size;
+	vfs.paths.size	  = 0;
+
+	mem_oom(1);
+	EXPECT_EQ(fs_mkdir(&vfs, STRV(TEST_DIR)), CERR_MEM);
+	mem_oom(0);
+
+	vfs.paths.size = paths_size;
+
+	fs_mkdir(&vfs, STRV(TEST_DIR));
+
+	EXPECT_EQ(vfs.nodes.cnt, 1);
+
+	fs_rmdir(&vfs, STRV(TEST_DIR));
+
+	fs_free(&vfs);
+
+	END;
+}
+
 TEST(fs_mkdir_exist)
 {
 	START;
@@ -1016,6 +1044,34 @@ TEST(fs_mkfile)
 	fs_rmfile(&vfs, STRV(TEST_FILE));
 
 	fs_free(&fs);
+	fs_free(&vfs);
+
+	END;
+}
+
+TEST(fs_mkfile_oom)
+{
+	START;
+
+	fs_t vfs = {0};
+
+	fs_init(&vfs, 1, 1, ALLOC_STD);
+
+	size_t paths_size = vfs.paths.size;
+	vfs.paths.size	  = 0;
+
+	mem_oom(1);
+	EXPECT_EQ(fs_mkfile(&vfs, STRV(TEST_FILE)), CERR_MEM);
+	mem_oom(0);
+
+	vfs.paths.size = paths_size;
+
+	fs_mkfile(&vfs, STRV(TEST_FILE));
+
+	EXPECT_EQ(vfs.nodes.cnt, 1);
+
+	fs_rmfile(&vfs, STRV(TEST_FILE));
+
 	fs_free(&vfs);
 
 	END;
@@ -1826,9 +1882,11 @@ STEST(fs)
 	RUN(fs_isfile_dir);
 	RUN(fs_isfile_arr);
 	RUN(fs_mkdir);
+	RUN(fs_mkdir_oom);
 	RUN(fs_mkdir_exist);
 	RUN(fs_mkdir_file);
 	RUN(fs_mkfile);
+	RUN(fs_mkfile_oom);
 	RUN(fs_mkfile_exist);
 	RUN(fs_mkfile_dir);
 	RUN(fs_rmdir);
