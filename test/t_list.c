@@ -423,6 +423,35 @@ TEST(list_print)
 	END;
 }
 
+TEST(list_dbg)
+{
+	START;
+
+	list_t list = {0};
+	list_init(&list, 1, sizeof(int), ALLOC_STD);
+
+	list_node_t node, n1, n2;
+
+	list_node(&list, &node);
+	list_node(&list, &n1);
+	list_node(&list, &n2);
+	list_app(&list, node, n1);
+	list_app(&list, node, n2);
+
+	char buf[32] = {0};
+	EXPECT_EQ(list_dbg(NULL, DST_BUF(buf)), 0);
+
+	EXPECT_EQ(list_dbg(&list, DST_BUF(buf)), 25);
+	EXPECT_STR(buf,
+		   "0 -> 1\n"
+		   "1 -> 2\n"
+		   "2 -> (end)\n");
+
+	list_free(&list);
+
+	END;
+}
+
 STEST(list)
 {
 	SSTART;
@@ -442,6 +471,7 @@ STEST(list)
 	RUN(list_foreach);
 	RUN(list_foreach_all);
 	RUN(list_print);
+	RUN(list_dbg);
 
 	SEND;
 }

@@ -176,3 +176,25 @@ size_t list_print(const list_t *list, list_node_t node, list_print_cb cb, dst_t 
 
 	return dst.off - off;
 }
+
+size_t list_dbg(const list_t *list, dst_t dst)
+{
+	if (list == NULL) {
+		return 0;
+	}
+
+	size_t off = dst.off;
+
+	list_node_t i = 0;
+	header_t *header;
+	arr_foreach(list, i, header)
+	{
+		if (list_get_next(list, i, NULL) == 0) {
+			dst.off += dputf(dst, "%zu -> (end)\n", i);
+		} else {
+			dst.off += dputf(dst, "%zu -> %zu\n", i, header->next);
+		}
+	}
+
+	return dst.off - off;
+}
