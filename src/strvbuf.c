@@ -65,3 +65,49 @@ strv_t strvbuf_get(const strvbuf_t *buf, size_t off)
 		.data = (const char *)(data + 1),
 	};
 }
+
+int strvbuf_set(strvbuf_t *buf, size_t off, strv_t strv)
+{
+	if (buf == NULL) {
+		return 1;
+	}
+
+	size_t *len = buf_get(buf, off);
+	if (len == NULL) {
+		log_error("cutils", "strvbuf", NULL, "invalid offset: %zu", off);
+		return 1;
+	}
+
+	if (buf_replace(buf, off + sizeof(size_t), strv.data, *len, strv.len) == NULL) {
+		log_error("cutils", "strvbuf", NULL, "failed to set string: '%.*s'", strv.len, strv.data);
+		return 1;
+	}
+
+	len  = buf_get(buf, off);
+	*len = strv.len;
+
+	return 0;
+}
+
+int strvbuf_app(strvbuf_t *buf, size_t off, strv_t strv)
+{
+	if (buf == NULL) {
+		return 1;
+	}
+
+	size_t *len = buf_get(buf, off);
+	if (len == NULL) {
+		log_error("cutils", "strvbuf", NULL, "invalid offset: %zu", off);
+		return 1;
+	}
+
+	if (buf_replace(buf, off + sizeof(size_t) + *len, strv.data, 0, strv.len) == NULL) {
+		log_error("cutils", "strvbuf", NULL, "failed to append string: '%.*s'", strv.len, strv.data);
+		return 1;
+	}
+
+	len = buf_get(buf, off);
+	*len += strv.len;
+
+	return 0;
+}

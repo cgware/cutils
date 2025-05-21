@@ -124,25 +124,23 @@ int strbuf_set(strbuf_t *buf, uint id, strv_t strv)
 
 	size_t *off = arr_get(&buf->off, id);
 	if (off == NULL) {
+		log_error("cutils", "strbuf", NULL, "failed to get offset");
 		return 1;
 	}
 
 	size_t *len = buf_get(&buf->buf, *off);
+	size_t diff = strv.len - *len;
 
-	if (buf_replace(&buf->buf, *off + sizeof(size_t), strv.data, *len, strv.len) == NULL) {
+	if (strvbuf_set(&buf->buf, *off, strv)) {
+		log_error("cutils", "strbuf", NULL, "failed to set string: '%.*s'", strv.len, strv.data);
 		return 1;
 	}
-
-	off = arr_get(&buf->off, id);
-	len = buf_get(&buf->buf, *off);
 
 	id++;
 	arr_foreach(&buf->off, id, off)
 	{
-		*off += (strv.len - *len);
+		*off += diff;
 	}
-
-	*len = strv.len;
 
 	return 0;
 }
@@ -155,25 +153,20 @@ int strbuf_app(strbuf_t *buf, uint id, strv_t strv)
 
 	size_t *off = arr_get(&buf->off, id);
 	if (off == NULL) {
+		log_error("cutils", "strbuf", NULL, "failed to get offset");
 		return 1;
 	}
 
-	size_t *len = buf_get(&buf->buf, *off);
-
-	if (buf_replace(&buf->buf, *off + sizeof(size_t) + *len, strv.data, 0, strv.len) == NULL) {
+	if (strvbuf_app(&buf->buf, *off, strv)) {
+		log_error("cutils", "strbuf", NULL, "failed to append string: '%.*s'", strv.len, strv.data);
 		return 1;
 	}
-
-	off = arr_get(&buf->off, id);
-	len = buf_get(&buf->buf, *off);
 
 	id++;
 	arr_foreach(&buf->off, id, off)
 	{
 		*off += strv.len;
 	}
-
-	*len += strv.len;
 
 	return 0;
 }

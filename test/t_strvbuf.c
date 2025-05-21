@@ -121,6 +121,70 @@ TEST(strvbuf_get)
 	END;
 }
 
+TEST(strvbuf_set)
+{
+	START;
+
+	strvbuf_t strvbuf = {0};
+	strvbuf_init(&strvbuf, 2, 1, ALLOC_STD);
+
+	EXPECT_EQ(strvbuf_set(NULL, 0, STRV_NULL), 1);
+	log_set_quiet(0, 1);
+	EXPECT_EQ(strvbuf_set(&strvbuf, 0, STRV("a")), 1);
+	log_set_quiet(0, 0);
+	strvbuf_add(&strvbuf, STRV("a"), NULL);
+	strvbuf_add(&strvbuf, STRV("d"), NULL);
+	mem_oom(1);
+	EXPECT_EQ(strvbuf_set(&strvbuf, 0, STRV("bc")), 1);
+	mem_oom(0);
+	EXPECT_EQ(strvbuf_set(&strvbuf, 0, STRV("bc")), 0);
+
+	{
+		strv_t val = strvbuf_get(&strvbuf, 0);
+		EXPECT_STRN(val.data, "bc", val.len);
+	}
+	{
+		strv_t val = strvbuf_get(&strvbuf, sizeof(size_t) + 2);
+		EXPECT_STRN(val.data, "d", val.len);
+	}
+
+	strvbuf_free(&strvbuf);
+
+	END;
+}
+
+TEST(strvbuf_app)
+{
+	START;
+
+	strvbuf_t strvbuf = {0};
+	strvbuf_init(&strvbuf, 2, 1, ALLOC_STD);
+
+	EXPECT_EQ(strvbuf_app(NULL, 0, STRV_NULL), 1);
+	log_set_quiet(0, 1);
+	EXPECT_EQ(strvbuf_app(&strvbuf, 0, STRV("a")), 1);
+	log_set_quiet(0, 0);
+	strvbuf_add(&strvbuf, STRV("a"), NULL);
+	strvbuf_add(&strvbuf, STRV("d"), NULL);
+	mem_oom(1);
+	EXPECT_EQ(strvbuf_app(&strvbuf, 0, STRV("bc")), 1);
+	mem_oom(0);
+	EXPECT_EQ(strvbuf_app(&strvbuf, 0, STRV("bc")), 0);
+
+	{
+		strv_t val = strvbuf_get(&strvbuf, 0);
+		EXPECT_STRN(val.data, "abc", val.len);
+	}
+	{
+		strv_t val = strvbuf_get(&strvbuf, sizeof(size_t) + 3);
+		EXPECT_STRN(val.data, "d", val.len);
+	}
+
+	strvbuf_free(&strvbuf);
+
+	END;
+}
+
 STEST(strvbuf)
 {
 	SSTART;
@@ -130,6 +194,8 @@ STEST(strvbuf)
 	RUN(strvbuf_add);
 	RUN(strvbuf_add_oom);
 	RUN(strvbuf_get);
+	RUN(strvbuf_set);
+	RUN(strvbuf_app);
 
 	SEND;
 }
