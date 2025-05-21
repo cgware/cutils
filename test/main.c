@@ -9,6 +9,7 @@ STEST(buf);
 STEST(dict);
 STEST(fs);
 STEST(list);
+STEST(loc);
 STEST(log);
 STEST(mem);
 STEST(path);
@@ -29,6 +30,7 @@ TEST(cutils)
 	RUN(dict);
 	RUN(fs);
 	RUN(list);
+	RUN(loc);
 	RUN(log);
 	RUN(mem);
 	RUN(path);
