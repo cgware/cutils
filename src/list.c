@@ -64,12 +64,12 @@ int list_app(list_t *list, list_node_t node, list_node_t next)
 
 	header_t *header = arr_get(list, node);
 	if (header == NULL) {
-		log_error("cutils", "list", NULL, "invalid node: %d", node);
+		log_error("cutils", "list", NULL, "failed to get node", node);
 		return 1;
 	}
 
 	if (list_get(list, next) == NULL) {
-		log_error("cutils", "list", NULL, "invalid node: %d", next);
+		log_error("cutils", "list", NULL, "failed to get next node");
 		return 1;
 	}
 
@@ -116,7 +116,7 @@ void *list_get(const list_t *list, list_node_t node)
 
 	header_t *header = arr_get(list, node);
 	if (header == NULL) {
-		log_error("cutils", "list", NULL, "invalid node: %d", node);
+		log_error("cutils", "list", NULL, "failed to get node");
 		return NULL;
 	}
 
