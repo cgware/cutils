@@ -144,17 +144,22 @@ TEST(list_app_loop)
 	START;
 
 	list_t list = {0};
-	list_init(&list, 1, sizeof(int), ALLOC_STD);
+	list_init(&list, 4, sizeof(int), ALLOC_STD);
 
-	list_node_t root, node;
-	list_node(&list, &root);
-	list_node(&list, &node);
-
-	list_app(&list, root, node);
-	list_app(&list, node, root);
+	list_node_t n0, n1, n2, n3;
+	list_node(&list, &n0);
+	list_node(&list, &n1);
+	list_node(&list, &n2);
+	list_node(&list, &n3);
 
 	log_set_quiet(0, 1);
-	EXPECT_EQ(list_app(&list, root, node), 1);
+	EXPECT_EQ(list_app(&list, n0, n0), 1);
+	EXPECT_EQ(list_app(&list, n0, n1), 0);
+	EXPECT_EQ(list_app(&list, n0, n1), 1);
+	EXPECT_EQ(list_app(&list, n0, n2), 0);
+	EXPECT_EQ(list_app(&list, n0, n1), 1);
+	EXPECT_EQ(list_app(&list, n2, n0), 0);
+	EXPECT_EQ(list_app(&list, n0, n3), 1);
 	log_set_quiet(0, 0);
 
 	list_free(&list);
@@ -283,6 +288,26 @@ TEST(list_get_next)
 	log_set_quiet(0, 0);
 	EXPECT_NE(list_get_next(&list, root, &node), NULL);
 	EXPECT_EQ(node, next);
+
+	list_free(&list);
+
+	END;
+}
+
+TEST(list_get_next_loop)
+{
+	START;
+
+	list_t list = {0};
+	list_init(&list, 1, sizeof(int), ALLOC_STD);
+
+	list_node_t root;
+	list_node(&list, &root);
+	*((list_node_t *)list_get(&list, root) - 1) = root;
+
+	log_set_quiet(0, 1);
+	EXPECT_EQ(list_get_next(&list, root, NULL), NULL);
+	log_set_quiet(0, 0);
 
 	list_free(&list);
 
@@ -467,6 +492,7 @@ STEST(list)
 	RUN(list_remove_last);
 	RUN(list_get);
 	RUN(list_get_next);
+	RUN(list_get_next_loop);
 	RUN(list_get_at);
 	RUN(list_foreach);
 	RUN(list_foreach_all);

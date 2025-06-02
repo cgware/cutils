@@ -62,9 +62,8 @@ int list_app(list_t *list, list_node_t node, list_node_t next)
 		return 1;
 	}
 
-	header_t *header = arr_get(list, node);
-	if (header == NULL) {
-		log_error("cutils", "list", NULL, "failed to get node", node);
+	if (list_get(list, node) == NULL) {
+		log_error("cutils", "list", NULL, "failed to get node");
 		return 1;
 	}
 
@@ -73,11 +72,17 @@ int list_app(list_t *list, list_node_t node, list_node_t next)
 		return 1;
 	}
 
-	list_node_t *target = &header->next;
+	list_node_t *target = &node;
 	while (*target < list->cnt) {
+
+		if (*target == next) {
+			log_error("cutils", "list", NULL, "append will create a loop: %d", next);
+			return 1;
+		}
+
 		target = &((header_t *)arr_get(list, *target))->next;
-		if (*target == header->next) {
-			log_error("cutils", "list", NULL, "loop detected: %d", *target);
+		if (*target == node) {
+			log_error("cutils", "list", NULL, "loop detected at: %d", *target);
 			return 1;
 		}
 	}
@@ -135,6 +140,11 @@ void *list_get_next(const list_t *list, list_node_t node, list_node_t *next)
 	}
 
 	if (header->next == (list_node_t)-1) {
+		return NULL;
+	}
+
+	if (header->next == node) {
+		log_error("cutils", "list", NULL, "loop detected at: %d", node);
 		return NULL;
 	}
 
