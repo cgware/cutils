@@ -13,11 +13,13 @@
 
 path_t *path_init(path_t *path, strv_t str)
 {
-	if (path == NULL || str.data == NULL || str.len + 1 > sizeof(path->data)) {
+	if (path == NULL || str.len + 1 > sizeof(path->data)) {
 		return NULL;
 	}
 
-	mem_copy(path->data, sizeof(path->data), str.data, str.len);
+	if (str.data) {
+		mem_copy(path->data, sizeof(path->data), str.data, str.len);
+	}
 
 	path->len = str.len;
 

@@ -898,8 +898,8 @@ TEST(fs_mkdir)
 	mem_oom(0);
 
 	log_set_quiet(0, 1);
-	EXPECT_EQ(fs_mkdir(&fs, STRV_NULL), CERR_VAL);
-	EXPECT_EQ(fs_mkdir(&vfs, STRV_NULL), CERR_VAL);
+	EXPECT_EQ(fs_mkdir(&fs, STRV_NULL), CERR_NOT_FOUND);
+	EXPECT_EQ(fs_mkdir(&vfs, STRV_NULL), CERR_NOT_FOUND);
 	EXPECT_EQ(fs_mkdir(&fs, STRV("")), CERR_NOT_FOUND);
 	EXPECT_EQ(fs_mkdir(&vfs, STRV("")), CERR_NOT_FOUND);
 	EXPECT_EQ(fs_mkdir(&fs, STRV(TEST_DIR "/" TEST_DIR)), CERR_NOT_FOUND);
@@ -1020,8 +1020,8 @@ TEST(fs_mkfile)
 	EXPECT_EQ(fs_mkfile(NULL, STRV_NULL), CERR_VAL);
 
 	log_set_quiet(0, 1);
-	EXPECT_EQ(fs_mkfile(&fs, STRV_NULL), CERR_VAL);
-	EXPECT_EQ(fs_mkfile(&vfs, STRV_NULL), CERR_VAL);
+	EXPECT_EQ(fs_mkfile(&fs, STRV_NULL), CERR_NOT_FOUND);
+	EXPECT_EQ(fs_mkfile(&vfs, STRV_NULL), CERR_NOT_FOUND);
 	log_set_quiet(0, 0);
 
 	mem_oom(1);

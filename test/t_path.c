@@ -11,9 +11,13 @@ TEST(path_init)
 	path_t path = {0};
 
 	EXPECT_EQ(path_init(NULL, STRV_NULL), NULL);
-	EXPECT_EQ(path_init(&path, STRV_NULL), NULL);
 	EXPECT_EQ(path_init(&path, STRVN("", 256)), NULL);
+	EXPECT_EQ(path_init(&path, STRV(".")), &path);
+	EXPECT_EQ(path.len, 1);
+	EXPECT_EQ(path_init(&path, STRV_NULL), &path);
+	EXPECT_EQ(path.len, 0);
 	EXPECT_EQ(path_init(&path, STRV("")), &path);
+	EXPECT_EQ(path.len, 0);
 
 	END;
 }
