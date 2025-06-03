@@ -460,14 +460,13 @@ TEST(fs_read_not_found)
 	fs_init(&fs, 0, 0, ALLOC_STD);
 	fs_init(&vfs, 1, 1, ALLOC_STD);
 
-	str_t str = strz(1);
+	char buf[1] = {0};
+	str_t str   = STRB(buf, 0);
 
 	log_set_quiet(0, 1);
 	EXPECT_EQ(fs_read(&fs, STRV(TEST_FILE), 0, &str), CERR_NOT_FOUND);
 	EXPECT_EQ(fs_read(&vfs, STRV(TEST_FILE), 0, &str), CERR_NOT_FOUND);
 	log_set_quiet(0, 0);
-
-	str_free(&str);
 
 	fs_free(&fs);
 	fs_free(&vfs);
@@ -485,7 +484,8 @@ TEST(fs_read_arr)
 
 	fs_mkfile(&vfs, STRV(TEST_FILE));
 
-	str_t str = strz(1);
+	char buf[1] = {0};
+	str_t str   = STRB(buf, 0);
 
 	size_t paths_used = vfs.paths.used;
 
@@ -496,8 +496,6 @@ TEST(fs_read_arr)
 	log_set_quiet(0, 0);
 
 	vfs.paths.used = paths_used;
-
-	str_free(&str);
 
 	fs_free(&vfs);
 
@@ -527,7 +525,8 @@ TEST(fs_read_oom)
 	fs_close(&fs, f);
 	fs_close(&vfs, vf);
 
-	str_t str = strz(1);
+	char buf[1] = {0};
+	str_t str   = STRB(buf, 0);
 
 	mem_oom(1);
 	EXPECT_EQ(fs_read(&fs, STRV(TEST_FILE), 0, &str), CERR_MEM);
@@ -535,8 +534,6 @@ TEST(fs_read_oom)
 	mem_oom(0);
 
 	fs_rmfile(&fs, STRV(TEST_FILE));
-
-	str_free(&str);
 
 	fs_free(&fs);
 	fs_free(&vfs);
@@ -557,7 +554,8 @@ TEST(fs_read_empty)
 	fs_mkfile(&fs, STRV(TEST_FILE));
 	fs_mkfile(&vfs, STRV(TEST_FILE));
 
-	str_t str = strz(1);
+	char buf[1] = {0};
+	str_t str   = STRB(buf, 0);
 
 	EXPECT_EQ(fs_read(&fs, STRV(TEST_FILE), 0, &str), 0);
 	EXPECT_STRN(str.data, "", str.len);
@@ -569,8 +567,6 @@ TEST(fs_read_empty)
 
 	fs_rmfile(&fs, STRV(TEST_FILE));
 	fs_rmfile(&vfs, STRV(TEST_FILE));
-
-	str_free(&str);
 
 	fs_free(&fs);
 	fs_free(&vfs);
@@ -598,7 +594,8 @@ TEST(fs_read_str)
 	fs_close(&fs, f);
 	fs_close(&vfs, vf);
 
-	str_t str = strz(1);
+	char buf[4] = {0};
+	str_t str   = STRB(buf, 0);
 
 	EXPECT_EQ(fs_read(&fs, STRV(TEST_FILE), 0, &str), 0);
 	EXPECT_STRN(str.data, "ab", str.len);
@@ -620,8 +617,6 @@ TEST(fs_read_str)
 
 	fs_rmfile(&fs, STRV(TEST_FILE));
 	fs_rmfile(&vfs, STRV(TEST_FILE));
-
-	str_free(&str);
 
 	fs_free(&fs);
 	fs_free(&vfs);
@@ -1831,7 +1826,8 @@ TEST(dput_fs)
 	EXPECT_EQ(dputs(DST_FS(&vfs, vf), STRV("b")), 1);
 	fs_close(&vfs, vf);
 
-	str_t str = strz(1);
+	char buf[4] = {0};
+	str_t str   = STRB(buf, 0);
 
 	fs_read(&vfs, STRV(TEST_FILE), 0, &str);
 
@@ -1839,7 +1835,6 @@ TEST(dput_fs)
 
 	fs_rmfile(&vfs, STRV(TEST_FILE));
 
-	str_free(&str);
 	fs_free(&vfs);
 
 	END;
