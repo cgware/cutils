@@ -13,12 +13,20 @@
 
 path_t *path_init(path_t *path, strv_t str)
 {
+	return path_init_s(path, str, CSEP);
+}
+
+path_t *path_init_s(path_t *path, strv_t str, char sep)
+{
 	if (path == NULL || str.len + 1 > sizeof(path->data)) {
 		return NULL;
 	}
 
 	if (str.data) {
-		mem_copy(path->data, sizeof(path->data), str.data, str.len);
+		for (size_t i = 0; i < str.len; i++) {
+			char c	      = str.data[i];
+			path->data[i] = (c == '/' || c == '\\') ? sep : c;
+		}
 	}
 
 	path->len = str.len;
@@ -26,6 +34,11 @@ path_t *path_init(path_t *path, strv_t str)
 	path->data[path->len] = '\0';
 
 	return path;
+}
+
+path_t *path_child(path_t *path, strv_t child)
+{
+	return path_child_s(path, child, CSEP);
 }
 
 path_t *path_child_s(path_t *path, strv_t child, char sep)
@@ -45,11 +58,6 @@ path_t *path_child_s(path_t *path, strv_t child, char sep)
 	path->data[path->len] = '\0';
 
 	return path;
-}
-
-path_t *path_child(path_t *path, strv_t child)
-{
-	return path_child_s(path, child, CSEP);
 }
 
 path_t *path_parent(path_t *path)

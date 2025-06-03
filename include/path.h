@@ -17,8 +17,9 @@ typedef struct path_s {
 } path_t;
 
 path_t *path_init(path_t *path, strv_t str);
-path_t *path_child_s(path_t *path, strv_t child, char sep);
+path_t *path_init_s(path_t *path, strv_t str, char sep);
 path_t *path_child(path_t *path, strv_t child);
+path_t *path_child_s(path_t *path, strv_t child, char sep);
 
 path_t *path_parent(path_t *path);
 path_t *path_set_len(path_t *path, size_t len);
