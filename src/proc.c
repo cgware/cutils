@@ -20,8 +20,9 @@ int vp_cmd(proc_t *proc, strv_t cmd)
 		return 1;
 	}
 
-	proc->buf.len = 0;
 	str_cat(&proc->buf, cmd);
+	str_cat(&proc->buf, STRV("\n"));
+
 	return 0;
 }
 

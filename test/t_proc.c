@@ -34,8 +34,13 @@ TEST(proc_cmd)
 	EXPECT_EQ(proc_cmd(&op, STRV_NULL), 1);
 	EXPECT_EQ(proc_cmd(&vp, STRV_NULL), 1);
 	EXPECT_EQ(proc_cmd(&op, STRV("echo")), 0);
-	EXPECT_EQ(proc_cmd(&vp, STRV("echo")), 0);
-	EXPECT_STRN(vp.buf.data, "echo", vp.buf.len);
+	EXPECT_EQ(proc_cmd(&vp, STRV("echo0")), 0);
+	EXPECT_STRN(vp.buf.data, "echo0\n", vp.buf.len);
+	EXPECT_EQ(proc_cmd(&vp, STRV("echo1")), 0);
+	EXPECT_STRN(vp.buf.data,
+		    "echo0\n"
+		    "echo1\n",
+		    vp.buf.len);
 
 	proc_free(&op);
 	proc_free(&vp);
