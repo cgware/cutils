@@ -13,6 +13,7 @@ STEST(loc);
 STEST(log);
 STEST(mem);
 STEST(path);
+STEST(proc);
 STEST(str);
 STEST(strbuf);
 STEST(strv);
@@ -34,6 +35,7 @@ TEST(cutils)
 	RUN(log);
 	RUN(mem);
 	RUN(path);
+	RUN(proc);
 	RUN(str);
 	RUN(strbuf);
 	RUN(strv);
