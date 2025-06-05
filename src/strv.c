@@ -105,29 +105,27 @@ int strv_to_int(strv_t str, int *res)
 	return ret;
 }
 
-int strv_split(strv_t str, char c, strv_t *l, strv_t *r)
+int strv_lsplit(strv_t str, char c, strv_t *l, strv_t *r)
 {
 	if (str.data == NULL) {
 		return 1;
 	}
 
-	for (size_t i = 0; i < str.len; i++) {
-		if (str.data[i] != c) {
-			continue;
-		}
+	size_t split = 0;
 
-		if (l) {
-			*l = STRVN(str.data, i);
-		}
-
-		if (r) {
-			*r = STRVN(&str.data[i + 1], str.len - i - 1);
-		}
-
-		return 0;
+	while (split < str.len && str.data[split] != c) {
+		split++;
 	}
 
-	return 1;
+	if (l) {
+		*l = STRVN(str.data, split);
+	}
+
+	if (r) {
+		*r = split < str.len ? STRVN(&str.data[split + 1], str.len - split - 1) : STRV_NULL;
+	}
+
+	return 0;
 }
 
 int strv_rsplit(strv_t str, char c, strv_t *l, strv_t *r)
@@ -136,23 +134,21 @@ int strv_rsplit(strv_t str, char c, strv_t *l, strv_t *r)
 		return 1;
 	}
 
-	for (size_t i = 1; i <= str.len; i++) {
-		if (str.data[str.len - i] != c) {
-			continue;
-		}
+	size_t split = str.len;
 
-		if (l) {
-			*l = STRVN(str.data, str.len - i);
-		}
-
-		if (r) {
-			*r = STRVN(&str.data[str.len - i + 1], i - 1);
-		}
-
-		return 0;
+	while (split > 0 && str.data[split - 1] != c) {
+		split--;
 	}
 
-	return 1;
+	if (l) {
+		*l = split > 0 ? STRVN(str.data, split - 1) : STRV_NULL;
+	}
+
+	if (r) {
+		*r = STRVN(&str.data[split], str.len - split);
+	}
+
+	return 0;
 }
 
 size_t strv_print(strv_t str, dst_t dst)

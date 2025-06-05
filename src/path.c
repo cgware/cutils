@@ -152,29 +152,14 @@ int pathv_is_rel(strv_t path)
 #endif
 }
 
-strv_t pathv_get_dir(strv_t pathv, strv_t *child)
+int pathv_lsplit(strv_t path, strv_t *l, strv_t *r)
 {
-	if (pathv.data == NULL) {
-		return (strv_t){0};
-	}
+	return strv_lsplit(path, CSEP, l, r);
+}
 
-	strv_t dir = pathv;
-
-	if (dir.len > 0 && (dir.data[dir.len - 1] == '\\' || dir.data[dir.len - 1] == '/')) {
-		dir.len--;
-	}
-
-	size_t child_end = dir.len;
-
-	while (dir.len > 0 && dir.data[dir.len - 1] != '\\' && dir.data[dir.len - 1] != '/') {
-		dir.len--;
-	}
-
-	if (child != NULL) {
-		*child = STRVN(&dir.data[dir.len], child_end - dir.len);
-	}
-
-	return dir;
+int pathv_rsplit(strv_t path, strv_t *l, strv_t *r)
+{
+	return strv_rsplit(path, CSEP, l, r);
 }
 
 path_t *path_merge(path_t *path, strv_t child)

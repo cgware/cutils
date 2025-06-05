@@ -91,26 +91,31 @@ TEST(strv_to_int)
 	END;
 }
 
-TEST(strv_split)
+TEST(strv_lsplit)
 {
 	START;
 
-	EXPECT_EQ(strv_split(STRV_NULL, 0, NULL, NULL), 1);
-	EXPECT_EQ(strv_split(STRV(""), 0, NULL, NULL), 1);
-	EXPECT_EQ(strv_split(STRV("a"), ' ', NULL, NULL), 1);
-	EXPECT_EQ(strv_split(STRV("a"), 'b', NULL, NULL), 1);
+	EXPECT_EQ(strv_lsplit(STRV_NULL, 0, NULL, NULL), 1);
 
 	strv_t l, r;
 
-	EXPECT_EQ(strv_split(STRV("a"), 'a', &l, &r), 0);
+	EXPECT_EQ(strv_lsplit(STRV(""), ' ', &l, &r), 0);
+	EXPECT_STRN(l.data, "", l.len);
+	EXPECT_EQ(r.data, NULL);
+
+	EXPECT_EQ(strv_lsplit(STRV(" "), ' ', &l, &r), 0);
 	EXPECT_STRN(l.data, "", l.len);
 	EXPECT_STRN(r.data, "", r.len);
 
-	EXPECT_EQ(strv_split(STRV("a b"), ' ', &l, &r), 0);
+	EXPECT_EQ(strv_lsplit(STRV("a"), ' ', &l, &r), 0);
+	EXPECT_STRN(l.data, "a", l.len);
+	EXPECT_EQ(r.data, NULL);
+
+	EXPECT_EQ(strv_lsplit(STRV("a b"), ' ', &l, &r), 0);
 	EXPECT_STRN(l.data, "a", l.len);
 	EXPECT_STRN(r.data, "b", r.len);
 
-	EXPECT_EQ(strv_split(STRV("a b c"), ' ', &l, &r), 0);
+	EXPECT_EQ(strv_lsplit(STRV("a b c"), ' ', &l, &r), 0);
 	EXPECT_STRN(l.data, "a", l.len);
 	EXPECT_STRN(r.data, "b c", r.len);
 
@@ -122,15 +127,20 @@ TEST(strv_rsplit)
 	START;
 
 	EXPECT_EQ(strv_rsplit(STRV_NULL, 0, NULL, NULL), 1);
-	EXPECT_EQ(strv_rsplit(STRV(""), 0, NULL, NULL), 1);
-	EXPECT_EQ(strv_rsplit(STRV("a"), ' ', NULL, NULL), 1);
-	EXPECT_EQ(strv_rsplit(STRV("a"), 'b', NULL, NULL), 1);
 
 	strv_t l, r;
 
-	EXPECT_EQ(strv_rsplit(STRV("a"), 'a', &l, &r), 0);
+	EXPECT_EQ(strv_rsplit(STRV(""), ' ', &l, &r), 0);
+	EXPECT_EQ(l.data, NULL);
+	EXPECT_STRN(r.data, "", r.len);
+
+	EXPECT_EQ(strv_rsplit(STRV(" "), ' ', &l, &r), 0);
 	EXPECT_STRN(l.data, "", l.len);
 	EXPECT_STRN(r.data, "", r.len);
+
+	EXPECT_EQ(strv_rsplit(STRV("a"), ' ', &l, &r), 0);
+	EXPECT_EQ(l.data, NULL);
+	EXPECT_STRN(r.data, "a", r.len);
 
 	EXPECT_EQ(strv_rsplit(STRV("a b"), ' ', &l, &r), 0);
 	EXPECT_STRN(l.data, "a", l.len);
@@ -166,7 +176,7 @@ STEST(strv)
 	RUN(strv_cmp);
 	RUN(strv_cmpn);
 	RUN(strv_to_int);
-	RUN(strv_split);
+	RUN(strv_lsplit);
 	RUN(strv_rsplit);
 	RUN(strv_print);
 	SEND;

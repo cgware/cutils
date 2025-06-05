@@ -120,8 +120,9 @@ static cerr_t vfs_open(fs_t *fs, strv_t path, const char *mode, void **file)
 	uint id;
 	fs_node_t *node = find_node(fs, path, &id);
 	if (node == NULL) {
-		strv_t name = {0};
-		strv_t dir  = path_trim(pathv_get_dir(path, &name));
+		strv_t dir, name;
+		pathv_rsplit(path, &dir, &name);
+		dir = path_trim(dir);
 
 		if ((mode[0] == 'w' || mode[0] == 'a') && name.len > 0 && (dir.len == 0 || fs_isdir(fs, dir))) {
 			node = arr_add(&fs->nodes, &id);
@@ -309,7 +310,9 @@ static cerr_t vfs_mkdir(fs_t *fs, strv_t path)
 		return CERR_EXIST;
 	}
 
-	strv_t parent = path_trim(pathv_get_dir(path, NULL));
+	strv_t parent;
+	pathv_rsplit(path, &parent, NULL);
+	parent = path_trim(parent);
 	if (parent.len > 0 && !vfs_isdir(fs, parent)) {
 		return CERR_NOT_FOUND;
 	}
@@ -348,7 +351,9 @@ static cerr_t vfs_mkfile(fs_t *fs, strv_t path)
 		return node->type == FS_NODE_TYPE_FILE ? CERR_EXIST : CERR_TYPE;
 	}
 
-	strv_t parent = path_trim(pathv_get_dir(path, NULL));
+	strv_t parent;
+	pathv_rsplit(path, &parent, NULL);
+	parent = path_trim(parent);
 	if (parent.len > 0 && !vfs_isdir(fs, parent)) {
 		return CERR_NOT_FOUND;
 	}
@@ -413,7 +418,9 @@ static cerr_t vfs_rmdir(fs_t *fs, strv_t path)
 			continue;
 		}
 
-		strv_t parent = path_trim(pathv_get_dir(buf_gets(&fs->paths, n->path), NULL));
+		strv_t parent;
+		pathv_rsplit(buf_gets(&fs->paths, n->path), &parent, NULL);
+		parent = path_trim(parent);
 
 		if (strv_eq(parent, path)) {
 			return CERR_NOT_EMPTY;
@@ -519,8 +526,9 @@ static int vfs_lsdir(fs_t *fs, strv_t path, strbuf_t *dirs)
 			continue;
 		}
 
-		strv_t name;
-		strv_t parent = path_trim(pathv_get_dir(buf_gets(&fs->paths, node->path), &name));
+		strv_t parent, name;
+		pathv_rsplit(buf_gets(&fs->paths, node->path), &parent, &name);
+		parent = path_trim(parent);
 
 		if (!strv_eq(parent, path)) {
 			continue;
@@ -570,8 +578,9 @@ static int vfs_lsfile(fs_t *fs, strv_t path, strbuf_t *files)
 			continue;
 		}
 
-		strv_t name;
-		strv_t parent = path_trim(pathv_get_dir(buf_gets(&fs->paths, node->path), &name));
+		strv_t parent, name;
+		pathv_rsplit(buf_gets(&fs->paths, node->path), &parent, &name);
+		parent = path_trim(parent);
 
 		if (!strv_eq(parent, path)) {
 			continue;
@@ -812,6 +821,34 @@ int fs_mkfile(fs_t *fs, strv_t path)
 	return err;
 }
 
+int fs_mkpath(fs_t *fs, strv_t base, strv_t path)
+{
+	path_t buf = {0};
+	if (fs == NULL || path_init(&buf, base) == NULL) {
+		return CERR_VAL;
+	}
+
+	cerr_t err;
+	if (base.data && !fs_isdir(fs, base)) {
+		err = CERR_NOT_FOUND;
+		log_error("cutils", "file", NULL, "failed to create path: %s: \"%s\"", cerr_str(err), buf.data);
+		return err;
+	}
+
+	path_t dir = {0};
+	path_init(&dir, path);
+	strv_t l;
+	path = STRVS(dir);
+
+	while (path.len > 0) {
+		pathv_lsplit(path, &l, &path);
+		path_child(&buf, l);
+		fs_mkdir(fs, STRVS(buf));
+	}
+
+	return CERR_OK;
+}
+
 int fs_rmdir(fs_t *fs, strv_t path)
 {
 	path_t buf = {0};
@@ -840,6 +877,54 @@ int fs_rmfile(fs_t *fs, strv_t path)
 	}
 
 	return err;
+}
+
+int fs_rmpath(fs_t *fs, strv_t base, strv_t path)
+{
+	path_t buf = {0};
+	if (fs == NULL || path_init(&buf, base) == NULL) {
+		return CERR_VAL;
+	}
+
+	cerr_t err;
+	if (base.data && !fs_isdir(fs, base)) {
+		err = CERR_NOT_FOUND;
+		log_error("cutils", "file", NULL, "failed to remove path: %s: \"%s\"", cerr_str(err), buf.data);
+		return err;
+	}
+
+	size_t base_len = buf.len;
+
+	path_t dir = {0};
+	path_init(&dir, path);
+	path = STRVS(dir);
+
+	strbuf_t files = {0};
+	strbuf_init(&files, 4, 8, ALLOC_STD);
+
+	while (path.len > 0) {
+		path_child(&buf, path);
+		size_t path_len = buf.len;
+		if (fs_isdir(fs, STRVS(buf))) {
+			fs_lsfile(fs, STRVS(buf), &files);
+			uint i = 0;
+			strv_t file;
+			strbuf_foreach(&files, i, file)
+			{
+				path_child(&buf, file);
+				fs_rmfile(fs, STRVS(buf));
+				buf.len = path_len;
+			}
+			fs_rmdir(fs, STRVS(buf));
+			strbuf_reset(&files, 0);
+		}
+		pathv_rsplit(path, &path, NULL);
+		buf.len = base_len;
+	}
+
+	strbuf_free(&files);
+
+	return CERR_OK;
 }
 
 int fs_getcwd(fs_t *fs, str_t *path)

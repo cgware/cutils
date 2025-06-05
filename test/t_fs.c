@@ -1126,6 +1126,43 @@ TEST(fs_mkfile_dir)
 	END;
 }
 
+TEST(fs_mkpath)
+{
+	START;
+
+	fs_t fs	 = {0};
+	fs_t vfs = {0};
+
+	fs_init(&fs, 0, 0, ALLOC_STD);
+	fs_init(&vfs, 4, 1, ALLOC_STD);
+
+	EXPECT_EQ(fs_mkpath(NULL, STRV_NULL, STRV_NULL), CERR_VAL);
+
+	log_set_quiet(0, 1);
+	EXPECT_EQ(fs_mkpath(&fs, STRV(TEST_DIR), STRV("a/b/c")), CERR_NOT_FOUND);
+	EXPECT_EQ(fs_mkpath(&vfs, STRV(TEST_DIR), STRV("a/b/c")), CERR_NOT_FOUND);
+	log_set_quiet(0, 0);
+
+	fs_mkdir(&fs, STRV(TEST_DIR));
+	fs_mkdir(&vfs, STRV(TEST_DIR));
+
+	EXPECT_EQ(fs_mkpath(&fs, STRV(TEST_DIR), STRV("a/b/c")), CERR_OK);
+	EXPECT_EQ(fs_mkpath(&vfs, STRV(TEST_DIR), STRV("a/b/c")), CERR_OK);
+
+	EXPECT_EQ(vfs.nodes.cnt, 4);
+
+	fs_rmpath(&fs, STRV(TEST_DIR), STRV("a/b/c"));
+	fs_rmpath(&vfs, STRV(TEST_DIR), STRV("a/b/c"));
+
+	fs_rmdir(&fs, STRV(TEST_DIR));
+	fs_rmdir(&vfs, STRV(TEST_DIR));
+
+	fs_free(&fs);
+	fs_free(&vfs);
+
+	END;
+}
+
 TEST(fs_rmdir)
 {
 	START;
@@ -1367,6 +1404,44 @@ TEST(fs_rmfile_not_found)
 	EXPECT_EQ(fs_rmfile(&fs, STRV(TEST_FILE)), CERR_NOT_FOUND);
 	EXPECT_EQ(fs_rmfile(&vfs, STRV(TEST_FILE)), CERR_NOT_FOUND);
 	log_set_quiet(0, 0);
+
+	fs_free(&fs);
+	fs_free(&vfs);
+
+	END;
+}
+
+TEST(fs_rmpath)
+{
+	START;
+
+	fs_t fs	 = {0};
+	fs_t vfs = {0};
+
+	fs_init(&fs, 0, 0, ALLOC_STD);
+	fs_init(&vfs, 5, 1, ALLOC_STD);
+
+	EXPECT_EQ(fs_rmpath(NULL, STRV_NULL, STRV_NULL), CERR_VAL);
+
+	log_set_quiet(0, 1);
+	EXPECT_EQ(fs_rmpath(&fs, STRV(TEST_DIR), STRV("a/b/c")), CERR_NOT_FOUND);
+	EXPECT_EQ(fs_rmpath(&vfs, STRV(TEST_DIR), STRV("a/b/c")), CERR_NOT_FOUND);
+	log_set_quiet(0, 0);
+
+	fs_mkdir(&fs, STRV(TEST_DIR));
+	fs_mkdir(&vfs, STRV(TEST_DIR));
+
+	fs_mkpath(&fs, STRV(TEST_DIR), STRV("a/b/c"));
+	fs_mkpath(&vfs, STRV(TEST_DIR), STRV("a/b/c"));
+
+	fs_mkfile(&fs, STRV(TEST_DIR "/a/b/c/" TEST_FILE));
+	fs_mkfile(&vfs, STRV(TEST_DIR "/a/b/c/" TEST_FILE));
+
+	EXPECT_EQ(fs_rmpath(&fs, STRV(TEST_DIR), STRV("a/b/c")), CERR_OK);
+	EXPECT_EQ(fs_rmpath(&vfs, STRV(TEST_DIR), STRV("a/b/c")), CERR_OK);
+
+	fs_rmdir(&fs, STRV(TEST_DIR));
+	fs_rmdir(&vfs, STRV(TEST_DIR));
 
 	fs_free(&fs);
 	fs_free(&vfs);
@@ -1884,6 +1959,7 @@ STEST(fs)
 	RUN(fs_mkfile_oom);
 	RUN(fs_mkfile_exist);
 	RUN(fs_mkfile_dir);
+	RUN(fs_mkpath);
 	RUN(fs_rmdir);
 	RUN(fs_rmdir_arr);
 	RUN(fs_rmdir_file);
@@ -1893,6 +1969,7 @@ STEST(fs)
 	RUN(fs_rmfile_arr);
 	RUN(fs_rmfile_dir);
 	RUN(fs_rmfile_not_found);
+	RUN(fs_rmpath);
 	RUN(fs_dir_mk_is_rm);
 	RUN(fs_file_mk_is_rm);
 	RUN(fs_getcwd);

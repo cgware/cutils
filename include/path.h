@@ -28,7 +28,8 @@ int path_calc_rel(strv_t path, strv_t dest, path_t *out);
 
 int pathv_is_rel(strv_t path);
 
-strv_t pathv_get_dir(strv_t pathv, strv_t *child);
+int pathv_lsplit(strv_t path, strv_t *l, strv_t *r);
+int pathv_rsplit(strv_t path, strv_t *l, strv_t *r);
 
 path_t *path_merge(path_t *path, strv_t child);
 

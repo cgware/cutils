@@ -26,9 +26,11 @@ int fs_isfile(fs_t *fs, strv_t path);
 
 int fs_mkdir(fs_t *fs, strv_t path);
 int fs_mkfile(fs_t *fs, strv_t path);
+int fs_mkpath(fs_t *fs, strv_t base, strv_t path);
 
 int fs_rmdir(fs_t *fs, strv_t path);
 int fs_rmfile(fs_t *fs, strv_t path);
+int fs_rmpath(fs_t *fs, strv_t base, strv_t path);
 
 int fs_getcwd(fs_t *fs, str_t *path);
 

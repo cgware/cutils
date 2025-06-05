@@ -198,52 +198,32 @@ TEST(pathv_is_rel)
 	END;
 }
 
-TEST(pathv_get_dir)
+TEST(pathv_lsplit)
 {
 	START;
 
-	strv_t pathv = {0};
+	strv_t l, r;
 
-	strv_t dir = {0};
-	strv_t child;
+	EXPECT_EQ(pathv_lsplit(STRV_NULL, NULL, NULL), 1);
 
-	dir = pathv_get_dir(STRV_NULL, NULL);
-	EXPECT_EQ(dir.data, NULL);
-	EXPECT_EQ(dir.len, 0);
+	EXPECT_EQ(pathv_lsplit(STRV("a" SEP "b" SEP "c"), &l, &r), 0);
+	EXPECT_STRN(l.data, "a", l.len);
+	EXPECT_STRN(r.data, "b" SEP "c", r.len);
 
-	pathv = STRV("a/b/c");
-	dir   = pathv_get_dir(pathv, NULL);
-	EXPECT_STRN(dir.data, "a/b/", dir.len);
+	END;
+}
 
-	pathv = STRV("a/b/c");
-	dir   = pathv_get_dir(pathv, &child);
-	EXPECT_STRN(dir.data, "a/b/", dir.len);
-	EXPECT_STRN(child.data, "c", child.len);
+TEST(pathv_rsplit)
+{
+	START;
 
-	pathv = STRV("a/b/c/");
-	dir   = pathv_get_dir(pathv, &child);
-	EXPECT_STRN(dir.data, "a/b/", dir.len);
-	EXPECT_STRN(child.data, "c", child.len);
+	strv_t l, r;
 
-	pathv = STRV("/a");
-	dir   = pathv_get_dir(pathv, &child);
-	EXPECT_STRN(dir.data, "/", dir.len);
-	EXPECT_STRN(child.data, "a", child.len);
+	EXPECT_EQ(pathv_rsplit(STRV_NULL, NULL, NULL), 1);
 
-	pathv = STRV("/");
-	dir   = pathv_get_dir(pathv, &child);
-	EXPECT_STRN(dir.data, "", dir.len);
-	EXPECT_STRN(child.data, "", child.len);
-
-	pathv = STRV("a");
-	dir   = pathv_get_dir(pathv, &child);
-	EXPECT_STRN(dir.data, "", dir.len);
-	EXPECT_STRN(child.data, "a", child.len);
-
-	pathv = STRV("");
-	dir   = pathv_get_dir(pathv, &child);
-	EXPECT_STRN(dir.data, "", dir.len);
-	EXPECT_STRN(child.data, "", child.len);
+	EXPECT_EQ(pathv_rsplit(STRV("a" SEP "b" SEP "c"), &l, &r), 0);
+	EXPECT_STRN(l.data, "a" SEP "b", l.len);
+	EXPECT_STRN(r.data, "c", r.len);
 
 	END;
 }
@@ -340,7 +320,8 @@ STEST(path)
 	RUN(path_ends);
 	RUN(path_calc_rel);
 	RUN(pathv_is_rel);
-	RUN(pathv_get_dir);
+	RUN(pathv_lsplit);
+	RUN(pathv_rsplit);
 	RUN(path_merge);
 	SEND;
 }
