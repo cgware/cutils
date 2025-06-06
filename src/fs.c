@@ -843,7 +843,9 @@ int fs_mkpath(fs_t *fs, strv_t base, strv_t path)
 	while (path.len > 0) {
 		pathv_lsplit(path, &l, &path);
 		path_child(&buf, l);
-		fs_mkdir(fs, STRVS(buf));
+		if (!fs_isdir(fs, STRVS(buf))) {
+			fs_mkdir(fs, STRVS(buf));
+		}
 	}
 
 	return CERR_OK;
