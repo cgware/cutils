@@ -842,7 +842,7 @@ int fs_mkpath(fs_t *fs, strv_t base, strv_t path)
 
 	while (path.len > 0) {
 		pathv_lsplit(path, &l, &path);
-		path_child(&buf, l);
+		path_push(&buf, l);
 		if (!fs_isdir(fs, STRVS(buf))) {
 			fs_mkdir(fs, STRVS(buf));
 		}
@@ -905,7 +905,7 @@ int fs_rmpath(fs_t *fs, strv_t base, strv_t path)
 	strbuf_init(&files, 4, 8, ALLOC_STD);
 
 	while (path.len > 0) {
-		path_child(&buf, path);
+		path_push(&buf, path);
 		size_t path_len = buf.len;
 		if (fs_isdir(fs, STRVS(buf))) {
 			fs_lsfile(fs, STRVS(buf), &files);
@@ -913,7 +913,7 @@ int fs_rmpath(fs_t *fs, strv_t base, strv_t path)
 			strv_t file;
 			strbuf_foreach(&files, i, file)
 			{
-				path_child(&buf, file);
+				path_push(&buf, file);
 				fs_rmfile(fs, STRVS(buf));
 				buf.len = path_len;
 			}

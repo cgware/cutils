@@ -36,12 +36,12 @@ path_t *path_init_s(path_t *path, strv_t str, char sep)
 	return path;
 }
 
-path_t *path_child(path_t *path, strv_t child)
+path_t *path_push(path_t *path, strv_t child)
 {
-	return path_child_s(path, child, CSEP);
+	return path_push_s(path, child, CSEP);
 }
 
-path_t *path_child_s(path_t *path, strv_t child, char sep)
+path_t *path_push_s(path_t *path, strv_t child, char sep)
 {
 	if (path == NULL || child.data == NULL || path->len + child.len + 1 > sizeof(path->data)) {
 		return NULL;
@@ -60,19 +60,25 @@ path_t *path_child_s(path_t *path, strv_t child, char sep)
 	return path;
 }
 
-path_t *path_parent(path_t *path)
+path_t *path_pop(path_t *path)
 {
 	if (path == NULL) {
 		return NULL;
 	}
 
 	size_t len = path->len;
-
-	while (len > 0 && path->data[len] != '\\' && path->data[len] != '/') {
+	path->len  = 0;
+	if (len > 0) {
 		len--;
 	}
 
-	path->len = len;
+	while (len > 0) {
+		len--;
+		if (path->data[len] == '/' || path->data[len] == '\\') {
+			path->len = len + 1;
+			break;
+		}
+	}
 
 	path->data[path->len] = '\0';
 
@@ -135,7 +141,7 @@ int path_calc_rel(strv_t path, strv_t dest, path_t *out)
 		}
 	}
 
-	path_child(out, STRVN(&dest.data[prefix_len + 1], dest.len - prefix_len - 1));
+	path_push(out, STRVN(&dest.data[prefix_len + 1], dest.len - prefix_len - 1));
 	return 0;
 }
 
@@ -162,39 +168,61 @@ int pathv_rsplit(strv_t path, strv_t *l, strv_t *r)
 	return strv_rsplit(path, CSEP, l, r);
 }
 
-path_t *path_merge(path_t *path, strv_t child)
+path_t *path_merge(path_t *path, strv_t rel)
 {
-	if (path == NULL) {
-		return NULL;
-	}
-
-	if (child.data == NULL) {
+	if (path == NULL || rel.data == NULL) {
 		return path;
 	}
 
-	if (path->len > 0 && (path->data[path->len - 1] == '/' || path->data[path->len - 1] == '\\')) {
-		path->data[--path->len] = '\0';
+	if (rel.len > 0 && (rel.data[0] == '/' || rel.data[0] == '\\')) {
+		path->len = 0;
+		path_push(path, rel);
+		return path;
 	}
 
-	while (child.len > 0) {
-		strv_t folder = STRVN(child.data, 0);
-		for (size_t i = 0; i < child.len && child.data[i] != '/' && child.data[i] != '\\'; i++) {
-			folder.len++;
+	size_t i = 0;
+	while (i < rel.len) {
+		if (rel.data[i] != '.') {
+			// *
+			path_push(path, STRVN(&rel.data[i], rel.len - i));
+			break;
 		}
 
-		if (strv_eq(folder, STRV("."))) {
-		} else if (strv_eq(folder, STRV(".."))) {
-			path_parent(path);
-		} else {
-			path_child(path, folder);
+		if (i + 1 >= rel.len) {
+			// .
+			break;
 		}
 
-		if (folder.len + 1 <= child.len) {
-			folder.len++;
+		if (rel.data[i + 1] == '/' || rel.data[i + 1] == '\\') {
+			// ./
+			i += 2;
+			continue;
 		}
 
-		child = STRVN(&child.data[folder.len], child.len - folder.len);
+		if (rel.data[i + 1] != '.') {
+			// .*
+			path_push(path, STRVN(&rel.data[i], rel.len - i));
+			break;
+		}
+
+		if (i + 2 >= rel.len) {
+			// ..
+			path_pop(path);
+			break;
+		}
+
+		if (rel.data[i + 2] == '/' || rel.data[i + 2] == '\\') {
+			// ../
+			path_pop(path);
+			i += 3;
+			continue;
+		}
+
+		// ..*
+		path_push(path, STRVN(&rel.data[i], rel.len - i));
+		break;
 	}
 
+	path->data[path->len] = '\0';
 	return path;
 }
