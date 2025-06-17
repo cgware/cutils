@@ -26,6 +26,7 @@ path_t *path_pop(path_t *path);
 path_t *path_set_len(path_t *path, size_t len);
 int path_ends(const path_t *path, strv_t str);
 int path_calc_rel(strv_t path, strv_t dest, path_t *out);
+int path_calc_rel_s(strv_t path, strv_t dest, char sep, path_t *out);
 
 int pathv_is_rel(strv_t path);
 

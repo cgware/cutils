@@ -108,6 +108,11 @@ int path_ends(const path_t *path, strv_t str)
 
 int path_calc_rel(strv_t path, strv_t dest, path_t *out)
 {
+	return path_calc_rel_s(path, dest, CSEP, out);
+}
+
+int path_calc_rel_s(strv_t path, strv_t dest, char sep, path_t *out)
+{
 	if (path.data == NULL || dest.data == NULL || out == NULL) {
 		return 1;
 	}
@@ -137,11 +142,11 @@ int path_calc_rel(strv_t path, strv_t dest, path_t *out)
 		if (path.data[i] == '/' || path.data[i] == '\\') {
 			out->data[out->len++] = '.';
 			out->data[out->len++] = '.';
-			out->data[out->len++] = CSEP;
+			out->data[out->len++] = sep;
 		}
 	}
 
-	path_push(out, STRVN(&dest.data[prefix_len + 1], dest.len - prefix_len - 1));
+	path_push_s(out, STRVN(&dest.data[prefix_len + 1], dest.len - prefix_len - 1), sep);
 	return 0;
 }
 

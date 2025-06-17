@@ -61,9 +61,7 @@ TEST(path_push_s)
 
 	EXPECT_EQ(path_push_s(NULL, STRV_NULL, 0), NULL);
 	EXPECT_EQ(path_push_s(&path, STRV_NULL, 0), NULL);
-	log_set_quiet(0, 1);
 	EXPECT_EQ(path_push_s(&path, STRV("b"), '/'), &path);
-	log_set_quiet(0, 0);
 
 	EXPECT_EQ(path.len, 3);
 	EXPECT_STR(path.data, "a/b");
@@ -178,6 +176,21 @@ TEST(path_calc_rel)
 
 	EXPECT_EQ(path_calc_rel(STRV("/a"), STRV("/"), &path), 0);
 	EXPECT_STR(path.data, "");
+
+	END;
+}
+
+TEST(path_calc_rel_s)
+{
+	START;
+
+	path_t path = {0};
+
+	EXPECT_EQ(path_calc_rel_s(STRV("a/b"), STRV("a"), '/', &path), 0);
+	EXPECT_STR(path.data, "../a");
+
+	EXPECT_EQ(path_calc_rel_s(STRV("a/b"), STRV("a"), '\\', &path), 0);
+	EXPECT_STR(path.data, "..\\a");
 
 	END;
 }
@@ -374,6 +387,7 @@ STEST(path)
 	RUN(path_set_len);
 	RUN(path_ends);
 	RUN(path_calc_rel);
+	RUN(path_calc_rel_s);
 	RUN(pathv_is_rel);
 	RUN(pathv_lsplit);
 	RUN(pathv_rsplit);
