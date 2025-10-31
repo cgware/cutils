@@ -1,5 +1,6 @@
 #include "proc.h"
 
+#include "log.h"
 #include "mem.h"
 #include "test.h"
 
@@ -31,15 +32,20 @@ TEST(proc_cmd)
 	proc_init(&vp, 4, 1);
 
 	EXPECT_EQ(proc_cmd(NULL, STRV_NULL), 1);
+	log_set_quiet(0, 1);
 	EXPECT_EQ(proc_cmd(&op, STRV_NULL), 1);
+	log_set_quiet(0, 0);
 	EXPECT_EQ(proc_cmd(&vp, STRV_NULL), 1);
-	EXPECT_EQ(proc_cmd(&op, STRV("echo")), 0);
-	EXPECT_EQ(proc_cmd(&vp, STRV("echo0")), 0);
-	EXPECT_STRN(vp.buf.data, "echo0\n", vp.buf.len);
-	EXPECT_EQ(proc_cmd(&vp, STRV("echo1")), 0);
+	EXPECT_EQ(proc_cmd(&op, STRV("true")), 0);
+	log_set_quiet(0, 1);
+	EXPECT_EQ(proc_cmd(&op, STRV("false")), 1);
+	log_set_quiet(0, 0);
+	EXPECT_EQ(proc_cmd(&vp, STRV("true")), 0);
+	EXPECT_STRN(vp.buf.data, "true\n", vp.buf.len);
+	EXPECT_EQ(proc_cmd(&vp, STRV("false")), 0);
 	EXPECT_STRN(vp.buf.data,
-		    "echo0\n"
-		    "echo1\n",
+		    "true\n"
+		    "false\n",
 		    vp.buf.len);
 
 	proc_free(&op);
