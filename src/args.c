@@ -85,7 +85,6 @@ static size_t print_no_param(const opt_t *opt, int opt_long, dst_t dst)
 
 	if (opt_long) {
 		dst.off += dputf(dst, "No %s specified for --%.*s\n", opt->placeholder, (int)opt->long_opt.len, opt->long_opt.data);
-
 	} else {
 		dst.off += dputf(dst, "No %s specified for -%c\n", opt->placeholder, opt->short_opt);
 	}
@@ -154,8 +153,8 @@ static int parse_param(opt_t *opt, int opt_long, strv_t param, dst_t dst)
 {
 	switch (opt->type) {
 	case OPT_NONE:
-		*(strv_t *)opt->value = param;
-		opt->set	      = 1;
+		*(int *)opt->value = 1;
+		opt->set	   = 1;
 		break;
 	case OPT_STR:
 		*(strv_t *)opt->value = param;
@@ -200,16 +199,21 @@ int args_parse(int argc, const char **argv, opt_t *opts, size_t opts_size, dst_t
 
 	for (int i = 1; i < argc; i++) {
 		if (opt && opt->value) {
-			if (opt_long || argv[i][0] != '-') {
-				if (parse_param(opt, opt_long, strv_cstr(argv[i]), dst)) {
-					return 1;
-				}
+			if (opt->type == OPT_NONE) {
+				parse_param(opt, opt_long, STRV_NULL, dst);
 				opt = NULL;
-				continue;
-			}
+			} else {
+				if (opt_long || argv[i][0] != '-') {
+					if (parse_param(opt, opt_long, strv_cstr(argv[i]), dst)) {
+						return 1;
+					}
+					opt = NULL;
+					continue;
+				}
 
-			dst.off += print_no_param(opt, opt_long, dst);
-			return 1;
+				dst.off += print_no_param(opt, opt_long, dst);
+				return 1;
+			}
 		}
 
 		if (argv[i][0] != '-') {
@@ -239,8 +243,12 @@ int args_parse(int argc, const char **argv, opt_t *opts, size_t opts_size, dst_t
 	}
 
 	if (opt && opt->value) {
-		dst.off += print_no_param(opt, opt_long, dst);
-		return 1;
+		if (opt->type == OPT_NONE) {
+			parse_param(opt, opt_long, STRV_NULL, dst);
+		} else {
+			dst.off += print_no_param(opt, opt_long, dst);
+			return 1;
+		}
 	}
 
 	size_t opts_len = opts_size / sizeof(opt_t);

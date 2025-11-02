@@ -161,13 +161,50 @@ TEST(args_parse_none)
 	}
 
 	{
-		strv_t val = {0};
+		int val = 0;
+
+		opt_t optsv[] = {
+			OPT('a', "a", OPT_NONE, NULL, NULL, &val, {0}, OPT_OPT),
+		};
+		const char *argv[] = {"test", "-a"};
+		EXPECT_EQ(args_parse(2, argv, optsv, sizeof(optsv), DST_BUF(buf)), 0);
+		EXPECT_EQ(val, 1);
+	}
+
+	{
+		int a = 0;
+		int b = 0;
+
+		opt_t optsv[] = {
+			OPT('a', "a", OPT_NONE, NULL, NULL, &a, {0}, OPT_OPT),
+			OPT('b', "b", OPT_INT, NULL, NULL, &b, {0}, OPT_OPT),
+		};
+		const char *argv[] = {"test", "-a", "-b", "1"};
+		EXPECT_EQ(args_parse(4, argv, optsv, sizeof(optsv), DST_BUF(buf)), 0);
+		EXPECT_EQ(a, 1);
+	}
+
+	{
+		int a = 0;
+		int b = 0;
+
+		opt_t optsv[] = {
+			OPT('a', "a", OPT_NONE, NULL, NULL, &a, {0}, OPT_OPT),
+			OPT('b', "b", OPT_INT, NULL, NULL, &b, {0}, OPT_OPT),
+		};
+		const char *argv[] = {"test", "--a", "-b", "1"};
+		EXPECT_EQ(args_parse(4, argv, optsv, sizeof(optsv), DST_BUF(buf)), 0);
+		EXPECT_EQ(a, 1);
+	}
+
+	{
+		int val = 0;
 
 		opt_t optsv[] = {
 			OPT('a', "a", OPT_NONE, NULL, NULL, &val, {0}, OPT_OPT),
 		};
 		const char *argv[] = {"test", "-a", "val"};
-		EXPECT_EQ(args_parse(3, argv, optsv, sizeof(optsv), DST_BUF(buf)), 0);
+		EXPECT_EQ(args_parse(3, argv, optsv, sizeof(optsv), DST_BUF(buf)), 1);
 	}
 
 	{
@@ -207,6 +244,13 @@ TEST(args_parse_str)
 		const char *argv[] = {"test", "--a", "val"};
 		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), DST_BUF(buf)), 0);
 		EXPECT_STRN(val.data, "val", val.len);
+		val = STRV("");
+	}
+
+	{
+		const char *argv[] = {"test", "--a", "-val"};
+		EXPECT_EQ(args_parse(3, argv, opts, sizeof(opts), DST_BUF(buf)), 0);
+		EXPECT_STRN(val.data, "-val", val.len);
 		val = STRV("");
 	}
 
