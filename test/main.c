@@ -18,6 +18,7 @@ STEST(str);
 STEST(strbuf);
 STEST(strv);
 STEST(strvbuf);
+STEST(tbl);
 STEST(tree);
 STEST(type);
 
@@ -40,6 +41,7 @@ TEST(cutils)
 	RUN(strbuf);
 	RUN(strv);
 	RUN(strvbuf);
+	RUN(tbl);
 	RUN(tree);
 	RUN(type);
 	SEND;
