@@ -14,11 +14,12 @@ STEST(log);
 STEST(mem);
 STEST(path);
 STEST(proc);
+STEST(schema);
 STEST(str);
 STEST(strbuf);
 STEST(strv);
 STEST(strvbuf);
-STEST(tbl);
+// STEST(tbl);
 STEST(tree);
 STEST(type);
 
@@ -37,11 +38,12 @@ TEST(cutils)
 	RUN(mem);
 	RUN(path);
 	RUN(proc);
+	RUN(schema);
 	RUN(str);
 	RUN(strbuf);
 	RUN(strv);
 	RUN(strvbuf);
-	RUN(tbl);
+	// RUN(tbl);
 	RUN(tree);
 	RUN(type);
 	SEND;

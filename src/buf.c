@@ -48,13 +48,19 @@ void buf_reset(buf_t *buf, size_t used)
 	buf->used = used;
 }
 
-static int buf_grow(buf_t *buf, size_t size)
+int buf_resize(buf_t *buf, size_t size)
 {
-	if (buf->used + size > buf->size) {
-		if (alloc_realloc(&buf->alloc, &buf->data, &buf->size, (buf->used + size) * 2)) {
-			log_error("cutils", "buf", NULL, "failed to grow buffer");
-			return 1;
-		}
+	if (buf == NULL) {
+		return 1;
+	}
+
+	if (size <= buf->size) {
+		return 0;
+	}
+
+	if (alloc_realloc(&buf->alloc, &buf->data, &buf->size, size)) {
+		log_error("cutils", "buf", NULL, "failed to resize buffer");
+		return 1;
 	}
 
 	return 0;
@@ -62,7 +68,11 @@ static int buf_grow(buf_t *buf, size_t size)
 
 int buf_add(buf_t *buf, const void *data, size_t size, size_t *off)
 {
-	if (buf == NULL || buf_grow(buf, size)) {
+	if (buf == NULL || buf_resize(buf, (buf->used + size) * 2)) {
+		return 1;
+	}
+
+	if (buf->used + size > buf->size && buf_resize(buf, (buf->used + size) * 2)) {
 		return 1;
 	}
 
@@ -118,7 +128,7 @@ buf_t *buf_replace(buf_t *buf, size_t off, const void *data, size_t old_len, siz
 		return NULL;
 	}
 
-	if (new_len > old_len && buf_grow(buf, new_len - old_len)) {
+	if (new_len > old_len && buf_resize(buf, (buf->used - old_len + new_len) * 2)) {
 		return NULL;
 	}
 

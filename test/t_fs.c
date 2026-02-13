@@ -441,16 +441,16 @@ TEST(fs_write_valid)
 	END;
 }
 
-TEST(fs_read)
+TEST(fs_reads)
 {
 	START;
 
-	EXPECT_EQ(fs_read(NULL, STRV_NULL, 0, NULL), CERR_VAL);
+	EXPECT_EQ(fs_reads(NULL, STRV_NULL, NULL), CERR_VAL);
 
 	END;
 }
 
-TEST(fs_read_not_found)
+TEST(fs_reads_not_found)
 {
 	START;
 
@@ -464,8 +464,8 @@ TEST(fs_read_not_found)
 	str_t str   = STRB(buf, 0);
 
 	log_set_quiet(0, 1);
-	EXPECT_EQ(fs_read(&fs, STRV(TEST_FILE), 0, &str), CERR_NOT_FOUND);
-	EXPECT_EQ(fs_read(&vfs, STRV(TEST_FILE), 0, &str), CERR_NOT_FOUND);
+	EXPECT_EQ(fs_reads(&fs, STRV(TEST_FILE), &str), CERR_NOT_FOUND);
+	EXPECT_EQ(fs_reads(&vfs, STRV(TEST_FILE), &str), CERR_NOT_FOUND);
 	log_set_quiet(0, 0);
 
 	fs_free(&fs);
@@ -474,7 +474,7 @@ TEST(fs_read_not_found)
 	END;
 }
 
-TEST(fs_read_arr)
+TEST(fs_reads_arr)
 {
 	START;
 
@@ -492,7 +492,7 @@ TEST(fs_read_arr)
 	vfs.nodes.cnt = 0;
 
 	log_set_quiet(0, 1);
-	EXPECT_EQ(fs_read(&vfs, STRV(TEST_FILE), 0, &str), CERR_NOT_FOUND);
+	EXPECT_EQ(fs_reads(&vfs, STRV(TEST_FILE), &str), CERR_NOT_FOUND);
 	log_set_quiet(0, 0);
 
 	vfs.paths.used = paths_used;
@@ -502,7 +502,7 @@ TEST(fs_read_arr)
 	END;
 }
 
-TEST(fs_read_oom)
+TEST(fs_reads_oom)
 {
 	START;
 
@@ -529,8 +529,8 @@ TEST(fs_read_oom)
 	str_t str   = STRB(buf, 0);
 
 	mem_oom(1);
-	EXPECT_EQ(fs_read(&fs, STRV(TEST_FILE), 0, &str), CERR_MEM);
-	EXPECT_EQ(fs_read(&vfs, STRV(TEST_FILE), 0, &str), CERR_MEM);
+	EXPECT_EQ(fs_reads(&fs, STRV(TEST_FILE), &str), CERR_MEM);
+	EXPECT_EQ(fs_reads(&vfs, STRV(TEST_FILE), &str), CERR_MEM);
 	mem_oom(0);
 
 	fs_rmfile(&fs, STRV(TEST_FILE));
@@ -541,7 +541,7 @@ TEST(fs_read_oom)
 	END;
 }
 
-TEST(fs_read_empty)
+TEST(fs_reads_empty)
 {
 	START;
 
@@ -557,12 +557,12 @@ TEST(fs_read_empty)
 	char buf[1] = {0};
 	str_t str   = STRB(buf, 0);
 
-	EXPECT_EQ(fs_read(&fs, STRV(TEST_FILE), 0, &str), 0);
+	EXPECT_EQ(fs_reads(&fs, STRV(TEST_FILE), &str), 0);
 	EXPECT_STRN(str.data, "", str.len);
 
 	str.len = 0;
 
-	EXPECT_EQ(fs_read(&vfs, STRV(TEST_FILE), 0, &str), 0);
+	EXPECT_EQ(fs_reads(&vfs, STRV(TEST_FILE), &str), 0);
 	EXPECT_STRN(str.data, "", str.len);
 
 	fs_rmfile(&fs, STRV(TEST_FILE));
@@ -574,7 +574,7 @@ TEST(fs_read_empty)
 	END;
 }
 
-TEST(fs_read_str)
+TEST(fs_reads_str)
 {
 	START;
 
@@ -597,22 +597,12 @@ TEST(fs_read_str)
 	char buf[4] = {0};
 	str_t str   = STRB(buf, 0);
 
-	EXPECT_EQ(fs_read(&fs, STRV(TEST_FILE), 0, &str), 0);
+	EXPECT_EQ(fs_reads(&fs, STRV(TEST_FILE), &str), 0);
 	EXPECT_STRN(str.data, "ab", str.len);
 
 	str.len = 0;
 
-	EXPECT_EQ(fs_read(&fs, STRV(TEST_FILE), 1, &str), 0);
-	EXPECT_STRN(str.data, "ab", str.len);
-
-	str.len = 0;
-
-	EXPECT_EQ(fs_read(&vfs, STRV(TEST_FILE), 0, &str), 0);
-	EXPECT_STRN(str.data, "ab", str.len);
-
-	str.len = 0;
-
-	EXPECT_EQ(fs_read(&vfs, STRV(TEST_FILE), 1, &str), 0);
+	EXPECT_EQ(fs_reads(&vfs, STRV(TEST_FILE), &str), 0);
 	EXPECT_STRN(str.data, "ab", str.len);
 
 	fs_rmfile(&fs, STRV(TEST_FILE));
@@ -1904,7 +1894,7 @@ TEST(dput_fs)
 	char buf[4] = {0};
 	str_t str   = STRB(buf, 0);
 
-	fs_read(&vfs, STRV(TEST_FILE), 0, &str);
+	fs_reads(&vfs, STRV(TEST_FILE), &str);
 
 	EXPECT_STRN(str.data, "ab", str.len);
 
@@ -1935,12 +1925,12 @@ STEST(fs)
 	RUN(fs_write);
 	RUN(fs_write_oom);
 	RUN(fs_write_valid);
-	RUN(fs_read);
-	RUN(fs_read_not_found);
-	RUN(fs_read_arr);
-	RUN(fs_read_oom);
-	RUN(fs_read_empty);
-	RUN(fs_read_str);
+	RUN(fs_reads);
+	RUN(fs_reads_not_found);
+	RUN(fs_reads_arr);
+	RUN(fs_reads_oom);
+	RUN(fs_reads_empty);
+	RUN(fs_reads_str);
 	RUN(fs_du);
 	RUN(fs_du_arr);
 	RUN(fs_isdir);

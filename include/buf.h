@@ -17,6 +17,8 @@ void buf_free(buf_t *buf);
 
 void buf_reset(buf_t *buf, size_t used);
 
+int buf_resize(buf_t *buf, size_t size);
+
 int buf_add(buf_t *buf, const void *data, size_t size, size_t *off);
 int buf_adds(buf_t *buf, strv_t str, loc_t *loc);
 void *buf_get(const buf_t *buf, size_t off);
