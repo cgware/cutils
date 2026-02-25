@@ -9,12 +9,13 @@ arr_t *arr_init(arr_t *arr, uint cap, size_t size, alloc_t alloc)
 		return NULL;
 	}
 
-	arr->data = alloc_alloc(&alloc, cap * size);
-	if (arr->data == NULL) {
+	void *data = alloc_alloc(&alloc, cap * size);
+	if (data == NULL) {
 		log_error("cutils", "arr", NULL, "failed to allocate memory");
 		return NULL;
 	}
 
+	arr->data  = data;
 	arr->cap   = cap;
 	arr->cnt   = 0;
 	arr->size  = size;

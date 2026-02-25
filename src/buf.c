@@ -11,12 +11,13 @@ void *buf_init(buf_t *buf, size_t size, alloc_t alloc)
 		return NULL;
 	}
 
-	buf->data = alloc_alloc(&alloc, size);
-	if (buf->data == NULL) {
+	void *data = alloc_alloc(&alloc, size);
+	if (data == NULL) {
 		log_error("cutils", "buf", NULL, "failed to allocate data");
 		return NULL;
 	}
 
+	buf->data  = data;
 	buf->size  = size;
 	buf->used  = 0;
 	buf->alloc = alloc;
