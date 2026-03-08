@@ -1,5 +1,3 @@
-#include "alloc.h"
-#include "dst.h"
 #include "tbl.h"
 
 #include "log.h"
@@ -12,182 +10,14 @@ TEST(tbl_init_free)
 
 	tbl_t tbl = {0};
 
-	EXPECT_EQ(tbl_init(NULL, 0, ALLOC_STD), NULL);
+	EXPECT_EQ(tbl_init(NULL, 0, 0, 0, ALLOC_STD), NULL);
 	mem_oom(1);
-	EXPECT_EQ(tbl_init(&tbl, 1, ALLOC_STD), NULL);
+	EXPECT_EQ(tbl_init(&tbl, 1, 1, 1, ALLOC_STD), NULL);
 	mem_oom(0);
-	EXPECT_EQ(tbl_init(&tbl, 1, ALLOC_STD), &tbl);
+	EXPECT_EQ(tbl_init(&tbl, 1, 1, 1, ALLOC_STD), &tbl);
 
 	tbl_free(&tbl);
 	tbl_free(NULL);
-
-	END;
-}
-
-TEST(tbl_add_col)
-{
-	START;
-
-	tbl_t tbl = {0};
-
-	tbl_init(&tbl, 1, ALLOC_STD);
-
-	uint col;
-	EXPECT_EQ(tbl_add_col(NULL, STRV_NULL, TBL_COL_TYPE_INT, 0, ALLOC_STD, NULL), 1);
-	mem_oom(1);
-	tbl.strs.used = tbl.strs.size;
-	EXPECT_EQ(tbl_add_col(&tbl, STRV_NULL, TBL_COL_TYPE_INT, 0, ALLOC_STD, &col), 1);
-	tbl.strs.used = 0;
-	tbl.cols.cnt  = tbl.cols.cap;
-	EXPECT_EQ(tbl_add_col(&tbl, STRV_NULL, TBL_COL_TYPE_INT, 0, ALLOC_STD, &col), 1);
-	tbl.cols.cnt = 0;
-	mem_oom(0);
-	EXPECT_EQ(tbl_add_col(&tbl, STRV_NULL, TBL_COL_TYPE_INT, 0, ALLOC_STD, &col), 0);
-	EXPECT_EQ(col, 0);
-
-	tbl_free(&tbl);
-
-	END;
-}
-
-TEST(tbl_add_col_str)
-{
-	START;
-
-	tbl_t tbl = {0};
-
-	tbl_init(&tbl, 1, ALLOC_STD);
-
-	uint col;
-	EXPECT_EQ(tbl_add_col(&tbl, STRV_NULL, TBL_COL_TYPE_STR, 0, ALLOC_STD, &col), 0);
-
-	tbl_free(&tbl);
-
-	END;
-}
-
-TEST(tbl_add_col_enum)
-{
-	START;
-
-	tbl_t tbl = {0};
-
-	tbl_init(&tbl, 1, ALLOC_STD);
-
-	uint col;
-	mem_oom(1);
-	EXPECT_EQ(tbl_add_col(&tbl, STRV_NULL, TBL_COL_TYPE_ENUM, 0, ALLOC_STD, &col), 1);
-	mem_oom(0);
-	EXPECT_EQ(tbl_add_col(&tbl, STRV_NULL, TBL_COL_TYPE_ENUM, 0, ALLOC_STD, &col), 0);
-
-	tbl_free(&tbl);
-
-	END;
-}
-
-TEST(tbl_add_col_flag)
-{
-	START;
-
-	tbl_t tbl = {0};
-
-	tbl_init(&tbl, 1, ALLOC_STD);
-
-	uint col;
-	mem_oom(1);
-	EXPECT_EQ(tbl_add_col(&tbl, STRV_NULL, TBL_COL_TYPE_FLAG, 0, ALLOC_STD, &col), 1);
-	mem_oom(0);
-	EXPECT_EQ(tbl_add_col(&tbl, STRV_NULL, TBL_COL_TYPE_FLAG, 0, ALLOC_STD, &col), 0);
-
-	tbl_free(&tbl);
-
-	END;
-}
-
-TEST(tbl_get_col)
-{
-	START;
-
-	tbl_t tbl = {0};
-
-	tbl_init(&tbl, 1, ALLOC_STD);
-
-	uint col;
-	tbl_add_col(&tbl, STRV_NULL, TBL_COL_TYPE_INT, 0, ALLOC_STD, &col);
-
-	EXPECT_EQ(tbl_get_col(NULL, col), NULL);
-	log_set_quiet(0, 1);
-	EXPECT_EQ(tbl_get_col(&tbl, tbl.cols.cnt), NULL);
-	log_set_quiet(0, 0);
-	EXPECT_NE(tbl_get_col(&tbl, col), NULL);
-
-	tbl_free(&tbl);
-
-	END;
-}
-
-TEST(tbl_add_enum)
-{
-	START;
-
-	tbl_t tbl = {0};
-
-	tbl_init(&tbl, 1, ALLOC_STD);
-
-	uint col;
-	tbl_add_col(&tbl, STRV_NULL, TBL_COL_TYPE_ENUM, 0, ALLOC_STD, &col);
-	EXPECT_EQ(tbl_add_enum(NULL, col, STRV_NULL), NULL);
-	log_set_quiet(0, 1);
-	EXPECT_EQ(tbl_add_enum(&tbl, tbl.cols.cnt, STRV_NULL), NULL);
-	log_set_quiet(0, 0);
-	tbl_col_t *c = (tbl_col_t *)tbl_get_col(&tbl, col);
-	mem_oom(1);
-	c->vals.cnt = c->vals.cap;
-	EXPECT_EQ(tbl_add_enum(&tbl, col, STRV_NULL), NULL);
-	c->vals.cnt   = 0;
-	tbl.strs.used = tbl.strs.size;
-	EXPECT_EQ(tbl_add_enum(&tbl, col, STRV_NULL), NULL);
-	tbl.strs.used = 0;
-	mem_oom(0);
-	EXPECT_EQ(c->vals.cnt, 0);
-	EXPECT_NE(tbl_add_enum(&tbl, col, STRV_NULL), NULL);
-	EXPECT_NE(tbl_add_enum(&tbl, col, STRV(" ")), NULL);
-	EXPECT_EQ(c->len, 2);
-
-	tbl_free(&tbl);
-
-	END;
-}
-
-TEST(tbl_add_flag)
-{
-	START;
-
-	tbl_t tbl = {0};
-
-	tbl_init(&tbl, 1, ALLOC_STD);
-
-	uint col;
-	tbl_add_col(&tbl, STRV_NULL, TBL_COL_TYPE_FLAG, 0, ALLOC_STD, &col);
-	EXPECT_EQ(tbl_add_flag(NULL, col, STRV_NULL), NULL);
-	log_set_quiet(0, 1);
-	EXPECT_EQ(tbl_add_flag(&tbl, tbl.cols.cnt, STRV_NULL), NULL);
-	log_set_quiet(0, 0);
-	tbl_col_t *c = (tbl_col_t *)tbl_get_col(&tbl, col);
-	mem_oom(1);
-	c->vals.cnt = c->vals.cap;
-	EXPECT_EQ(tbl_add_flag(&tbl, col, STRV_NULL), NULL);
-	c->vals.cnt   = 0;
-	tbl.strs.used = tbl.strs.size;
-	EXPECT_EQ(tbl_add_flag(&tbl, col, STRV_NULL), NULL);
-	tbl.strs.used = 0;
-	mem_oom(0);
-	EXPECT_EQ(c->vals.cnt, 0);
-	EXPECT_NE(tbl_add_flag(&tbl, col, STRV_NULL), NULL);
-	EXPECT_NE(tbl_add_flag(&tbl, col, STRV_NULL), NULL);
-	EXPECT_EQ(c->len, 2);
-
-	tbl_free(&tbl);
 
 	END;
 }
@@ -198,14 +28,20 @@ TEST(tbl_init_rows)
 
 	tbl_t tbl = {0};
 
-	tbl_init(&tbl, 1, ALLOC_STD);
-	tbl_add_col(&tbl, STRV_NULL, TBL_COL_TYPE_INT, 1, ALLOC_STD, NULL);
+	tbl_init(&tbl, 1, 1, 1, ALLOC_STD);
+	uint layout;
+	schema_add_layout(&tbl.schema, 1, &layout);
 
 	EXPECT_EQ(tbl_init_rows(NULL, 0, ALLOC_STD), 1);
 	mem_oom(1);
 	EXPECT_EQ(tbl_init_rows(&tbl, 1, ALLOC_STD), 1);
 	mem_oom(0);
+	log_set_quiet(0, 1);
+	tbl.schema.layouts.cnt = 0;
+	EXPECT_EQ(tbl_init_rows(&tbl, 1, ALLOC_STD), 1);
+	tbl.schema.layouts.cnt = 1;
 	EXPECT_EQ(tbl_init_rows(&tbl, 1, ALLOC_STD), 0);
+	log_set_quiet(0, 0);
 
 	tbl_free(&tbl);
 
@@ -218,18 +54,22 @@ TEST(tbl_add_row)
 
 	tbl_t tbl = {0};
 
-	tbl_init(&tbl, 1, ALLOC_STD);
-	tbl_add_col(&tbl, STRV_NULL, TBL_COL_TYPE_INT, 1, ALLOC_STD, NULL);
+	tbl_init(&tbl, 1, 1, 1, ALLOC_STD);
+	uint layout;
+	schema_add_layout(&tbl.schema, 1, &layout);
+	uint def;
+	schema_add_def(&tbl.schema, FIELD_TYPE_INT, STRV_NULL, 1, 0, &def);
+	schema_add_field(&tbl.schema, layout, def, 1, NULL);
 	tbl_init_rows(&tbl, 1, ALLOC_STD);
 
 	uint row;
-	EXPECT_EQ(tbl_add_row(NULL, &row), 1);
+	EXPECT_EQ(tbl_add_row(NULL, &row), NULL);
 	mem_oom(1);
 	tbl.rows.cnt = tbl.rows.cap;
-	EXPECT_EQ(tbl_add_row(&tbl, &row), 1);
+	EXPECT_EQ(tbl_add_row(&tbl, &row), NULL);
 	tbl.rows.cnt = 0;
 	mem_oom(0);
-	EXPECT_EQ(tbl_add_row(&tbl, &row), 0);
+	EXPECT_NE(tbl_add_row(&tbl, &row), NULL);
 	EXPECT_EQ(row, 0);
 
 	tbl_free(&tbl);
@@ -237,24 +77,28 @@ TEST(tbl_add_row)
 	END;
 }
 
-TEST(tbl_get_cell)
+TEST(tbl_set_cell)
 {
 	START;
 
 	tbl_t tbl = {0};
-	uint col, row;
+	uint layout, def, field, row;
 
-	tbl_init(&tbl, 1, ALLOC_STD);
-	tbl_add_col(&tbl, STRV_NULL, TBL_COL_TYPE_INT, 1, ALLOC_STD, &col);
+	tbl_init(&tbl, 1, 1, 1, ALLOC_STD);
+	schema_add_layout(&tbl.schema, 1, &layout);
+	schema_add_def(&tbl.schema, FIELD_TYPE_INT, STRV_NULL, 1, 0, &def);
+	schema_add_field(&tbl.schema, layout, def, 1, &field);
+	schema_map_layout(&tbl.schema, 0);
 	tbl_init_rows(&tbl, 1, ALLOC_STD);
 	tbl_add_row(&tbl, &row);
 
-	EXPECT_EQ(tbl_get_cell(NULL, col, row), NULL);
+	char val = 0;
+	EXPECT_EQ(tbl_set_cell(NULL, row, field, layout, NULL), 1);
 	log_set_quiet(0, 1);
-	EXPECT_EQ(tbl_get_cell(&tbl, tbl.cols.cnt, row), NULL);
-	EXPECT_EQ(tbl_get_cell(&tbl, col, tbl.rows.cnt), NULL);
+	EXPECT_EQ(tbl_set_cell(&tbl, row, field + 1, layout, &val), 1);
+	EXPECT_EQ(tbl_set_cell(&tbl, tbl.rows.cnt, field, layout, &val), 1);
 	log_set_quiet(0, 0);
-	EXPECT_NE(tbl_get_cell(&tbl, col, row), NULL);
+	EXPECT_EQ(tbl_set_cell(&tbl, row, field, layout, &val), 0);
 
 	tbl_free(&tbl);
 
@@ -266,27 +110,88 @@ TEST(tbl_set_cell_str)
 	START;
 
 	tbl_t tbl = {0};
-	uint col, row;
+	uint layout, def, field, row;
 
-	tbl_init(&tbl, 1, ALLOC_STD);
-	tbl_add_col(&tbl, STRV_NULL, TBL_COL_TYPE_STR, 1, ALLOC_STD, &col);
+	tbl_init(&tbl, 1, 1, 1, ALLOC_STD);
+	schema_add_layout(&tbl.schema, 1, &layout);
+	schema_add_def(&tbl.schema, FIELD_TYPE_STR, STRV_NULL, 1, 0, &def);
+	schema_add_field(&tbl.schema, layout, def, 1, &field);
+	schema_map_layout(&tbl.schema, 0);
 	tbl_init_rows(&tbl, 1, ALLOC_STD);
 	tbl_add_row(&tbl, &row);
 
-	EXPECT_EQ(tbl_set_cell_str(NULL, col, row, STRV_NULL), 1);
+	EXPECT_EQ(tbl_set_cell_str(NULL, row, field, layout, STRV_NULL), 1);
 	log_set_quiet(0, 1);
-	EXPECT_EQ(tbl_set_cell_str(&tbl, tbl.cols.cnt, row, STRV_NULL), 1);
-	EXPECT_EQ(tbl_set_cell_str(&tbl, col, tbl.rows.cnt, STRV_NULL), 1);
+	EXPECT_EQ(tbl_set_cell_str(&tbl, row, field + 1, layout, STRV_NULL), 1);
+	EXPECT_EQ(tbl_set_cell_str(&tbl, tbl.rows.cnt, field, layout, STRV_NULL), 1);
 	log_set_quiet(0, 0);
 	mem_oom(1);
 	tbl.strs.used = tbl.strs.size;
-	EXPECT_EQ(tbl_set_cell_str(&tbl, col, row, STRV_NULL), 1);
+	EXPECT_EQ(tbl_set_cell_str(&tbl, row, field, layout, STRV_NULL), 1);
 	tbl.strs.used = 0;
 	mem_oom(0);
-	EXPECT_EQ(tbl_set_cell_str(&tbl, col, row, STRV_NULL), 0);
-	EXPECT_EQ(tbl_set_cell_str(&tbl, col, row, STRV(" ")), 0);
-	const tbl_col_t *c = tbl_get_col(&tbl, col);
-	EXPECT_EQ(c->len, 1);
+	EXPECT_EQ(tbl_set_cell_str(&tbl, row, field, layout, STRV_NULL), 0);
+	EXPECT_EQ(tbl_set_cell_str(&tbl, row, field, layout, STRV(" ")), 0);
+
+	tbl_free(&tbl);
+
+	END;
+}
+
+TEST(tbl_get_cell)
+{
+	START;
+
+	tbl_t tbl = {0};
+	uint layout, def, field, row;
+
+	tbl_init(&tbl, 1, 1, 1, ALLOC_STD);
+	schema_add_layout(&tbl.schema, 1, &layout);
+	schema_add_def(&tbl.schema, FIELD_TYPE_STR, STRV_NULL, 1, 0, &def);
+	schema_add_field(&tbl.schema, layout, def, 1, &field);
+	schema_map_layout(&tbl.schema, 0);
+	tbl_init_rows(&tbl, 1, ALLOC_STD);
+	tbl_add_row(&tbl, &row);
+
+	EXPECT_EQ(tbl_get_cell(NULL, row, field), NULL);
+	log_set_quiet(0, 1);
+	EXPECT_EQ(tbl_get_cell(&tbl, tbl.rows.cnt, field), NULL);
+	EXPECT_EQ(tbl_get_cell(&tbl, row, field + 1), NULL);
+	log_set_quiet(0, 0);
+	EXPECT_NE(tbl_get_cell(&tbl, row, field), NULL);
+
+	tbl_free(&tbl);
+
+	END;
+}
+
+static int map_fn(tbl_t *tbl, uint row, uint col, const void *data, void *priv)
+{
+	(void)tbl;
+	(void)row;
+	(void)col;
+	(void)data;
+	(void)priv;
+	return 0;
+}
+
+TEST(tbl_map)
+{
+	START;
+
+	tbl_t tbl = {0};
+	uint layout, def, field, row;
+
+	tbl_init(&tbl, 1, 1, 1, ALLOC_STD);
+	schema_add_layout(&tbl.schema, 1, &layout);
+	schema_add_def(&tbl.schema, FIELD_TYPE_STR, STRV_NULL, 1, 0, &def);
+	schema_add_field(&tbl.schema, layout, def, 1, &field);
+	schema_map_layout(&tbl.schema, 0);
+	tbl_init_rows(&tbl, 1, ALLOC_STD);
+	tbl_add_row(&tbl, &row);
+
+	EXPECT_EQ(tbl_map(NULL, 0, 0, NULL, NULL), 1);
+	EXPECT_EQ(tbl_map(&tbl, 0, 0, map_fn, NULL), 0);
 
 	tbl_free(&tbl);
 
@@ -299,10 +204,17 @@ TEST(tbl_print)
 
 	tbl_t tbl     = {0};
 	char buf[128] = {0};
+	uint layout;
 
-	tbl_init(&tbl, 1, ALLOC_STD);
+	tbl_init(&tbl, 1, 1, 1, ALLOC_STD);
 
 	EXPECT_EQ(tbl_print(NULL, DST_BUF(buf)), 0);
+	log_set_quiet(0, 1);
+	EXPECT_EQ(tbl_print(&tbl, DST_BUF(buf)), 0);
+	log_set_quiet(0, 0);
+
+	schema_add_layout(&tbl.schema, 1, &layout);
+
 	EXPECT_EQ(tbl_print(&tbl, DST_BUF(buf)), 1);
 	EXPECT_STRN(buf, "\n", 1);
 
@@ -311,20 +223,26 @@ TEST(tbl_print)
 	END;
 }
 
-TEST(tbl_print_col)
+TEST(tbl_print_field)
 {
 	START;
 
 	tbl_t tbl     = {0};
 	char buf[128] = {0};
 
-	tbl_init(&tbl, 1, ALLOC_STD);
-	tbl_add_col(&tbl, STRV("c1"), TBL_COL_TYPE_STR, 1, ALLOC_STD, NULL);
+	uint layout, def, field;
+
+	tbl_init(&tbl, 1, 1, 1, ALLOC_STD);
+	schema_add_layout(&tbl.schema, 1, &layout);
+	schema_add_def(&tbl.schema, FIELD_TYPE_STR, STRV("c1"), 1, 0, &def);
+	schema_add_field(&tbl.schema, layout, def, 1, &field);
+	schema_map_layout(&tbl.schema, 0);
 
 	EXPECT_EQ(tbl_print(&tbl, DST_BUF(buf)), 3);
 	EXPECT_STR(buf, "c1\n");
 
-	tbl_add_col(&tbl, STRV("c2"), TBL_COL_TYPE_STR, 1, ALLOC_STD, NULL);
+	schema_add_def(&tbl.schema, FIELD_TYPE_STR, STRV("c2"), 1, 0, &def);
+	schema_add_field(&tbl.schema, layout, def, 1, &field);
 
 	EXPECT_EQ(tbl_print(&tbl, DST_BUF(buf)), 6);
 	EXPECT_STR(buf, "c1 c2\n");
@@ -342,19 +260,25 @@ TEST(tbl_print_row)
 	char buf[128] = {0};
 	uint c1, c2, row;
 
-	tbl_init(&tbl, 2, ALLOC_STD);
-	tbl_add_col(&tbl, STRV_NULL, TBL_COL_TYPE_STR, 1, ALLOC_STD, &c1);
-	tbl_add_col(&tbl, STRV_NULL, TBL_COL_TYPE_STR, 1, ALLOC_STD, &c2);
+	uint layout, def0, def1;
+
+	tbl_init(&tbl, 2, 2, 2, ALLOC_STD);
+	schema_add_layout(&tbl.schema, 1, &layout);
+	schema_add_def(&tbl.schema, FIELD_TYPE_STR, STRV_NULL, 1, 0, &def0);
+	schema_add_def(&tbl.schema, FIELD_TYPE_STR, STRV_NULL, 1, 0, &def1);
+	schema_add_field(&tbl.schema, layout, def0, 0, &c1);
+	schema_add_field(&tbl.schema, layout, def1, 0, &c2);
+	schema_map_layout(&tbl.schema, 0);
 	tbl_init_rows(&tbl, 1, ALLOC_STD);
 
 	tbl_add_row(&tbl, &row);
-	tbl_set_cell_str(&tbl, row, c1, STRV_NULL);
-	tbl_set_cell_str(&tbl, row, c2, STRV_NULL);
+	tbl_set_cell_str(&tbl, row, c1, layout, STRV_NULL);
+	tbl_set_cell_str(&tbl, row, c2, layout, STRV_NULL);
 
-	EXPECT_EQ(tbl_print(&tbl, DST_BUF(buf)), 8);
+	EXPECT_EQ(tbl_print(&tbl, DST_BUF(buf)), 4);
 	EXPECT_STR(buf,
-		   "   \n"
-		   "   \n");
+		   " \n"
+		   " \n");
 
 	tbl_free(&tbl);
 
@@ -367,19 +291,22 @@ TEST(tbl_print_int)
 
 	tbl_t tbl     = {0};
 	char buf[128] = {0};
-	uint col, row;
+	uint layout, def, field, row;
 
-	tbl_init(&tbl, 1, ALLOC_STD);
-	tbl_add_col(&tbl, STRV_NULL, TBL_COL_TYPE_INT, sizeof(int), ALLOC_STD, &col);
+	tbl_init(&tbl, 1, 1, 1, ALLOC_STD);
+	schema_add_layout(&tbl.schema, 1, &layout);
+	schema_add_def(&tbl.schema, FIELD_TYPE_INT, STRV_NULL, 1, 0, &def);
+	schema_add_field(&tbl.schema, layout, def, 1, &field);
+	schema_map_layout(&tbl.schema, 0);
 	tbl_init_rows(&tbl, 1, ALLOC_STD);
 	tbl_add_row(&tbl, &row);
-	int *val = tbl_get_cell(&tbl, row, col);
-	*val	 = 1;
+	int val = 1;
+	tbl_set_cell(&tbl, row, field, layout, &val);
 
-	EXPECT_EQ(tbl_print(&tbl, DST_BUF(buf)), 22);
+	EXPECT_EQ(tbl_print(&tbl, DST_BUF(buf)), 10);
 	EXPECT_STR(buf,
-		   "          \n"
-		   "0x00000001\n");
+		   "    \n"
+		   "0x01\n");
 
 	tbl_free(&tbl);
 
@@ -392,18 +319,21 @@ TEST(tbl_print_str_null)
 
 	tbl_t tbl     = {0};
 	char buf[128] = {0};
-	uint col, row;
+	uint layout, def, field, row;
 
-	tbl_init(&tbl, 1, ALLOC_STD);
-	tbl_add_col(&tbl, STRV_NULL, TBL_COL_TYPE_STR, 1, ALLOC_STD, &col);
+	tbl_init(&tbl, 1, 1, 1, ALLOC_STD);
+	schema_add_layout(&tbl.schema, 1, &layout);
+	schema_add_def(&tbl.schema, FIELD_TYPE_STR, STRV_NULL, 1, 0, &def);
+	schema_add_field(&tbl.schema, layout, def, 0, &field);
+	schema_map_layout(&tbl.schema, 0);
 	tbl_init_rows(&tbl, 1, ALLOC_STD);
 	tbl_add_row(&tbl, &row);
-	tbl_set_cell_str(&tbl, row, col, STRV_NULL);
+	tbl_set_cell_str(&tbl, row, field, layout, STRV_NULL);
 
-	EXPECT_EQ(tbl_print(&tbl, DST_BUF(buf)), 4);
+	EXPECT_EQ(tbl_print(&tbl, DST_BUF(buf)), 2);
 	EXPECT_STR(buf,
-		   " \n"
-		   " \n");
+		   "\n"
+		   "\n");
 
 	tbl_free(&tbl);
 
@@ -416,13 +346,16 @@ TEST(tbl_print_str)
 
 	tbl_t tbl     = {0};
 	char buf[128] = {0};
-	uint col, row;
+	uint layout, def, field, row;
 
-	tbl_init(&tbl, 1, ALLOC_STD);
-	tbl_add_col(&tbl, STRV_NULL, TBL_COL_TYPE_STR, 1, ALLOC_STD, &col);
+	tbl_init(&tbl, 1, 1, 1, ALLOC_STD);
+	schema_add_layout(&tbl.schema, 1, &layout);
+	schema_add_def(&tbl.schema, FIELD_TYPE_STR, STRV_NULL, 0, 0, &def);
+	schema_add_field(&tbl.schema, layout, def, 0, &field);
+	schema_map_layout(&tbl.schema, 0);
 	tbl_init_rows(&tbl, 1, ALLOC_STD);
 	tbl_add_row(&tbl, &row);
-	tbl_set_cell_str(&tbl, row, col, STRV("v"));
+	tbl_set_cell_str(&tbl, row, field, layout, STRV("v"));
 
 	EXPECT_EQ(tbl_print(&tbl, DST_BUF(buf)), 4);
 	EXPECT_STR(buf,
@@ -440,18 +373,21 @@ TEST(tbl_print_enum_raw)
 
 	tbl_t tbl     = {0};
 	char buf[128] = {0};
-	uint col, row;
+	uint layout, def, field, row;
 
-	tbl_init(&tbl, 1, ALLOC_STD);
-	tbl_add_col(&tbl, STRV_NULL, TBL_COL_TYPE_ENUM, sizeof(char), ALLOC_STD, &col);
+	tbl_init(&tbl, 1, 1, 1, ALLOC_STD);
+	schema_add_layout(&tbl.schema, 1, &layout);
+	schema_add_def(&tbl.schema, FIELD_TYPE_ENUM, STRV_NULL, sizeof(char), 1, &def);
+	schema_add_field(&tbl.schema, layout, def, 1, &field);
+	schema_map_layout(&tbl.schema, 0);
 	tbl_init_rows(&tbl, 1, ALLOC_STD);
 	tbl_add_row(&tbl, &row);
-	char *val = tbl_get_cell(&tbl, row, col);
-	*val	  = 1;
+	int val = 1;
+	tbl_set_cell(&tbl, row, field, layout, &val);
 
-	EXPECT_EQ(tbl_print(&tbl, DST_BUF(buf)), 10);
+	EXPECT_EQ(tbl_print(&tbl, DST_BUF(buf)), 6);
 	EXPECT_STR(buf,
-		   "    \n"
+		   "\n"
 		   "0x01\n");
 
 	tbl_free(&tbl);
@@ -465,19 +401,22 @@ TEST(tbl_print_enum_val)
 
 	tbl_t tbl     = {0};
 	char buf[128] = {0};
-	uint col, row;
+	uint layout, def, field, row;
 	char *val;
 
-	tbl_init(&tbl, 1, ALLOC_STD);
-	tbl_add_col(&tbl, STRV_NULL, TBL_COL_TYPE_ENUM, sizeof(char), ALLOC_STD, &col);
-	val  = tbl_add_enum(&tbl, col, STRV("ZERO"));
+	tbl_init(&tbl, 1, 1, 1, ALLOC_STD);
+	schema_add_layout(&tbl.schema, 1, &layout);
+	schema_add_def(&tbl.schema, FIELD_TYPE_ENUM, STRV_NULL, sizeof(char), 2, &def);
+	schema_add_field(&tbl.schema, layout, def, 1, &field);
+	schema_map_layout(&tbl.schema, 0);
+	val  = schema_add_val(&tbl.schema, field, STRV("ZERO"));
 	*val = 0;
-	val  = tbl_add_enum(&tbl, col, STRV("ONE"));
+	val  = schema_add_val(&tbl.schema, field, STRV("ONE"));
 	*val = 1;
 	tbl_init_rows(&tbl, 1, ALLOC_STD);
 	tbl_add_row(&tbl, &row);
-	val  = tbl_get_cell(&tbl, row, col);
-	*val = 1;
+	char v = 1;
+	tbl_set_cell(&tbl, row, field, layout, &v);
 
 	EXPECT_EQ(tbl_print(&tbl, DST_BUF(buf)), 10);
 	EXPECT_STR(buf,
@@ -495,14 +434,17 @@ TEST(tbl_print_flag_raw)
 
 	tbl_t tbl     = {0};
 	char buf[128] = {0};
-	uint col, row;
+	uint layout, def, field, row;
 
-	tbl_init(&tbl, 1, ALLOC_STD);
-	tbl_add_col(&tbl, STRV_NULL, TBL_COL_TYPE_FLAG, sizeof(char), ALLOC_STD, &col);
+	tbl_init(&tbl, 1, 1, 1, ALLOC_STD);
+	schema_add_layout(&tbl.schema, 1, &layout);
+	schema_add_def(&tbl.schema, FIELD_TYPE_FLAG, STRV_NULL, sizeof(char), 2, &def);
+	schema_add_field(&tbl.schema, layout, def, 1, &field);
+	schema_map_layout(&tbl.schema, 0);
 	tbl_init_rows(&tbl, 1, ALLOC_STD);
 	tbl_add_row(&tbl, &row);
-	char *val = tbl_get_cell(&tbl, row, col);
-	*val	  = 1;
+	char val = 1;
+	tbl_set_cell(&tbl, row, field, layout, &val);
 
 	EXPECT_EQ(tbl_print(&tbl, DST_BUF(buf)), 2);
 	EXPECT_STR(buf,
@@ -520,24 +462,27 @@ TEST(tbl_print_flag_val)
 
 	tbl_t tbl     = {0};
 	char buf[128] = {0};
-	uint col, row;
+	uint layout, def, field, row;
 	char *val;
 
-	tbl_init(&tbl, 1, ALLOC_STD);
-	tbl_add_col(&tbl, STRV_NULL, TBL_COL_TYPE_FLAG, sizeof(char), ALLOC_STD, &col);
-	val  = tbl_add_flag(&tbl, col, STRV("Z"));
+	tbl_init(&tbl, 1, 1, 1, ALLOC_STD);
+	schema_add_layout(&tbl.schema, 1, &layout);
+	schema_add_def(&tbl.schema, FIELD_TYPE_FLAG, STRV_NULL, sizeof(char), 2, &def);
+	schema_add_field(&tbl.schema, layout, def, 1, &field);
+	schema_map_layout(&tbl.schema, 0);
+	val  = schema_add_val(&tbl.schema, field, STRV("Z"));
 	*val = 0;
-	val  = tbl_add_flag(&tbl, col, STRV("O"));
+	val  = schema_add_val(&tbl.schema, field, STRV("O"));
 	*val = 1;
 	tbl_init_rows(&tbl, 1, ALLOC_STD);
 	tbl_add_row(&tbl, &row);
-	val  = tbl_get_cell(&tbl, row, col);
-	*val = 1 << 1;
+	char v = 1 << 1;
+	tbl_set_cell(&tbl, row, field, layout, &v);
 
-	EXPECT_EQ(tbl_print(&tbl, DST_BUF(buf)), 6);
+	EXPECT_EQ(tbl_print(&tbl, DST_BUF(buf)), 4);
 	EXPECT_STR(buf,
-		   "  \n"
-		   "O \n");
+		   " \n"
+		   "O\n");
 
 	tbl_free(&tbl);
 
@@ -549,19 +494,14 @@ STEST(tbl)
 	SSTART;
 
 	RUN(tbl_init_free);
-	RUN(tbl_add_col);
-	RUN(tbl_add_col_str);
-	RUN(tbl_add_col_enum);
-	RUN(tbl_add_col_flag);
-	RUN(tbl_get_col);
-	RUN(tbl_add_enum);
-	RUN(tbl_add_flag);
 	RUN(tbl_init_rows);
 	RUN(tbl_add_row);
-	RUN(tbl_get_cell);
+	RUN(tbl_set_cell);
 	RUN(tbl_set_cell_str);
+	RUN(tbl_get_cell);
+	RUN(tbl_map);
 	RUN(tbl_print);
-	RUN(tbl_print_col);
+	RUN(tbl_print_field);
 	RUN(tbl_print_row);
 	RUN(tbl_print_int);
 	RUN(tbl_print_str_null);
