@@ -4,72 +4,79 @@
 #include "arr.h"
 #include "strvbuf.h"
 
-typedef enum field_type_e {
-	FIELD_TYPE_UNKNOWN,
-	FIELD_TYPE_INT,
-	FIELD_TYPE_STR,
-	FIELD_TYPE_ENUM,
-	FIELD_TYPE_FLAG,
-} field_type_t;
+typedef enum schema_type_e {
+	SCHEMA_TYPE_UNKNOWN,
+	SCHEMA_TYPE_INT,
+	SCHEMA_TYPE_STR,
+	SCHEMA_TYPE_ENUM,
+	SCHEMA_TYPE_FLAG,
+} schema_type_t;
 
-typedef struct field_def_s {
-	field_type_t type;
+typedef struct schema_val_s {
+	u64 val;
+	strv_t str;
+} schema_val_t;
+
+typedef struct schema_field_desc_s {
+	strv_t name;
+	size_t size;
+	schema_type_t type;
+	const schema_val_t *vals;
+	size_t vals_size;
+} schema_field_desc_t;
+
+typedef struct schema_field_s {
+	schema_type_t type;
 	size_t name;
 	size_t size;
 	size_t len;
-	arr_t vals;
-} field_def_t;
+	uint vals;
+	uint vals_cnt;
+} schema_field_t;
 
-typedef struct field_s {
-	uint def;
+typedef struct schema_member_desc_s {
+	uint field;
+	size_t size;
+} schema_member_desc_t;
+
+typedef struct schema_member_s {
+	uint field;
 	size_t off;
 	size_t size;
-} field_t;
+} schema_member_t;
 
-typedef struct layout_s {
-	arr_t fields;
+typedef struct schema_layout_s {
+	uint members;
+	uint members_cnt;
 	size_t size;
-} layout_t;
-
-typedef struct field_map_s {
-	byte drop;
-	uint id;
-} field_map_t;
-
-typedef struct layout_map_s {
-	arr_t field_maps;
-} layout_map_t;
+} schema_layout_t;
 
 typedef struct schema_s {
-	arr_t defs;
+	arr_t fields;
 	arr_t layouts;
-	arr_t maps;
+	arr_t members;
+	buf_t vals;
+	arr_t field_maps;
 	strvbuf_t strs;
 } schema_t;
 
-schema_t *schema_init(schema_t *schema, uint defs_cap, uint layouts_cap, uint strs_cap, alloc_t alloc);
+schema_t *schema_init(schema_t *schema, uint fields_cap, uint layouts_cap, uint strs_cap, alloc_t alloc);
 void schema_free(schema_t *schema);
 
-field_def_t *schema_add_def(schema_t *schema, field_type_t type, strv_t name, size_t size, uint vals_cap, uint *def);
-const field_def_t *schema_get_def(const schema_t *schema, uint def);
+int schema_add_fields(schema_t *schema, schema_field_desc_t *fields, size_t size);
+const schema_field_t *schema_get_field(const schema_t *schema, uint def);
 
-int schema_add_layout(schema_t *schema, size_t fields_cap, uint *layout);
-const layout_t *schema_get_layout(const schema_t *schema, uint layout);
-int schema_map_layout(schema_t *schema, uint layout);
+int schema_add_layout(schema_t *schema, schema_member_desc_t *members, size_t size, uint *layout);
+const schema_layout_t *schema_get_layout(const schema_t *schema, uint layout);
 
-int schema_add_field(schema_t *schema, uint layout, uint def, size_t size, uint *field);
-const field_t *schema_get_field(const schema_t *schema, uint layout, uint field);
+const schema_member_t *schema_get_member(const schema_t *schema, uint layout, uint member);
 
-void *schema_add_val(schema_t *schema, uint def, strv_t str);
-
-int schema_set_val(const schema_t *schema, uint layout, uint field, void *data, void *val);
-const void *schema_get_val(const schema_t *schema, uint field, const void *data);
+int schema_set_val(const schema_t *schema, uint layout, uint member, void *data, void *val);
+const void *schema_get_val(const schema_t *schema, uint member, const void *data);
 
 strv_t schema_get_str(const schema_t *schema, size_t str);
 
 size_t schema_print_val(const schema_t *schema, uint layout, uint field, const void *val, dst_t dst);
 size_t schema_print_data(const schema_t *schema, uint layout, const void *data, dst_t dst);
-
-#define field_foreach(_layout, _i, _field) arr_foreach(&(_layout)->fields, _i, _field)
 
 #endif
