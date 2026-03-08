@@ -182,22 +182,24 @@ int schema_map_layout(schema_t *schema, uint layout)
 		return 1;
 	}
 
-	const layout_t *fl = schema_get_layout(schema, layout);
-	if (fl == NULL) {
-		return 1;
-	}
-
 	const layout_t *tl = schema_get_layout(schema, 0);
 	if (tl == NULL) {
 		return 1;
 	}
 
-	layout_map_t *map = arr_add(&schema->maps, NULL);
+	const layout_t *fl = schema_get_layout(schema, layout);
+	if (fl == NULL) {
+		return 1;
+	}
+
+	uint maps_cnt;
+	layout_map_t *map = arr_add(&schema->maps, &maps_cnt);
 	if (map == NULL) {
 		return 1;
 	}
 
 	if (arr_init(&map->field_maps, fl->fields.cnt, sizeof(field_map_t), schema->layouts.alloc) == NULL) {
+		arr_reset(&schema->maps, maps_cnt);
 		return 1;
 	}
 
@@ -208,8 +210,8 @@ int schema_map_layout(schema_t *schema, uint layout)
 	{
 		field_map_t *fm = arr_add(&map->field_maps, NULL);
 		if (fm == NULL) {
-			ret = 1;
-			continue;
+			ret = 1;  // LCOV_EXCL_LINE
+			continue; // LCOV_EXCL_LINE
 		}
 
 		int found = 0;
@@ -231,11 +233,7 @@ int schema_map_layout(schema_t *schema, uint layout)
 		}
 	}
 
-	if (ret) {
-		return 1;
-	}
-
-	return 0;
+	return ret;
 }
 
 int schema_add_field(schema_t *schema, uint layout, uint def, size_t size, uint *id)
@@ -342,7 +340,16 @@ int schema_set_val(const schema_t *schema, uint layout, uint field, void *data, 
 	}
 
 	const layout_map_t *lm = arr_get(&schema->maps, layout);
-	const field_map_t *fm  = arr_get(&lm->field_maps, field);
+	if (lm == NULL) {
+		log_error("cutils", "schema", NULL, "invalid map: %d", layout);
+		return 1;
+	}
+
+	const field_map_t *fm = arr_get(&lm->field_maps, field);
+	if (fm == NULL) {
+		log_error("cutils", "schema", NULL, "invalid field: %d", field);
+		return 1;
+	}
 
 	if (fm->drop) {
 		return 0;
@@ -352,6 +359,10 @@ int schema_set_val(const schema_t *schema, uint layout, uint field, void *data, 
 	const field_t *tf = schema_get_field(schema, 0, fm->id);
 
 	void *to_val = (void *)schema_get_val(schema, fm->id, data);
+
+	if (to_val == NULL) {
+		return 1;
+	}
 
 	mem_set(to_val, 0, tf->size);
 	mem_copy(to_val, tf->size, val, ff->size);
@@ -367,11 +378,17 @@ const void *schema_get_val(const schema_t *schema, uint field, const void *data)
 
 	const layout_t *l = schema_get_layout(schema, 0);
 	if (l == NULL) {
+		log_error("cutils", "schema", NULL, "invalid layout: %d", 0);
 		return NULL;
 	}
 
 	const field_t *f = schema_get_field(schema, 0, field);
 	if (f == NULL) {
+		log_error("cutils", "schema", NULL, "invalid field: %d", field);
+		return NULL;
+	}
+
+	if (data == NULL) {
 		return NULL;
 	}
 
@@ -392,16 +409,23 @@ size_t schema_print_val(const schema_t *schema, uint layout, uint field, const v
 
 	const layout_t *l = schema_get_layout(schema, layout);
 	if (l == NULL) {
+		log_error("cutils", "schema", NULL, "invalid layout: %d", layout);
 		return 0;
 	}
 
 	const field_t *f = schema_get_field(schema, layout, field);
 	if (f == NULL) {
+		log_error("cutils", "schema", NULL, "invalid field: %d", field);
 		return 0;
 	}
 
 	const field_def_t *d = schema_get_def(schema, f->def);
 	if (d == NULL) {
+		log_error("cutils", "schema", NULL, "invalid def: %d", f->def);
+		return 0;
+	}
+
+	if (val == NULL) {
 		return 0;
 	}
 
@@ -487,13 +511,4 @@ size_t schema_print_data(const schema_t *schema, uint layout, const void *data, 
 	}
 
 	return dst.off - off;
-}
-
-void layout_map_free(layout_map_t *map)
-{
-	if (map == NULL) {
-		return;
-	}
-
-	arr_free(&map->field_maps);
 }

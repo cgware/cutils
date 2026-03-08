@@ -5,6 +5,7 @@
 STEST(alloc);
 STEST(args);
 STEST(arr);
+STEST(bin);
 STEST(buf);
 STEST(dict);
 STEST(fs);
@@ -19,7 +20,7 @@ STEST(str);
 STEST(strbuf);
 STEST(strv);
 STEST(strvbuf);
-// STEST(tbl);
+STEST(tbl);
 STEST(tree);
 STEST(type);
 
@@ -29,6 +30,7 @@ TEST(cutils)
 	RUN(alloc);
 	RUN(args);
 	RUN(arr);
+	RUN(bin);
 	RUN(buf);
 	RUN(dict);
 	RUN(fs);
@@ -43,7 +45,7 @@ TEST(cutils)
 	RUN(strbuf);
 	RUN(strv);
 	RUN(strvbuf);
-	// RUN(tbl);
+	RUN(tbl);
 	RUN(tree);
 	RUN(type);
 	SEND;

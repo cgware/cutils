@@ -1,4 +1,5 @@
 #include "bin.h"
+
 #include "buf.h"
 #include "mem.h"
 #include "type.h"
@@ -40,7 +41,7 @@ int bin_cmp(bin_t *bin, size_t off, void *data, size_t size)
 		return 1;
 	}
 
-	if (off >= bin->buf.used) {
+	if (off + size > bin->buf.used) {
 		return 1;
 	}
 
@@ -67,12 +68,12 @@ void *bin_get(bin_t *bin, size_t size, size_t *off)
 		return NULL;
 	}
 
-	u8 *data = buf_get(&bin->buf, *off);
-	if (data == NULL) {
+	if (*off + size > bin->buf.used) {
 		return NULL;
 	}
 
-	if (bin->buf.size - *off < size) {
+	u8 *data = buf_get(&bin->buf, *off);
+	if (data == NULL) {
 		return NULL;
 	}
 
@@ -83,6 +84,10 @@ void *bin_get(bin_t *bin, size_t size, size_t *off)
 
 int bin_get_int(bin_t *bin, void *val, size_t size, size_t *off)
 {
+	if (bin == NULL || val == NULL) {
+		return 1;
+	}
+
 	u8 *data = bin_get(bin, size, off);
 	if (data == NULL) {
 		return 1;

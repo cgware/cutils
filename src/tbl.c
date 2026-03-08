@@ -41,6 +41,10 @@ int tbl_init_rows(tbl_t *tbl, size_t cap, alloc_t alloc)
 	}
 
 	const layout_t *layout = schema_get_layout(&tbl->schema, 0);
+	if (layout == NULL) {
+		return 1;
+	}
+
 	if (arr_init(&tbl->rows, cap, layout->size, alloc) == NULL || strvbuf_init(&tbl->strs, cap, 16, alloc) == NULL) {
 		return 1;
 	}
@@ -165,6 +169,10 @@ size_t tbl_print(const tbl_t *tbl, dst_t dst)
 #define SUB(a, b) ((a) > (b) ? (a) - (b) : 0)
 
 	const layout_t *layout = schema_get_layout(&tbl->schema, 0);
+
+	if (layout == NULL) {
+		return 0;
+	}
 
 	field_t *field;
 	uint i = 0;

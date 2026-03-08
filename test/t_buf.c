@@ -44,6 +44,27 @@ TEST(buf_reset)
 	END;
 }
 
+TEST(buf_resize)
+{
+	START;
+
+	buf_t buf = {0};
+	buf_init(&buf, 1, ALLOC_STD);
+
+	EXPECT_EQ(buf_resize(NULL, 0), 1);
+	EXPECT_EQ(buf_resize(&buf, 1), 0);
+	mem_oom(1);
+	EXPECT_EQ(buf_resize(&buf, 2), 1);
+	mem_oom(0);
+	EXPECT_EQ(buf_resize(&buf, 2), 0);
+
+	EXPECT_EQ(buf.used, 0);
+
+	buf_free(&buf);
+
+	END;
+}
+
 TEST(buf_add)
 {
 	START;
@@ -184,6 +205,7 @@ STEST(buf)
 
 	RUN(buf_init_free);
 	RUN(buf_reset);
+	RUN(buf_resize);
 	RUN(buf_add);
 	RUN(buf_adds);
 	RUN(buf_get);

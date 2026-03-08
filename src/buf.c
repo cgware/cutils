@@ -68,7 +68,7 @@ int buf_resize(buf_t *buf, size_t size)
 
 int buf_add(buf_t *buf, const void *data, size_t size, size_t *off)
 {
-	if (buf == NULL || buf_resize(buf, (buf->used + size) * 2)) {
+	if (buf == NULL) {
 		return 1;
 	}
 
