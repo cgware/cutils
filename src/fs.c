@@ -9,7 +9,8 @@ typedef cerr_t (*fs_open_fn)(fs_t *fs, strv_t path, const char *mode, void **fil
 typedef cerr_t (*fs_close_fn)(fs_t *fs, void *file);
 
 typedef cerr_t (*fs_write_fn)(fs_t *fs, void *file, strv_t str);
-typedef cerr_t (*fs_read_fn)(fs_t *fs, void *file, str_t str, size_t size);
+typedef cerr_t (*fs_readb_fn)(fs_t *fs, void *file, bin_t bin, size_t size);
+typedef cerr_t (*fs_reads_fn)(fs_t *fs, void *file, str_t str, size_t size);
 
 typedef cerr_t (*fs_du_fn)(fs_t *fs, void *file, size_t *size);
 
@@ -33,7 +34,8 @@ typedef struct fs_ops_s {
 	fs_open_fn open;
 	fs_close_fn close;
 	fs_write_fn write;
-	fs_read_fn read;
+	fs_readb_fn readb;
+	fs_reads_fn reads;
 	fs_du_fn du;
 	fs_isdir_fn isdir;
 	fs_isfile_fn isfile;
@@ -212,13 +214,30 @@ static cerr_t vfs_write(fs_t *fs, void *file, strv_t str)
 	return CERR_OK;
 }
 
-static cerr_t ofs_read(fs_t *fs, void *file, str_t str, size_t size)
+static cerr_t ofs_readb(fs_t *fs, void *file, bin_t bin, size_t size)
+{
+	(void)fs;
+	return cfs_read(file, bin.buf.data, size);
+}
+
+static cerr_t vfs_readb(fs_t *fs, void *file, bin_t bin, size_t size)
+{
+	uint id = (uint)((size_t)file - 1);
+
+	fs_node_t *node = arr_get(&fs->nodes, id);
+
+	bin_add(&bin, node->data.data, size);
+
+	return CERR_OK;
+}
+
+static cerr_t ofs_reads(fs_t *fs, void *file, str_t str, size_t size)
 {
 	(void)fs;
 	return cfs_read(file, str.data, size);
 }
 
-static cerr_t vfs_read(fs_t *fs, void *file, str_t str, size_t size)
+static cerr_t vfs_reads(fs_t *fs, void *file, str_t str, size_t size)
 {
 	uint id = (uint)((size_t)file - 1);
 
@@ -600,7 +619,8 @@ static const fs_ops_t s_fs_ops[] = {
 			.open	= ofs_open,
 			.close	= ofs_close,
 			.write	= ofs_write,
-			.read	= ofs_read,
+			.readb	= ofs_readb,
+			.reads	= ofs_reads,
 			.du	= ofs_du,
 			.isdir	= ofs_isdir,
 			.isfile = ofs_isfile,
@@ -617,7 +637,8 @@ static const fs_ops_t s_fs_ops[] = {
 			.open	= vfs_open,
 			.close	= vfs_close,
 			.write	= vfs_write,
-			.read	= vfs_read,
+			.readb	= vfs_readb,
+			.reads	= vfs_reads,
 			.du	= vfs_du,
 			.isdir	= vfs_isdir,
 			.isfile = vfs_isfile,
@@ -711,7 +732,7 @@ int fs_write(fs_t *fs, void *file, strv_t str)
 	return CERR_OK;
 }
 
-int fs_read(fs_t *fs, strv_t path, int b, str_t *str)
+int fs_readb(fs_t *fs, strv_t path, bin_t *bin)
 {
 	path_t buf = {0};
 	if (fs == NULL || path_init(&buf, path) == NULL) {
@@ -732,26 +753,56 @@ int fs_read(fs_t *fs, strv_t path, int b, str_t *str)
 		return err; // LCOV_EXCL_LINE
 	}
 
-	if (str_resize(str, size + !b)) {
+	if (bin_resize(bin, size)) {
+		fs_close(fs, file);
+		return CERR_MEM;
+	}
+
+	bin->buf.used = 0;
+	s_fs_ops[fs->virt].readb(fs, file, *bin, size);
+	bin->buf.used = size;
+
+	fs_close(fs, file);
+	return CERR_OK;
+}
+
+int fs_reads(fs_t *fs, strv_t path, str_t *str)
+{
+	path_t buf = {0};
+	if (fs == NULL || path_init(&buf, path) == NULL) {
+		return CERR_VAL;
+	}
+
+	cerr_t err;
+
+	void *file;
+	err = fs_open(fs, STRVS(buf), "rb", &file);
+	if (err) {
+		return err;
+	}
+
+	size_t size;
+	err = fs_du(fs, file, &size);
+	if (err) {
+		return err; // LCOV_EXCL_LINE
+	}
+
+	if (str_resize(str, size + 1)) {
 		fs_close(fs, file);
 		return CERR_MEM;
 	}
 
 	str->len = 0;
-	s_fs_ops[fs->virt].read(fs, file, *str, size);
+	s_fs_ops[fs->virt].reads(fs, file, *str, size);
 
-	if (b) {
-		str->len = size;
-	} else {
-		str->len = 0;
-		for (size_t i = 0; i < size; i++) {
-			str->data[str->len] = str->data[i];
-			if (str->data[i] != '\r') {
-				str->len++;
-			}
+	str->len = 0;
+	for (size_t i = 0; i < size; i++) {
+		str->data[str->len] = str->data[i];
+		if (str->data[i] != '\r') {
+			str->len++;
 		}
-		str->data[str->len] = '\0';
 	}
+	str->data[str->len] = '\0';
 
 	fs_close(fs, file);
 	return CERR_OK;
