@@ -12,7 +12,7 @@ void bin_free(bin_t *bin);
 
 int bin_resize(bin_t *bin, size_t size);
 
-int bin_cmp(bin_t *bin, size_t off, void *data, size_t size);
+int bin_cmp(const bin_t *bin, size_t off, const void *data, size_t size);
 
 int bin_add(bin_t *bin, void *data, size_t size);
 void *bin_get(bin_t *bin, size_t size, size_t *off);

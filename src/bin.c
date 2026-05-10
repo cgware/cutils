@@ -35,7 +35,7 @@ int bin_resize(bin_t *bin, size_t size)
 	return buf_resize(&bin->buf, size);
 }
 
-int bin_cmp(bin_t *bin, size_t off, void *data, size_t size)
+int bin_cmp(const bin_t *bin, size_t off, const void *data, size_t size)
 {
 	if (bin == NULL) {
 		return 1;
