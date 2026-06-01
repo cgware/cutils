@@ -2,6 +2,7 @@
 
 #include "log.h"
 #include "mem.h"
+#include "platform.h"
 #include "test.h"
 
 TEST(proc_init_free)
@@ -36,9 +37,17 @@ TEST(proc_cmd)
 	EXPECT_EQ(proc_cmd(&op, STRV_NULL), 1);
 	log_set_quiet(0, 0);
 	EXPECT_EQ(proc_cmd(&vp, STRV_NULL), 1);
+#ifdef C_WIN
+	EXPECT_EQ(proc_cmd(&op, STRV("cmd /c exit 0")), 0);
+#else
 	EXPECT_EQ(proc_cmd(&op, STRV("true")), 0);
+#endif
 	log_set_quiet(0, 1);
+#ifdef C_WIN
+	EXPECT_EQ(proc_cmd(&op, STRV("cmd /c exit 1")), 1);
+#else
 	EXPECT_EQ(proc_cmd(&op, STRV("false")), 1);
+#endif
 	log_set_quiet(0, 0);
 	EXPECT_EQ(proc_cmd(&vp, STRV("true")), 0);
 	EXPECT_STRN(vp.buf.data, "true\n", vp.buf.len);
