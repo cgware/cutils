@@ -82,7 +82,7 @@ void *bin_get(bin_t *bin, size_t size, size_t *off)
 	return data;
 }
 
-int bin_get_int(bin_t *bin, void *val, size_t size, size_t *off)
+int bin_get_int(bin_t *bin, void *val, size_t size, int little, size_t *off)
 {
 	if (bin == NULL || val == NULL) {
 		return 1;
@@ -93,9 +93,17 @@ int bin_get_int(bin_t *bin, void *val, size_t size, size_t *off)
 		return 1;
 	}
 
-	u8 *ptr = val;
-	for (size_t i = 0; i < size; i++) {
-		ptr[i] = data[i];
+	u16 endian  = 1;
+	int host_le = *(u8 *)&endian;
+	u8 *ptr	    = val;
+	if (little < 0 || host_le == little) {
+		for (size_t i = 0; i < size; i++) {
+			ptr[i] = data[i];
+		}
+	} else {
+		for (size_t i = 0; i < size; i++) {
+			ptr[i] = data[size - i - 1];
+		}
 	}
 
 	return 0;

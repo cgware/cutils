@@ -117,18 +117,78 @@ TEST(bin_get_int)
 	bin_t bin = {0};
 	bin_init(&bin, 1, ALLOC_STD);
 
-	uint val = 1;
+	uint val = 0x123456;
 	bin_add(&bin, &val, sizeof(uint));
 
-	EXPECT_EQ(bin_get_int(NULL, NULL, sizeof(uint), 0), 1);
+	EXPECT_EQ(bin_get_int(NULL, NULL, sizeof(uint), -1, 0), 1);
 	log_set_quiet(0, 1);
 	size_t off = bin.buf.used + 1;
 	uint got;
-	EXPECT_EQ(bin_get_int(&bin, &got, sizeof(uint), &off), 1);
+	EXPECT_EQ(bin_get_int(&bin, &got, sizeof(uint), -1, &off), 1);
 	log_set_quiet(0, 0);
 	off = 0;
-	EXPECT_EQ(bin_get_int(&bin, &got, sizeof(uint), &off), 0);
-	EXPECT_EQ(got, 1);
+	EXPECT_EQ(bin_get_int(&bin, &got, sizeof(uint), -1, &off), 0);
+	EXPECT_EQ(got, 0x123456);
+
+	bin_free(&bin);
+
+	END;
+}
+
+TEST(bin_get_int_be)
+{
+	START;
+
+	bin_t bin = {0};
+	bin_init(&bin, 1, ALLOC_STD);
+
+	u8 data[] = {0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0, 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde};
+	bin_add(&bin, data, sizeof(data));
+
+	size_t off = 0;
+	u8 got1;
+	u16 got2;
+	u32 got3;
+	u64 got4;
+	EXPECT_EQ(bin_get_int(&bin, &got1, sizeof(got1), 0, &off), 0);
+	EXPECT_EQ(bin_get_int(&bin, &got2, sizeof(got2), 0, &off), 0);
+	EXPECT_EQ(bin_get_int(&bin, &got3, sizeof(got3), 0, &off), 0);
+	EXPECT_EQ(bin_get_int(&bin, &got4, sizeof(got4), 0, &off), 0);
+	EXPECT_EQ(got1, 0x12);
+	EXPECT_EQ(got2, 0x3456);
+	EXPECT_EQ(got3, 0x789abcde);
+	EXPECT_EQ(got4, 0xf0123456789abcde);
+	EXPECT_EQ(off, sizeof(data));
+
+	bin_free(&bin);
+
+	END;
+}
+
+TEST(bin_get_int_le)
+{
+	START;
+
+	bin_t bin = {0};
+	bin_init(&bin, 1, ALLOC_STD);
+
+	u8 data[] = {0x12, 0x56, 0x34, 0xde, 0xbc, 0x9a, 0x78, 0xde, 0xbc, 0x9a, 0x78, 0x56, 0x34, 0x12, 0xf0};
+	bin_add(&bin, data, sizeof(data));
+
+	size_t off = 0;
+	u8 got1;
+	u16 got2;
+	u32 got3;
+	u64 got4;
+	EXPECT_EQ(bin_get_int(&bin, &got1, sizeof(got1), 1, &off), 0);
+	EXPECT_EQ(bin_get_int(&bin, &got2, sizeof(got2), 1, &off), 0);
+	EXPECT_EQ(bin_get_int(&bin, &got3, sizeof(got3), 1, &off), 0);
+	EXPECT_EQ(bin_get_int(&bin, &got4, sizeof(got4), 1, &off), 0);
+	EXPECT_EQ(got1, 0x12);
+	EXPECT_EQ(got2, 0x3456);
+	EXPECT_EQ(got3, 0x789abcde);
+	EXPECT_EQ(got4, 0xf0123456789abcde);
+	EXPECT_EQ(off, sizeof(data));
 
 	bin_free(&bin);
 
@@ -145,6 +205,8 @@ STEST(bin)
 	RUN(bin_add);
 	RUN(bin_get);
 	RUN(bin_get_int);
+	RUN(bin_get_int_be);
+	RUN(bin_get_int_le);
 
 	SEND;
 }

@@ -17,6 +17,6 @@ int bin_cmp(const bin_t *bin, size_t off, const void *data, size_t size);
 int bin_add(bin_t *bin, void *data, size_t size);
 void *bin_get(bin_t *bin, size_t size, size_t *off);
 
-int bin_get_int(bin_t *bin, void *val, size_t size, size_t *off);
+int bin_get_int(bin_t *bin, void *val, size_t size, int little, size_t *off);
 
 #endif
