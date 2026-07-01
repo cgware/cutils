@@ -16,6 +16,7 @@ STEST(mem);
 STEST(path);
 STEST(proc);
 STEST(schema);
+STEST(sock);
 STEST(str);
 STEST(strbuf);
 STEST(strv);
@@ -41,6 +42,7 @@ TEST(cutils)
 	RUN(path);
 	RUN(proc);
 	RUN(schema);
+	RUN(sock);
 	RUN(str);
 	RUN(strbuf);
 	RUN(strv);
