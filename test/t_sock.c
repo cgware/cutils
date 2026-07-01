@@ -815,6 +815,68 @@ TEST(sock_write_valid)
 	END;
 }
 
+TEST(sock_write_all_invalid)
+{
+	START;
+
+	t_sock_conn_t c = {0};
+	uint8_t buf[8] = {0};
+	t_sock_conn_open(&c);
+	t_sock_conn_connect(&c);
+
+	log_set_quiet(0, 1);
+	EXPECT_EQ(sock_write_all(NULL, NULL, NULL, 1), CERR_VAL);
+	EXPECT_EQ(sock_write_all(&c.ss, NULL, buf, 1), CERR_VAL);
+	EXPECT_EQ(sock_write_all(&c.vss, NULL, buf, 1), CERR_VAL);
+	EXPECT_EQ(sock_write_all(&c.ss, c.c, NULL, 1), CERR_VAL);
+	EXPECT_EQ(sock_write_all(&c.vss, c.vc, NULL, 1), CERR_VAL);
+	EXPECT_EQ(sock_write_all(&c.ss, (void *)-1, buf, 1), T_OSOCK_EXPECT(CERR_DESC));
+	EXPECT_EQ(sock_write_all(&c.vss, (void *)-1, buf, 1), CERR_DESC);
+	log_set_quiet(0, 0);
+
+	t_sock_conn_close(&c);
+
+	END;
+}
+
+TEST(sock_write_all_valid)
+{
+	START;
+
+	t_sock_conn_t c = {0};
+	uint8_t buf[8] = {0x12, 0x34, 0x56};
+	uint8_t out[8] = {0};
+	size_t n       = 0;
+	t_sock_conn_open(&c);
+	t_sock_conn_connect(&c);
+
+#if defined(C_LINUX)
+	EXPECT_EQ(sock_write_all(&c.ss, c.c, buf, 3), CERR_OK);
+	EXPECT_EQ(sock_read(&c.ss, c.p, out, 3, &n), CERR_OK);
+	EXPECT_EQ(n, 3);
+	EXPECT_EQ(out[0], 0x12);
+	EXPECT_EQ(out[1], 0x34);
+	EXPECT_EQ(out[2], 0x56);
+#else
+	EXPECT_EQ(sock_write_all(&c.ss, c.c, buf, 3), CERR_UNSUPPORTED);
+#endif
+
+	out[0] = 0;
+	out[1] = 0;
+	out[2] = 0;
+	n      = 0;
+	EXPECT_EQ(sock_write_all(&c.vss, c.vc, buf, 3), CERR_OK);
+	EXPECT_EQ(sock_read(&c.vss, c.vp, out, 3, &n), CERR_OK);
+	EXPECT_EQ(n, 3);
+	EXPECT_EQ(out[0], 0x12);
+	EXPECT_EQ(out[1], 0x34);
+	EXPECT_EQ(out[2], 0x56);
+
+	t_sock_conn_close(&c);
+
+	END;
+}
+
 TEST(sock_read_invalid)
 {
 	START;
@@ -840,6 +902,30 @@ TEST(sock_read_invalid)
 	END;
 }
 
+TEST(sock_read_all_invalid)
+{
+	START;
+
+	t_sock_conn_t c = {0};
+	uint8_t buf[8] = {0};
+	t_sock_conn_open(&c);
+	t_sock_conn_connect(&c);
+
+	log_set_quiet(0, 1);
+	EXPECT_EQ(sock_read_all(NULL, NULL, NULL, 1), CERR_VAL);
+	EXPECT_EQ(sock_read_all(&c.ss, NULL, buf, 1), CERR_VAL);
+	EXPECT_EQ(sock_read_all(&c.vss, NULL, buf, 1), CERR_VAL);
+	EXPECT_EQ(sock_read_all(&c.ss, c.p, NULL, 1), CERR_VAL);
+	EXPECT_EQ(sock_read_all(&c.vss, c.vp, NULL, 1), CERR_VAL);
+	EXPECT_EQ(sock_read_all(&c.ss, (void *)-1, buf, 1), T_OSOCK_EXPECT(CERR_DESC));
+	EXPECT_EQ(sock_read_all(&c.vss, (void *)-1, buf, 1), CERR_DESC);
+	log_set_quiet(0, 0);
+
+	t_sock_conn_close(&c);
+
+	END;
+}
+
 TEST(sock_read_unconnected)
 {
 	START;
@@ -856,6 +942,44 @@ TEST(sock_read_unconnected)
 	log_set_quiet(0, 0);
 
 	t_sock_pair_close(&p);
+
+	END;
+}
+
+TEST(sock_read_all_valid)
+{
+	START;
+
+	t_sock_conn_t c = {0};
+	uint8_t buf[8] = {0x12, 0x34, 0x56};
+	uint8_t out[8] = {0};
+	size_t n       = 0;
+	t_sock_conn_open(&c);
+	t_sock_conn_connect(&c);
+
+#if defined(C_LINUX)
+	EXPECT_EQ(sock_write(&c.ss, c.c, buf, 3, &n), CERR_OK);
+	EXPECT_EQ(n, 3);
+	EXPECT_EQ(sock_read_all(&c.ss, c.p, out, 3), CERR_OK);
+	EXPECT_EQ(out[0], 0x12);
+	EXPECT_EQ(out[1], 0x34);
+	EXPECT_EQ(out[2], 0x56);
+#else
+	EXPECT_EQ(sock_read_all(&c.ss, c.p, out, 3), CERR_UNSUPPORTED);
+#endif
+
+	out[0] = 0;
+	out[1] = 0;
+	out[2] = 0;
+	n      = 0;
+	EXPECT_EQ(sock_write(&c.vss, c.vc, buf, 3, &n), CERR_OK);
+	EXPECT_EQ(n, 3);
+	EXPECT_EQ(sock_read_all(&c.vss, c.vp, out, 3), CERR_OK);
+	EXPECT_EQ(out[0], 0x12);
+	EXPECT_EQ(out[1], 0x34);
+	EXPECT_EQ(out[2], 0x56);
+
+	t_sock_conn_close(&c);
 
 	END;
 }
@@ -979,8 +1103,12 @@ STEST(sock)
 	RUN(sock_write_peer_closed);
 	RUN(sock_write_oom);
 	RUN(sock_write_valid);
+	RUN(sock_write_all_invalid);
+	RUN(sock_write_all_valid);
 	RUN(sock_read_invalid);
+	RUN(sock_read_all_invalid);
 	RUN(sock_read_unconnected);
+	RUN(sock_read_all_valid);
 	RUN(sock_read_nonblock_empty);
 	RUN(sock_read_partial);
 

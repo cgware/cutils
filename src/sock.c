@@ -388,9 +388,6 @@ static cerr_t vsock_accept(sock_t *ss, void *sock, void **fd)
 	uint pending	  = node->pending;
 	node->pending	  = (uint)-1;
 	sock_node_t *peer = arr_get(&ss->nodes, pending);
-	if (peer == NULL || !sock_flag(peer, SOCK_NODE_FLAG_OPEN)) {
-		return CERR_DESC; // LCOV_EXCL_LINE
-	}
 
 	sock_set_flag(peer, SOCK_NODE_FLAG_ACCEPTED);
 	*fd = (void *)((size_t)pending + 1);
@@ -685,6 +682,30 @@ int sock_write(sock_t *ss, void *sock, const void *data, size_t size, size_t *n)
 	return CERR_OK;
 }
 
+int sock_write_all(sock_t *ss, void *sock, const void *data, size_t size)
+{
+	const u8 *p = data;
+
+	while (size > 0) {
+		size_t n;
+		cerr_t err;
+
+		do {
+			err = sock_write(ss, sock, p, size, &n);
+		} while (err == CERR_INTERRUPT);
+
+		if (err) {
+			log_error("cutils", "sock", NULL, "failed to write all: %s", cerr_str(err));
+			return err;
+		}
+
+		p = &p[n];
+		size -= (size_t)n;
+	}
+
+	return CERR_OK;
+}
+
 int sock_read(sock_t *ss, void *sock, void *data, size_t size, size_t *n)
 {
 	if (ss == NULL) {
@@ -695,6 +716,30 @@ int sock_read(sock_t *ss, void *sock, void *data, size_t size, size_t *n)
 	if (err) {
 		log_error("cutils", "sock", NULL, "failed to read: %s", cerr_str(err));
 		return err;
+	}
+
+	return CERR_OK;
+}
+
+int sock_read_all(sock_t *ss, void *sock, void *data, size_t size)
+{
+	u8 *p = data;
+
+	while (size > 0) {
+		size_t n;
+		cerr_t err;
+
+		do {
+			err = sock_read(ss, sock, p, size, &n);
+		} while (err == CERR_INTERRUPT);
+
+		if (err) {
+			log_error("cutils", "sock", NULL, "failed to read all: %s", cerr_str(err));
+			return err;
+		}
+
+		p = &p[n];
+		size -= (size_t)n;
 	}
 
 	return CERR_OK;

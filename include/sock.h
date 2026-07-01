@@ -32,13 +32,19 @@ int sock_open(sock_t *ss, sock_family_t family, sock_type_t type, int protocol, 
 int sock_close(sock_t *ss, void *sock);
 
 int sock_setopt(sock_t *ss, void *sock, sock_opt_t opt, void *val, size_t size);
+
 int sock_get_flags(sock_t *ss, void *sock, int *flags);
 int sock_set_flags(sock_t *ss, void *sock, int flags);
+
 int sock_bind(sock_t *ss, void *sock, sock_family_t family, const char *path, size_t len);
 int sock_listen(sock_t *ss, void *sock, int n);
 int sock_connect(sock_t *ss, void *sock, sock_family_t family, const char *path, size_t len);
 int sock_accept(sock_t *ss, void *sock, void **fd);
+
 int sock_write(sock_t *ss, void *sock, const void *data, size_t size, size_t *n);
+int sock_write_all(sock_t *ss, void *sock, const void *data, size_t size);
+
 int sock_read(sock_t *ss, void *sock, void *data, size_t size, size_t *n);
+int sock_read_all(sock_t *ss, void *sock, void *data, size_t size);
 
 #endif
