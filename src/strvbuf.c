@@ -34,12 +34,12 @@ int strvbuf_add(strvbuf_t *buf, strv_t strv, size_t *off)
 
 	size_t used = buf->used;
 
-	if (buf_add(buf, &strv.len, sizeof(size_t), off)) {
+	if (buf_add(buf, sizeof(size_t), &strv.len, off)) {
 		log_error("cutils", "strvbuf", NULL, "failed to add size");
 		return 1;
 	}
 
-	if (buf_add(buf, strv.data, strv.len, NULL)) {
+	if (buf_add_str(buf, strv, NULL)) {
 		buf_reset(buf, used);
 		log_error("cutils", "strvbuf", NULL, "failed to add string: %zu", strv.len);
 		return 1;

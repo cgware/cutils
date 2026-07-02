@@ -1,7 +1,6 @@
 #include "fs.h"
 
 #include "cfs.h"
-#include "loc.h"
 #include "log.h"
 #include "path.h"
 
@@ -9,7 +8,7 @@ typedef cerr_t (*fs_open_fn)(fs_t *fs, strv_t path, const char *mode, void **fil
 typedef cerr_t (*fs_close_fn)(fs_t *fs, void *file);
 
 typedef cerr_t (*fs_write_fn)(fs_t *fs, void *file, strv_t str);
-typedef cerr_t (*fs_readb_fn)(fs_t *fs, void *file, bin_t bin, size_t size);
+typedef cerr_t (*fs_readb_fn)(fs_t *fs, void *file, buf_t buf, size_t size);
 typedef cerr_t (*fs_reads_fn)(fs_t *fs, void *file, str_t str, size_t size);
 
 typedef cerr_t (*fs_du_fn)(fs_t *fs, void *file, size_t *size);
@@ -95,7 +94,7 @@ static fs_node_t *find_node(fs_t *fs, strv_t path, uint *id)
 			continue;
 		}
 
-		if (strv_eq(buf_gets(&fs->paths, node->path), path)) {
+		if (strv_eq(buf_get_str(&fs->paths, node->path), path)) {
 			if (id) {
 				*id = i;
 			}
@@ -128,7 +127,7 @@ static cerr_t vfs_open(fs_t *fs, strv_t path, const char *mode, void **file)
 
 		if ((mode[0] == 'w' || mode[0] == 'a') && name.len > 0 && (dir.len == 0 || fs_isdir(fs, dir))) {
 			node = arr_add(&fs->nodes, &id);
-			buf_adds(&fs->paths, path, &node->path);
+			buf_add_str(&fs->paths, path, &node->path);
 			if (node == NULL) {
 				return CERR_MEM;
 			}
@@ -214,19 +213,19 @@ static cerr_t vfs_write(fs_t *fs, void *file, strv_t str)
 	return CERR_OK;
 }
 
-static cerr_t ofs_readb(fs_t *fs, void *file, bin_t bin, size_t size)
+static cerr_t ofs_readb(fs_t *fs, void *file, buf_t buf, size_t size)
 {
 	(void)fs;
-	return cfs_read(file, bin.buf.data, size);
+	return cfs_read(file, buf.data, size);
 }
 
-static cerr_t vfs_readb(fs_t *fs, void *file, bin_t bin, size_t size)
+static cerr_t vfs_readb(fs_t *fs, void *file, buf_t buf, size_t size)
 {
 	uint id = (uint)((size_t)file - 1);
 
 	fs_node_t *node = arr_get(&fs->nodes, id);
 
-	bin_add(&bin, node->data.data, size);
+	buf_add(&buf, size, node->data.data, NULL);
 
 	return CERR_OK;
 }
@@ -343,7 +342,7 @@ static cerr_t vfs_mkdir(fs_t *fs, strv_t path)
 		return CERR_MEM;
 	}
 
-	if (buf_adds(&fs->paths, path, &node->path)) {
+	if (buf_add_str(&fs->paths, path, &node->path)) {
 		arr_reset(&fs->nodes, nodes_cnt);
 		return CERR_MEM;
 	}
@@ -384,7 +383,7 @@ static cerr_t vfs_mkfile(fs_t *fs, strv_t path)
 		return CERR_MEM;
 	}
 
-	if (buf_adds(&fs->paths, path, &node->path)) {
+	if (buf_add_str(&fs->paths, path, &node->path)) {
 		arr_reset(&fs->nodes, nodes_cnt);
 		return CERR_MEM;
 	}
@@ -438,7 +437,7 @@ static cerr_t vfs_rmdir(fs_t *fs, strv_t path)
 		}
 
 		strv_t parent;
-		pathv_rsplit(buf_gets(&fs->paths, n->path), &parent, NULL);
+		pathv_rsplit(buf_get_str(&fs->paths, n->path), &parent, NULL);
 		parent = path_trim(parent);
 
 		if (strv_eq(parent, path)) {
@@ -546,7 +545,7 @@ static int vfs_lsdir(fs_t *fs, strv_t path, strbuf_t *dirs)
 		}
 
 		strv_t parent, name;
-		pathv_rsplit(buf_gets(&fs->paths, node->path), &parent, &name);
+		pathv_rsplit(buf_get_str(&fs->paths, node->path), &parent, &name);
 		parent = path_trim(parent);
 
 		if (!strv_eq(parent, path)) {
@@ -598,7 +597,7 @@ static int vfs_lsfile(fs_t *fs, strv_t path, strbuf_t *files)
 		}
 
 		strv_t parent, name;
-		pathv_rsplit(buf_gets(&fs->paths, node->path), &parent, &name);
+		pathv_rsplit(buf_get_str(&fs->paths, node->path), &parent, &name);
 		parent = path_trim(parent);
 
 		if (!strv_eq(parent, path)) {
@@ -732,17 +731,17 @@ int fs_write(fs_t *fs, void *file, strv_t str)
 	return CERR_OK;
 }
 
-int fs_readb(fs_t *fs, strv_t path, bin_t *bin)
+int fs_readb(fs_t *fs, strv_t path, buf_t *buf)
 {
-	path_t buf = {0};
-	if (fs == NULL || path_init(&buf, path) == NULL) {
+	path_t tmp = {0};
+	if (fs == NULL || path_init(&tmp, path) == NULL) {
 		return CERR_VAL;
 	}
 
 	cerr_t err;
 
 	void *file;
-	err = fs_open(fs, STRVS(buf), "rb", &file);
+	err = fs_open(fs, STRVS(tmp), "rb", &file);
 	if (err) {
 		return err;
 	}
@@ -753,14 +752,14 @@ int fs_readb(fs_t *fs, strv_t path, bin_t *bin)
 		return err; // LCOV_EXCL_LINE
 	}
 
-	if (bin_resize(bin, size)) {
+	if (buf_resize(buf, size)) {
 		fs_close(fs, file);
 		return CERR_MEM;
 	}
 
-	bin->buf.used = 0;
-	s_fs_ops[fs->virt].readb(fs, file, *bin, size);
-	bin->buf.used = size;
+	buf->used = 0;
+	s_fs_ops[fs->virt].readb(fs, file, *buf, size);
+	buf->used = size;
 
 	fs_close(fs, file);
 	return CERR_OK;

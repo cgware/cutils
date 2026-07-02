@@ -96,7 +96,7 @@ int schema_add_fields(schema_t *schema, schema_field_desc_t *fields, size_t size
 			for (uint j = 0; j < fields[i].vals_size / sizeof(schema_val_t); j++) {
 				size_t vals_cnt;
 				u8 tmp = 0;
-				if (buf_add(&schema->vals, &tmp, f->size + sizeof(size_t), &vals_cnt)) {
+				if (buf_add(&schema->vals, f->size + sizeof(size_t), &tmp, &vals_cnt)) {
 					ret = 1;
 					continue;
 				}

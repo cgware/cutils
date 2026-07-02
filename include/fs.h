@@ -1,7 +1,7 @@
 #ifndef FS_H
 #define FS_H
 
-#include "bin.h"
+#include "buf.h"
 #include "str.h"
 #include "strbuf.h"
 
@@ -18,7 +18,7 @@ int fs_open(fs_t *fs, strv_t path, const char *mode, void **file);
 int fs_close(fs_t *fs, void *file);
 
 int fs_write(fs_t *fs, void *file, strv_t str);
-int fs_readb(fs_t *fs, strv_t path, bin_t *bin);
+int fs_readb(fs_t *fs, strv_t path, buf_t *buf);
 int fs_reads(fs_t *fs, strv_t path, str_t *str);
 
 int fs_du(fs_t *fs, void *file, size_t *size);

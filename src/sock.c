@@ -91,7 +91,7 @@ static sock_node_t *find_bound_node(sock_t *ss, strv_t path, uint *id)
 			continue;
 		}
 
-		if (strv_eq(buf_gets(&ss->paths, node->path), path)) {
+		if (strv_eq(buf_get_str(&ss->paths, node->path), path)) {
 			if (id) {
 				*id = i;
 			}
@@ -271,7 +271,7 @@ static cerr_t vsock_bind(sock_t *ss, void *sock, sock_family_t family, strv_t pa
 		return CERR_EXIST;
 	}
 
-	if (buf_adds(&ss->paths, bind_path, &node->path)) {
+	if (buf_add_str(&ss->paths, bind_path, &node->path)) {
 		return CERR_MEM;
 	}
 
@@ -423,7 +423,7 @@ static cerr_t vsock_write(sock_t *ss, void *sock, const void *data, size_t size,
 		return CERR_MEM;
 	}
 
-	if (buf_add(&peer->data, data, size, NULL)) {
+	if (buf_add(&peer->data, size, data, NULL)) {
 		return CERR_MEM;
 	}
 

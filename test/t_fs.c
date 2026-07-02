@@ -459,15 +459,15 @@ TEST(fs_readb_not_found)
 	fs_init(&fs, 0, 0, ALLOC_STD);
 	fs_init(&vfs, 1, 1, ALLOC_STD);
 
-	bin_t bin = {0};
-	bin_init(&bin, 8, ALLOC_STD);
+	buf_t buf = {0};
+	buf_init(&buf, 8, ALLOC_STD);
 
 	log_set_quiet(0, 1);
-	EXPECT_EQ(fs_readb(&fs, STRV(TEST_FILE), &bin), CERR_NOT_FOUND);
-	EXPECT_EQ(fs_readb(&vfs, STRV(TEST_FILE), &bin), CERR_NOT_FOUND);
+	EXPECT_EQ(fs_readb(&fs, STRV(TEST_FILE), &buf), CERR_NOT_FOUND);
+	EXPECT_EQ(fs_readb(&vfs, STRV(TEST_FILE), &buf), CERR_NOT_FOUND);
 	log_set_quiet(0, 0);
 
-	bin_free(&bin);
+	buf_free(&buf);
 	fs_free(&fs);
 	fs_free(&vfs);
 
@@ -484,20 +484,20 @@ TEST(fs_readb_arr)
 
 	fs_mkfile(&vfs, STRV(TEST_FILE));
 
-	bin_t bin = {0};
-	bin_init(&bin, 8, ALLOC_STD);
+	buf_t buf = {0};
+	buf_init(&buf, 8, ALLOC_STD);
 
 	size_t paths_used = vfs.paths.used;
 
 	vfs.nodes.cnt = 0;
 
 	log_set_quiet(0, 1);
-	EXPECT_EQ(fs_readb(&vfs, STRV(TEST_FILE), &bin), CERR_NOT_FOUND);
+	EXPECT_EQ(fs_readb(&vfs, STRV(TEST_FILE), &buf), CERR_NOT_FOUND);
 	log_set_quiet(0, 0);
 
 	vfs.paths.used = paths_used;
 
-	bin_free(&bin);
+	buf_free(&buf);
 	fs_free(&vfs);
 
 	END;
@@ -526,19 +526,19 @@ TEST(fs_readb_oom)
 	fs_close(&fs, f);
 	fs_close(&vfs, vf);
 
-	bin_t bin = {0};
+	buf_t buf = {0};
 	log_set_quiet(0, 1);
-	bin_init(&bin, 0, ALLOC_STD);
+	buf_init(&buf, 0, ALLOC_STD);
 	log_set_quiet(0, 0);
 
 	mem_oom(1);
-	EXPECT_EQ(fs_readb(&fs, STRV(TEST_FILE), &bin), CERR_MEM);
-	EXPECT_EQ(fs_readb(&vfs, STRV(TEST_FILE), &bin), CERR_MEM);
+	EXPECT_EQ(fs_readb(&fs, STRV(TEST_FILE), &buf), CERR_MEM);
+	EXPECT_EQ(fs_readb(&vfs, STRV(TEST_FILE), &buf), CERR_MEM);
 	mem_oom(0);
 
 	fs_rmfile(&fs, STRV(TEST_FILE));
 
-	bin_free(&bin);
+	buf_free(&buf);
 	fs_free(&fs);
 	fs_free(&vfs);
 
@@ -558,19 +558,19 @@ TEST(fs_readb_empty)
 	fs_mkfile(&fs, STRV(TEST_FILE));
 	fs_mkfile(&vfs, STRV(TEST_FILE));
 
-	bin_t bin = {0};
-	bin_init(&bin, 8, ALLOC_STD);
+	buf_t buf = {0};
+	buf_init(&buf, 8, ALLOC_STD);
 
-	EXPECT_EQ(fs_readb(&fs, STRV(TEST_FILE), &bin), 0);
-	EXPECT_EQ(bin.buf.used, 0);
+	EXPECT_EQ(fs_readb(&fs, STRV(TEST_FILE), &buf), 0);
+	EXPECT_EQ(buf.used, 0);
 
-	EXPECT_EQ(fs_readb(&vfs, STRV(TEST_FILE), &bin), 0);
-	EXPECT_EQ(bin.buf.used, 0);
+	EXPECT_EQ(fs_readb(&vfs, STRV(TEST_FILE), &buf), 0);
+	EXPECT_EQ(buf.used, 0);
 
 	fs_rmfile(&fs, STRV(TEST_FILE));
 	fs_rmfile(&vfs, STRV(TEST_FILE));
 
-	bin_free(&bin);
+	buf_free(&buf);
 	fs_free(&fs);
 	fs_free(&vfs);
 
@@ -597,26 +597,26 @@ TEST(fs_readb_bin)
 	fs_close(&fs, f);
 	fs_close(&vfs, vf);
 
-	bin_t bin = {0};
-	bin_init(&bin, 8, ALLOC_STD);
+	buf_t buf = {0};
+	buf_init(&buf, 8, ALLOC_STD);
 
-	EXPECT_EQ(fs_readb(&fs, STRV(TEST_FILE), &bin), 0);
+	EXPECT_EQ(fs_readb(&fs, STRV(TEST_FILE), &buf), 0);
 	char val   = 0;
 	size_t off = 0;
-	bin_get_int(&bin, &val, sizeof(val), -1, &off);
+	buf_get_int(&buf, off, sizeof(val), -1, &val);
 	EXPECT_EQ(val, 'a');
 
 	val = 0;
 	off = 0;
 
-	EXPECT_EQ(fs_readb(&vfs, STRV(TEST_FILE), &bin), 0);
-	bin_get_int(&bin, &val, sizeof(val), -1, &off);
+	EXPECT_EQ(fs_readb(&vfs, STRV(TEST_FILE), &buf), 0);
+	buf_get_int(&buf, off, sizeof(val), -1, &val);
 	EXPECT_EQ(val, 'a');
 
 	fs_rmfile(&fs, STRV(TEST_FILE));
 	fs_rmfile(&vfs, STRV(TEST_FILE));
 
-	bin_free(&bin);
+	buf_free(&buf);
 	fs_free(&fs);
 	fs_free(&vfs);
 
