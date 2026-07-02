@@ -117,28 +117,118 @@ TEST(buf_add)
 	END;
 }
 
-TEST(buf_set_int)
+TEST(buf_write_le)
 {
 	START;
 
 	buf_t buf = {0};
-	buf_init(&buf, 8, ALLOC_STD);
+	buf_init(&buf, 1, ALLOC_STD);
 
 	u32 val = 0x12345678;
-	EXPECT_EQ(buf_set_int(NULL, 0, sizeof(val), ENDIAN_HOST, &val), 1);
-	EXPECT_EQ(buf_set_int(&buf, 0, sizeof(val), ENDIAN_HOST, NULL), 1);
-	EXPECT_EQ(buf_set_int(&buf, 8, sizeof(val), ENDIAN_HOST, &val), 1);
+	EXPECT_EQ(buf_write_le(NULL, &val, sizeof(val)), 1);
+	EXPECT_EQ(buf_write_le(&buf, NULL, sizeof(val)), 1);
 
-	EXPECT_EQ(buf_set_int(&buf, 0, sizeof(val), ENDIAN_HOST, &val), 0);
-	EXPECT_EQ(*(u32 *)buf.data, val);
+	EXPECT_EQ(buf_write_le(&buf, &val, sizeof(val)), 0);
+	EXPECT_EQ(buf.used, sizeof(val));
+	EXPECT_EQ(((u8 *)buf.data)[0], 0x78);
+	EXPECT_EQ(((u8 *)buf.data)[1], 0x56);
+	EXPECT_EQ(((u8 *)buf.data)[2], 0x34);
+	EXPECT_EQ(((u8 *)buf.data)[3], 0x12);
 
-	EXPECT_EQ(buf_set_int(&buf, 0, sizeof(val), ENDIAN_BIG, &val), 0);
+	buf_free(&buf);
+
+	END;
+}
+
+TEST(buf_write_be)
+{
+	START;
+
+	buf_t buf = {0};
+	buf_init(&buf, 1, ALLOC_STD);
+
+	u32 val = 0x12345678;
+	EXPECT_EQ(buf_write_be(NULL, &val, sizeof(val)), 1);
+	EXPECT_EQ(buf_write_be(&buf, NULL, sizeof(val)), 1);
+
+	EXPECT_EQ(buf_write_be(&buf, &val, sizeof(val)), 0);
+	EXPECT_EQ(buf.used, sizeof(val));
 	EXPECT_EQ(((u8 *)buf.data)[0], 0x12);
 	EXPECT_EQ(((u8 *)buf.data)[1], 0x34);
 	EXPECT_EQ(((u8 *)buf.data)[2], 0x56);
 	EXPECT_EQ(((u8 *)buf.data)[3], 0x78);
 
-	EXPECT_EQ(buf_set_int(&buf, 4, sizeof(val), ENDIAN_LITTLE, &val), 0);
+	buf_free(&buf);
+
+	END;
+}
+
+TEST(buf_write_u8le)
+{
+	START;
+
+	buf_t buf = {0};
+	buf_init(&buf, 1, ALLOC_STD);
+
+	EXPECT_EQ(buf_write_u8le(NULL, 0x12), 1);
+	EXPECT_EQ(buf_write_u8le(&buf, 0x12), 0);
+	EXPECT_EQ(buf.used, 1);
+	EXPECT_EQ(((u8 *)buf.data)[0], 0x12);
+
+	buf_free(&buf);
+
+	END;
+}
+
+TEST(buf_write_u16le)
+{
+	START;
+
+	buf_t buf = {0};
+	buf_init(&buf, 1, ALLOC_STD);
+
+	EXPECT_EQ(buf_write_u16le(&buf, 0x1234), 0);
+	EXPECT_EQ(buf.used, 2);
+	EXPECT_EQ(((u8 *)buf.data)[0], 0x34);
+	EXPECT_EQ(((u8 *)buf.data)[1], 0x12);
+
+	buf_free(&buf);
+
+	END;
+}
+
+TEST(buf_write_u32le)
+{
+	START;
+
+	buf_t buf = {0};
+	buf_init(&buf, 1, ALLOC_STD);
+
+	EXPECT_EQ(buf_write_u32le(&buf, 0x12345678), 0);
+	EXPECT_EQ(buf.used, 4);
+	EXPECT_EQ(((u8 *)buf.data)[0], 0x78);
+	EXPECT_EQ(((u8 *)buf.data)[1], 0x56);
+	EXPECT_EQ(((u8 *)buf.data)[2], 0x34);
+	EXPECT_EQ(((u8 *)buf.data)[3], 0x12);
+
+	buf_free(&buf);
+
+	END;
+}
+
+TEST(buf_write_u64le)
+{
+	START;
+
+	buf_t buf = {0};
+	buf_init(&buf, 1, ALLOC_STD);
+
+	EXPECT_EQ(buf_write_u64le(&buf, 0x123456789abcdef0), 0);
+	EXPECT_EQ(buf.used, 8);
+	EXPECT_EQ(((u8 *)buf.data)[0], 0xf0);
+	EXPECT_EQ(((u8 *)buf.data)[1], 0xde);
+	EXPECT_EQ(((u8 *)buf.data)[2], 0xbc);
+	EXPECT_EQ(((u8 *)buf.data)[3], 0x9a);
 	EXPECT_EQ(((u8 *)buf.data)[4], 0x78);
 	EXPECT_EQ(((u8 *)buf.data)[5], 0x56);
 	EXPECT_EQ(((u8 *)buf.data)[6], 0x34);
@@ -149,33 +239,184 @@ TEST(buf_set_int)
 	END;
 }
 
-TEST(buf_add_int)
+TEST(buf_write_u8be)
 {
 	START;
 
 	buf_t buf = {0};
 	buf_init(&buf, 1, ALLOC_STD);
 
-	u16 val = 0x1234;
-	EXPECT_EQ(buf_add_int(NULL, sizeof(val), ENDIAN_BIG, &val), 1);
-	mem_oom(1);
-	EXPECT_EQ(buf_add_int(&buf, sizeof(val), ENDIAN_BIG, &val), 1);
-	mem_oom(0);
-	EXPECT_EQ(buf_add_int(&buf, sizeof(val), ENDIAN_BIG, NULL), 1);
-	EXPECT_EQ(buf.used, 0);
+	EXPECT_EQ(buf_write_u8be(NULL, 0x12), 1);
+	EXPECT_EQ(buf_write_u8be(&buf, 0x12), 0);
+	EXPECT_EQ(buf.used, 1);
+	EXPECT_EQ(((u8 *)buf.data)[0], 0x12);
 
-	EXPECT_EQ(buf_add_int(&buf, sizeof(val), ENDIAN_BIG, &val), 0);
-	EXPECT_EQ(buf.used, sizeof(val));
+	buf_free(&buf);
+
+	END;
+}
+
+TEST(buf_write_u16be)
+{
+	START;
+
+	buf_t buf = {0};
+	buf_init(&buf, 1, ALLOC_STD);
+
+	EXPECT_EQ(buf_write_u16be(&buf, 0x1234), 0);
+	EXPECT_EQ(buf.used, 2);
 	EXPECT_EQ(((u8 *)buf.data)[0], 0x12);
 	EXPECT_EQ(((u8 *)buf.data)[1], 0x34);
 
-	EXPECT_EQ(buf_add_int(&buf, sizeof(val), ENDIAN_LITTLE, &val), 0);
-	EXPECT_EQ(buf.used, sizeof(val) * 2);
-	EXPECT_EQ(((u8 *)buf.data)[2], 0x34);
-	EXPECT_EQ(((u8 *)buf.data)[3], 0x12);
-	buf.used = (size_t)-1;
-	EXPECT_EQ(buf_add_int(&buf, 1, ENDIAN_HOST, &val), 1);
+	buf_free(&buf);
 
+	END;
+}
+
+TEST(buf_write_u32be)
+{
+	START;
+
+	buf_t buf = {0};
+	buf_init(&buf, 1, ALLOC_STD);
+
+	EXPECT_EQ(buf_write_u32be(&buf, 0x12345678), 0);
+	EXPECT_EQ(buf.used, 4);
+	EXPECT_EQ(((u8 *)buf.data)[0], 0x12);
+	EXPECT_EQ(((u8 *)buf.data)[1], 0x34);
+	EXPECT_EQ(((u8 *)buf.data)[2], 0x56);
+	EXPECT_EQ(((u8 *)buf.data)[3], 0x78);
+
+	buf_free(&buf);
+
+	END;
+}
+
+TEST(buf_write_u64be)
+{
+	START;
+
+	buf_t buf = {0};
+	buf_init(&buf, 1, ALLOC_STD);
+
+	EXPECT_EQ(buf_write_u64be(&buf, 0x123456789abcdef0), 0);
+	EXPECT_EQ(buf.used, 8);
+	EXPECT_EQ(((u8 *)buf.data)[0], 0x12);
+	EXPECT_EQ(((u8 *)buf.data)[1], 0x34);
+	EXPECT_EQ(((u8 *)buf.data)[2], 0x56);
+	EXPECT_EQ(((u8 *)buf.data)[3], 0x78);
+	EXPECT_EQ(((u8 *)buf.data)[4], 0x9a);
+	EXPECT_EQ(((u8 *)buf.data)[5], 0xbc);
+	EXPECT_EQ(((u8 *)buf.data)[6], 0xde);
+	EXPECT_EQ(((u8 *)buf.data)[7], 0xf0);
+
+	buf_free(&buf);
+
+	END;
+}
+
+TEST(buf_write_oom)
+{
+	START;
+
+	buf_t buf = {0};
+	buf_init(&buf, 1, ALLOC_STD);
+
+	u32 val = 0x12345678;
+	mem_oom(1);
+	EXPECT_EQ(buf_write_le(&buf, &val, sizeof(val)), 1);
+	mem_oom(0);
+	EXPECT_EQ(buf.used, 0);
+
+	buf_free(&buf);
+
+	END;
+}
+
+TEST(buf_write_overflow)
+{
+	START;
+
+	buf_t buf = {0};
+	buf_init(&buf, 1, ALLOC_STD);
+	buf.used = (size_t)-1;
+
+	u8 val = 0;
+	EXPECT_EQ(buf_write_le(&buf, &val, sizeof(val)), 1);
+	EXPECT_EQ(buf_write_u8le(&buf, val), 1);
+	EXPECT_EQ(buf_write_be(&buf, &val, sizeof(val)), 1);
+	EXPECT_EQ(buf_write_u8be(&buf, val), 1);
+
+	buf.used = 0;
+	buf_free(&buf);
+
+	END;
+}
+
+TEST(buf_write_typed_null)
+{
+	START;
+
+	EXPECT_EQ(buf_write_u16le(NULL, 0), 1);
+	EXPECT_EQ(buf_write_u32le(NULL, 0), 1);
+	EXPECT_EQ(buf_write_u64le(NULL, 0), 1);
+	EXPECT_EQ(buf_write_u16be(NULL, 0), 1);
+	EXPECT_EQ(buf_write_u32be(NULL, 0), 1);
+	EXPECT_EQ(buf_write_u64be(NULL, 0), 1);
+
+	END;
+}
+
+TEST(buf_write_typed_overflow)
+{
+	START;
+
+	buf_t buf = {0};
+	buf_init(&buf, 1, ALLOC_STD);
+	buf.used = (size_t)-1;
+
+	EXPECT_EQ(buf_write_u16le(&buf, 0), 1);
+	EXPECT_EQ(buf_write_u32le(&buf, 0), 1);
+	EXPECT_EQ(buf_write_u64le(&buf, 0), 1);
+	EXPECT_EQ(buf_write_u16be(&buf, 0), 1);
+	EXPECT_EQ(buf_write_u32be(&buf, 0), 1);
+	EXPECT_EQ(buf_write_u64be(&buf, 0), 1);
+
+	buf.used = 0;
+	buf_free(&buf);
+
+	END;
+}
+
+TEST(buf_write_resize_oom)
+{
+	START;
+
+	buf_t buf = {0};
+	buf_init(&buf, 1, ALLOC_STD);
+
+	u32 val = 0;
+	mem_oom(1);
+
+	EXPECT_EQ(buf_write_be(&buf, &val, sizeof(val)), 1);
+
+	buf.used = 1;
+	EXPECT_EQ(buf_write_u8le(&buf, 0), 1);
+
+	buf.used = 0;
+	EXPECT_EQ(buf_write_u16le(&buf, 0), 1);
+	EXPECT_EQ(buf_write_u32le(&buf, 0), 1);
+	EXPECT_EQ(buf_write_u64le(&buf, 0), 1);
+
+	buf.used = 1;
+	EXPECT_EQ(buf_write_u8be(&buf, 0), 1);
+
+	buf.used = 0;
+	EXPECT_EQ(buf_write_u16be(&buf, 0), 1);
+	EXPECT_EQ(buf_write_u32be(&buf, 0), 1);
+	EXPECT_EQ(buf_write_u64be(&buf, 0), 1);
+
+	mem_oom(0);
 	buf_free(&buf);
 
 	END;
@@ -266,55 +507,40 @@ TEST(buf_read)
 	END;
 }
 
-TEST(buf_get_int)
+TEST(buf_read_zero)
 {
 	START;
 
 	buf_t buf = {0};
-	buf_init(&buf, 1, ALLOC_STD);
+	buf_init(&buf, 4, ALLOC_STD);
+	buf_add(&buf, 4, "abcd", NULL);
 
-	uint val = 0x123456;
-	buf_add(&buf, sizeof(uint), &val, NULL);
-
-	EXPECT_EQ(buf_get_int(NULL, 0, sizeof(uint), ENDIAN_HOST, NULL), 1);
-	log_set_quiet(0, 1);
-	size_t off = buf.used + 1;
-	uint got;
-	EXPECT_EQ(buf_get_int(&buf, off, sizeof(uint), ENDIAN_HOST, &got), 1);
-	log_set_quiet(0, 0);
-	off = 0;
-	EXPECT_EQ(buf_get_int(&buf, off, sizeof(uint), ENDIAN_HOST, &got), 0);
-	EXPECT_EQ(got, 0x123456);
-	EXPECT_EQ(buf_get_int(&buf, 1, sizeof(uint), ENDIAN_HOST, &got), 1);
-	log_set_quiet(0, 1);
-	EXPECT_EQ(buf_get_int(&buf, buf.used, 0, ENDIAN_HOST, &got), 1);
-	log_set_quiet(0, 0);
+	size_t off = 1;
+	void *got  = buf_read(&buf, 0, &off);
+	EXPECT_EQ(got, (void *)((u8 *)buf.data + 1));
+	EXPECT_EQ(off, 1);
 
 	buf_free(&buf);
 
 	END;
 }
 
-TEST(buf_read_int)
+TEST(buf_read_le)
 {
 	START;
 
 	buf_t buf = {0};
 	buf_init(&buf, 4, ALLOC_STD);
+	buf_add(&buf, 4, (u8[]){0x78, 0x56, 0x34, 0x12}, NULL);
 
-	u16 val = 0x1234;
-	buf_add_int(&buf, sizeof(val), ENDIAN_BIG, &val);
+	u32 val	   = 0;
+	size_t off = 0;
+	EXPECT_EQ(buf_read_le(NULL, &off, &val, sizeof(val)), 1);
+	EXPECT_EQ(buf_read_le(&buf, NULL, &val, sizeof(val)), 1);
+	EXPECT_EQ(buf_read_le(&buf, &off, NULL, sizeof(val)), 1);
 
-	EXPECT_EQ(buf_read_int(&buf, NULL, sizeof(val), ENDIAN_BIG, &val), 1);
-
-	size_t off = 1;
-	EXPECT_EQ(buf_read_int(&buf, &off, sizeof(val), ENDIAN_BIG, &val), 1);
-	EXPECT_EQ(off, 1);
-
-	off = 0;
-	val = 0;
-	EXPECT_EQ(buf_read_int(&buf, &off, sizeof(val), ENDIAN_BIG, &val), 0);
-	EXPECT_EQ(val, 0x1234);
+	EXPECT_EQ(buf_read_le(&buf, &off, &val, sizeof(val)), 0);
+	EXPECT_EQ(val, 0x12345678);
 	EXPECT_EQ(off, sizeof(val));
 
 	buf_free(&buf);
@@ -322,60 +548,291 @@ TEST(buf_read_int)
 	END;
 }
 
-TEST(buf_read_int_be)
+TEST(buf_read_le_bounds)
 {
 	START;
 
 	buf_t buf = {0};
-	buf_init(&buf, 1, ALLOC_STD);
+	buf_init(&buf, 2, ALLOC_STD);
+	buf_add(&buf, 2, (u8[]){0x12, 0x34}, NULL);
 
-	u8 data[] = {0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0, 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde};
-	buf_add(&buf, sizeof(data), data, NULL);
-
+	u32 val	   = 0;
 	size_t off = 0;
-	u8 got1;
-	u16 got2;
-	u32 got3;
-	u64 got4;
-	EXPECT_EQ(buf_read_int(&buf, &off, sizeof(got1), ENDIAN_BIG, &got1), 0);
-	EXPECT_EQ(buf_read_int(&buf, &off, sizeof(got2), ENDIAN_BIG, &got2), 0);
-	EXPECT_EQ(buf_read_int(&buf, &off, sizeof(got3), ENDIAN_BIG, &got3), 0);
-	EXPECT_EQ(buf_read_int(&buf, &off, sizeof(got4), ENDIAN_BIG, &got4), 0);
-	EXPECT_EQ(got1, 0x12);
-	EXPECT_EQ(got2, 0x3456);
-	EXPECT_EQ(got3, 0x789abcde);
-	EXPECT_EQ(got4, 0xf0123456789abcde);
-	EXPECT_EQ(off, sizeof(data));
+	EXPECT_EQ(buf_read_le(&buf, &off, &val, sizeof(val)), 1);
+	EXPECT_EQ(off, 0);
+
+	off = (size_t)-1;
+	EXPECT_EQ(buf_read_le(&buf, &off, &val, 1), 1);
+	EXPECT_EQ(off, (size_t)-1);
 
 	buf_free(&buf);
 
 	END;
 }
 
-TEST(buf_read_int_le)
+TEST(buf_read_be)
+{
+	START;
+
+	buf_t buf = {0};
+	buf_init(&buf, 4, ALLOC_STD);
+	buf_add(&buf, 4, (u8[]){0x12, 0x34, 0x56, 0x78}, NULL);
+
+	u32 val	   = 0;
+	size_t off = 0;
+	EXPECT_EQ(buf_read_be(NULL, &off, &val, sizeof(val)), 1);
+	EXPECT_EQ(buf_read_be(&buf, NULL, &val, sizeof(val)), 1);
+	EXPECT_EQ(buf_read_be(&buf, &off, NULL, sizeof(val)), 1);
+
+	EXPECT_EQ(buf_read_be(&buf, &off, &val, sizeof(val)), 0);
+	EXPECT_EQ(val, 0x12345678);
+	EXPECT_EQ(off, sizeof(val));
+
+	buf_free(&buf);
+
+	END;
+}
+
+TEST(buf_read_typed_null)
+{
+	START;
+
+	size_t off = 0;
+	u8 u8v	   = 0;
+	u16 u16v   = 0;
+	u32 u32v   = 0;
+	u64 u64v   = 0;
+
+	EXPECT_EQ(buf_read_u8le(NULL, &off, &u8v), 1);
+	EXPECT_EQ(buf_read_u16le(NULL, &off, &u16v), 1);
+	EXPECT_EQ(buf_read_u32le(NULL, &off, &u32v), 1);
+	EXPECT_EQ(buf_read_u64le(NULL, &off, &u64v), 1);
+	EXPECT_EQ(buf_read_u8be(NULL, &off, &u8v), 1);
+	EXPECT_EQ(buf_read_u16be(NULL, &off, &u16v), 1);
+	EXPECT_EQ(buf_read_u32be(NULL, &off, &u32v), 1);
+	EXPECT_EQ(buf_read_u64be(NULL, &off, &u64v), 1);
+
+	END;
+}
+
+TEST(buf_read_typed_bounds)
 {
 	START;
 
 	buf_t buf = {0};
 	buf_init(&buf, 1, ALLOC_STD);
+	buf_add(&buf, 1, (u8[]){0x12}, NULL);
 
-	u8 data[] = {0x12, 0x56, 0x34, 0xde, 0xbc, 0x9a, 0x78, 0xde, 0xbc, 0x9a, 0x78, 0x56, 0x34, 0x12, 0xf0};
-	buf_add(&buf, sizeof(data), data, NULL);
+	u8 u8v	   = 0;
+	u16 u16v   = 0;
+	u32 u32v   = 0;
+	u64 u64v   = 0;
+	size_t off = 1;
+
+	EXPECT_EQ(buf_read_u8le(&buf, &off, &u8v), 1);
+	EXPECT_EQ(off, 1);
+
+	off = 1;
+	EXPECT_EQ(buf_read_u16le(&buf, &off, &u16v), 1);
+	EXPECT_EQ(off, 1);
+
+	off = 1;
+	EXPECT_EQ(buf_read_u32le(&buf, &off, &u32v), 1);
+	EXPECT_EQ(off, 1);
+
+	off = 1;
+	EXPECT_EQ(buf_read_u64le(&buf, &off, &u64v), 1);
+	EXPECT_EQ(off, 1);
+
+	off = 1;
+	EXPECT_EQ(buf_read_u8be(&buf, &off, &u8v), 1);
+	EXPECT_EQ(off, 1);
+
+	off = 1;
+	EXPECT_EQ(buf_read_u16be(&buf, &off, &u16v), 1);
+	EXPECT_EQ(off, 1);
+
+	off = 1;
+	EXPECT_EQ(buf_read_u32be(&buf, &off, &u32v), 1);
+	EXPECT_EQ(off, 1);
+
+	off = 1;
+	EXPECT_EQ(buf_read_u64be(&buf, &off, &u64v), 1);
+	EXPECT_EQ(off, 1);
+
+	buf_free(&buf);
+
+	END;
+}
+
+TEST(buf_read_u8be)
+{
+	START;
+
+	buf_t buf = {0};
+	buf_init(&buf, 1, ALLOC_STD);
+	buf_add(&buf, 1, (u8[]){0x12}, NULL);
 
 	size_t off = 0;
-	u8 got1;
-	u16 got2;
-	u32 got3;
-	u64 got4;
-	EXPECT_EQ(buf_read_int(&buf, &off, sizeof(got1), ENDIAN_LITTLE, &got1), 0);
-	EXPECT_EQ(buf_read_int(&buf, &off, sizeof(got2), ENDIAN_LITTLE, &got2), 0);
-	EXPECT_EQ(buf_read_int(&buf, &off, sizeof(got3), ENDIAN_LITTLE, &got3), 0);
-	EXPECT_EQ(buf_read_int(&buf, &off, sizeof(got4), ENDIAN_LITTLE, &got4), 0);
-	EXPECT_EQ(got1, 0x12);
-	EXPECT_EQ(got2, 0x3456);
-	EXPECT_EQ(got3, 0x789abcde);
-	EXPECT_EQ(got4, 0xf0123456789abcde);
-	EXPECT_EQ(off, sizeof(data));
+	u8 got	   = 0;
+	EXPECT_EQ(buf_read_u8be(&buf, &off, &got), 0);
+	EXPECT_EQ(got, 0x12);
+	EXPECT_EQ(off, 1);
+
+	buf_free(&buf);
+
+	END;
+}
+
+TEST(buf_read_u16be)
+{
+	START;
+
+	buf_t buf = {0};
+	buf_init(&buf, 2, ALLOC_STD);
+	buf_add(&buf, 2, (u8[]){0x12, 0x34}, NULL);
+
+	size_t off = 0;
+	u16 got	   = 0;
+	EXPECT_EQ(buf_read_u16be(&buf, &off, &got), 0);
+	EXPECT_EQ(got, 0x1234);
+	EXPECT_EQ(off, 2);
+
+	buf_free(&buf);
+
+	END;
+}
+
+TEST(buf_read_u32be)
+{
+	START;
+
+	buf_t buf = {0};
+	buf_init(&buf, 4, ALLOC_STD);
+	buf_add(&buf, 4, (u8[]){0x12, 0x34, 0x56, 0x78}, NULL);
+
+	size_t off = 0;
+	u32 got	   = 0;
+	EXPECT_EQ(buf_read_u32be(&buf, &off, &got), 0);
+	EXPECT_EQ(got, 0x12345678);
+	EXPECT_EQ(off, 4);
+
+	buf_free(&buf);
+
+	END;
+}
+
+TEST(buf_read_u64be)
+{
+	START;
+
+	buf_t buf = {0};
+	buf_init(&buf, 8, ALLOC_STD);
+	buf_add(&buf, 8, (u8[]){0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0}, NULL);
+
+	size_t off = 0;
+	u64 got	   = 0;
+	EXPECT_EQ(buf_read_u64be(&buf, &off, &got), 0);
+	EXPECT_EQ(got, 0x123456789abcdef0);
+	EXPECT_EQ(off, 8);
+
+	buf_free(&buf);
+
+	END;
+}
+
+TEST(buf_read_u8le)
+{
+	START;
+
+	buf_t buf = {0};
+	buf_init(&buf, 1, ALLOC_STD);
+	buf_add(&buf, 1, (u8[]){0x12}, NULL);
+
+	size_t off = 0;
+	u8 got	   = 0;
+	EXPECT_EQ(buf_read_u8le(&buf, &off, &got), 0);
+	EXPECT_EQ(got, 0x12);
+	EXPECT_EQ(off, 1);
+
+	buf_free(&buf);
+
+	END;
+}
+
+TEST(buf_read_u16le)
+{
+	START;
+
+	buf_t buf = {0};
+	buf_init(&buf, 2, ALLOC_STD);
+	buf_add(&buf, 2, (u8[]){0x34, 0x12}, NULL);
+
+	size_t off = 0;
+	u16 got	   = 0;
+	EXPECT_EQ(buf_read_u16le(&buf, &off, &got), 0);
+	EXPECT_EQ(got, 0x1234);
+	EXPECT_EQ(off, 2);
+
+	buf_free(&buf);
+
+	END;
+}
+
+TEST(buf_read_u32le)
+{
+	START;
+
+	buf_t buf = {0};
+	buf_init(&buf, 4, ALLOC_STD);
+	buf_add(&buf, 4, (u8[]){0x78, 0x56, 0x34, 0x12}, NULL);
+
+	size_t off = 0;
+	u32 got	   = 0;
+	EXPECT_EQ(buf_read_u32le(&buf, &off, &got), 0);
+	EXPECT_EQ(got, 0x12345678);
+	EXPECT_EQ(off, 4);
+
+	buf_free(&buf);
+
+	END;
+}
+
+TEST(buf_read_u64le)
+{
+	START;
+
+	buf_t buf = {0};
+	buf_init(&buf, 8, ALLOC_STD);
+	buf_add(&buf, 8, (u8[]){0xf0, 0xde, 0xbc, 0x9a, 0x78, 0x56, 0x34, 0x12}, NULL);
+
+	size_t off = 0;
+	u64 got	   = 0;
+	EXPECT_EQ(buf_read_u64le(&buf, &off, &got), 0);
+	EXPECT_EQ(got, 0x123456789abcdef0);
+	EXPECT_EQ(off, 8);
+
+	buf_free(&buf);
+
+	END;
+}
+
+TEST(buf_read_bounds)
+{
+	START;
+
+	buf_t buf = {0};
+	buf_init(&buf, 2, ALLOC_STD);
+	buf_add(&buf, 2, (u8[]){0x12, 0x34}, NULL);
+
+	size_t off = 1;
+	u16 val	   = 0;
+	EXPECT_EQ(buf_read_u16be(&buf, &off, &val), 1);
+	EXPECT_EQ(off, 1);
+
+	off = (size_t)-1;
+	EXPECT_EQ(buf_read_be(&buf, &off, &val, 1), 1);
+	EXPECT_EQ(off, (size_t)-1);
 
 	buf_free(&buf);
 
@@ -518,16 +975,40 @@ STEST(buf)
 	RUN(buf_resize);
 	RUN(buf_set);
 	RUN(buf_add);
-	RUN(buf_set_int);
-	RUN(buf_add_int);
+	RUN(buf_write_le);
+	RUN(buf_write_be);
+	RUN(buf_write_u8le);
+	RUN(buf_write_u16le);
+	RUN(buf_write_u32le);
+	RUN(buf_write_u64le);
+	RUN(buf_write_u8be);
+	RUN(buf_write_u16be);
+	RUN(buf_write_u32be);
+	RUN(buf_write_u64be);
+	RUN(buf_write_oom);
+	RUN(buf_write_overflow);
+	RUN(buf_write_typed_null);
+	RUN(buf_write_typed_overflow);
+	RUN(buf_write_resize_oom);
 	RUN(buf_set_str);
 	RUN(buf_add_str);
 	RUN(buf_get);
 	RUN(buf_read);
-	RUN(buf_get_int);
-	RUN(buf_read_int);
-	RUN(buf_read_int_be);
-	RUN(buf_read_int_le);
+	RUN(buf_read_zero);
+	RUN(buf_read_le);
+	RUN(buf_read_le_bounds);
+	RUN(buf_read_be);
+	RUN(buf_read_typed_null);
+	RUN(buf_read_typed_bounds);
+	RUN(buf_read_u8be);
+	RUN(buf_read_u16be);
+	RUN(buf_read_u32be);
+	RUN(buf_read_u64be);
+	RUN(buf_read_u8le);
+	RUN(buf_read_u16le);
+	RUN(buf_read_u32le);
+	RUN(buf_read_u64le);
+	RUN(buf_read_bounds);
 	RUN(buf_get_str);
 	RUN(buf_read_str);
 	RUN(buf_cmp);

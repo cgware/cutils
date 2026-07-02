@@ -1,26 +1,12 @@
 #include "buf.h"
 
+#include "cbuf.h"
 #include "log.h"
 #include "mem.h"
 
 static int add_overflows(size_t a, size_t b)
 {
 	return b > (size_t)-1 - a;
-}
-
-static int host_is_le(void)
-{
-	u16 e = 1;
-	return *(u8 *)&e;
-}
-
-static int endian_needs_swap(endian_t endian)
-{
-	if (endian == ENDIAN_HOST) {
-		return 0;
-	}
-
-	return (endian == ENDIAN_LITTLE) != host_is_le();
 }
 
 void *buf_init(buf_t *buf, size_t size, alloc_t alloc)
@@ -135,35 +121,9 @@ int buf_add(buf_t *buf, size_t size, const void *data, size_t *off)
 	return 0;
 }
 
-int buf_set_int(buf_t *buf, size_t off, size_t size, endian_t endian, const void *data)
+int buf_write_le(buf_t *buf, const void *val, size_t size)
 {
-	if (buf == NULL || data == NULL) {
-		return 1;
-	}
-
-	if (add_overflows(off, size) || off + size > buf->size) {
-		return 1;
-	}
-
-	u8 *dst	      = (u8 *)buf->data + off;
-	const u8 *src = data;
-
-	if (endian_needs_swap(endian)) {
-		for (size_t i = 0; i < size; i++) {
-			dst[i] = src[size - i - 1];
-		}
-	} else {
-		for (size_t i = 0; i < size; i++) {
-			dst[i] = src[i];
-		}
-	}
-
-	return 0;
-}
-
-int buf_add_int(buf_t *buf, size_t size, endian_t endian, const void *data)
-{
-	if (buf == NULL) {
+	if (buf == NULL || val == NULL) {
 		return 1;
 	}
 
@@ -176,12 +136,169 @@ int buf_add_int(buf_t *buf, size_t size, endian_t endian, const void *data)
 		return 1;
 	}
 
-	if (buf_set_int(buf, buf->used, size, endian, data)) {
+	return cbuf_write_le(buf->data, &buf->used, val, size);
+}
+
+int buf_write_u8le(buf_t *buf, u8 val)
+{
+	if (buf == NULL) {
 		return 1;
 	}
 
-	buf->used = used;
-	return 0;
+	if (add_overflows(buf->used, sizeof(val))) {
+		return 1;
+	}
+
+	size_t used = buf->used + sizeof(val);
+	if (used > buf->size && (used > (size_t)-1 / 2 || buf_resize(buf, used * 2))) {
+		return 1;
+	}
+
+	return cbuf_write_u8le(buf->data, &buf->used, val);
+}
+
+int buf_write_u16le(buf_t *buf, u16 val)
+{
+	if (buf == NULL) {
+		return 1;
+	}
+
+	if (add_overflows(buf->used, sizeof(val))) {
+		return 1;
+	}
+
+	size_t used = buf->used + sizeof(val);
+	if (used > buf->size && (used > (size_t)-1 / 2 || buf_resize(buf, used * 2))) {
+		return 1;
+	}
+
+	return cbuf_write_u16le(buf->data, &buf->used, val);
+}
+
+int buf_write_u32le(buf_t *buf, u32 val)
+{
+	if (buf == NULL) {
+		return 1;
+	}
+
+	if (add_overflows(buf->used, sizeof(val))) {
+		return 1;
+	}
+
+	size_t used = buf->used + sizeof(val);
+	if (used > buf->size && (used > (size_t)-1 / 2 || buf_resize(buf, used * 2))) {
+		return 1;
+	}
+
+	return cbuf_write_u32le(buf->data, &buf->used, val);
+}
+
+int buf_write_u64le(buf_t *buf, u64 val)
+{
+	if (buf == NULL) {
+		return 1;
+	}
+
+	if (add_overflows(buf->used, sizeof(val))) {
+		return 1;
+	}
+
+	size_t used = buf->used + sizeof(val);
+	if (used > buf->size && (used > (size_t)-1 / 2 || buf_resize(buf, used * 2))) {
+		return 1;
+	}
+
+	return cbuf_write_u64le(buf->data, &buf->used, val);
+}
+
+int buf_write_be(buf_t *buf, const void *val, size_t size)
+{
+	if (buf == NULL || val == NULL) {
+		return 1;
+	}
+
+	if (add_overflows(buf->used, size)) {
+		return 1;
+	}
+
+	size_t used = buf->used + size;
+	if (used > buf->size && (used > (size_t)-1 / 2 || buf_resize(buf, used * 2))) {
+		return 1;
+	}
+
+	return cbuf_write_be(buf->data, &buf->used, val, size);
+}
+
+int buf_write_u8be(buf_t *buf, u8 val)
+{
+	if (buf == NULL) {
+		return 1;
+	}
+
+	if (add_overflows(buf->used, sizeof(val))) {
+		return 1;
+	}
+
+	size_t used = buf->used + sizeof(val);
+	if (used > buf->size && (used > (size_t)-1 / 2 || buf_resize(buf, used * 2))) {
+		return 1;
+	}
+
+	return cbuf_write_u8be(buf->data, &buf->used, val);
+}
+
+int buf_write_u16be(buf_t *buf, u16 val)
+{
+	if (buf == NULL) {
+		return 1;
+	}
+
+	if (add_overflows(buf->used, sizeof(val))) {
+		return 1;
+	}
+
+	size_t used = buf->used + sizeof(val);
+	if (used > buf->size && (used > (size_t)-1 / 2 || buf_resize(buf, used * 2))) {
+		return 1;
+	}
+
+	return cbuf_write_u16be(buf->data, &buf->used, val);
+}
+
+int buf_write_u32be(buf_t *buf, u32 val)
+{
+	if (buf == NULL) {
+		return 1;
+	}
+
+	if (add_overflows(buf->used, sizeof(val))) {
+		return 1;
+	}
+
+	size_t used = buf->used + sizeof(val);
+	if (used > buf->size && (used > (size_t)-1 / 2 || buf_resize(buf, used * 2))) {
+		return 1;
+	}
+
+	return cbuf_write_u32be(buf->data, &buf->used, val);
+}
+
+int buf_write_u64be(buf_t *buf, u64 val)
+{
+	if (buf == NULL) {
+		return 1;
+	}
+
+	if (add_overflows(buf->used, sizeof(val))) {
+		return 1;
+	}
+
+	size_t used = buf->used + sizeof(val);
+	if (used > buf->size && (used > (size_t)-1 / 2 || buf_resize(buf, used * 2))) {
+		return 1;
+	}
+
+	return cbuf_write_u64be(buf->data, &buf->used, val);
 }
 
 int buf_set_str(buf_t *buf, size_t off, strv_t str, loc_t *loc)
@@ -237,6 +354,10 @@ void *buf_read(const buf_t *buf, size_t size, size_t *off)
 		return NULL;
 	}
 
+	if (size == 0) {
+		return (uint8_t *)buf->data + *off;
+	}
+
 	void *data = buf_get(buf, *off);
 	if (data != NULL) {
 		*off += size;
@@ -245,47 +366,134 @@ void *buf_read(const buf_t *buf, size_t size, size_t *off)
 	return data;
 }
 
-int buf_get_int(const buf_t *buf, size_t off, size_t size, endian_t endian, void *val)
+int buf_read_le(const buf_t *buf, size_t *off, void *val, size_t size)
 {
-	if (buf == NULL || val == NULL) {
+	if (buf == NULL || off == NULL || val == NULL) {
 		return 1;
 	}
 
-	if (add_overflows(off, size) || off + size > buf->used) {
+	if (add_overflows(*off, size) || *off + size > buf->used) {
 		return 1;
 	}
 
-	u8 *data = buf_get(buf, off);
-	if (data == NULL) {
-		return 1;
-	}
-
-	u8 *ptr = val;
-	if (endian_needs_swap(endian)) {
-		for (size_t i = 0; i < size; i++) {
-			ptr[i] = data[size - i - 1];
-		}
-	} else {
-		for (size_t i = 0; i < size; i++) {
-			ptr[i] = data[i];
-		}
-	}
-
-	return 0;
+	return cbuf_read_le(buf->data, off, val, size);
 }
 
-int buf_read_int(const buf_t *buf, size_t *off, size_t size, endian_t endian, void *val)
+int buf_read_u8le(const buf_t *buf, size_t *off, u8 *val)
 {
-	if (off == NULL) {
+	if (buf == NULL || off == NULL || val == NULL) {
 		return 1;
 	}
 
-	int ret = buf_get_int(buf, *off, size, endian, val);
-	if (ret == 0) {
-		*off += size;
+	if (add_overflows(*off, sizeof(*val)) || *off + sizeof(*val) > buf->used) {
+		return 1;
 	}
 
-	return ret;
+	return cbuf_read_u8le(buf->data, off, val);
+}
+
+int buf_read_u16le(const buf_t *buf, size_t *off, u16 *val)
+{
+	if (buf == NULL || off == NULL || val == NULL) {
+		return 1;
+	}
+
+	if (add_overflows(*off, sizeof(*val)) || *off + sizeof(*val) > buf->used) {
+		return 1;
+	}
+
+	return cbuf_read_u16le(buf->data, off, val);
+}
+
+int buf_read_u32le(const buf_t *buf, size_t *off, u32 *val)
+{
+	if (buf == NULL || off == NULL || val == NULL) {
+		return 1;
+	}
+
+	if (add_overflows(*off, sizeof(*val)) || *off + sizeof(*val) > buf->used) {
+		return 1;
+	}
+
+	return cbuf_read_u32le(buf->data, off, val);
+}
+
+int buf_read_u64le(const buf_t *buf, size_t *off, u64 *val)
+{
+	if (buf == NULL || off == NULL || val == NULL) {
+		return 1;
+	}
+
+	if (add_overflows(*off, sizeof(*val)) || *off + sizeof(*val) > buf->used) {
+		return 1;
+	}
+
+	return cbuf_read_u64le(buf->data, off, val);
+}
+
+int buf_read_be(const buf_t *buf, size_t *off, void *val, size_t size)
+{
+	if (buf == NULL || off == NULL || val == NULL) {
+		return 1;
+	}
+
+	if (add_overflows(*off, size) || *off + size > buf->used) {
+		return 1;
+	}
+
+	return cbuf_read_be(buf->data, off, val, size);
+}
+
+int buf_read_u8be(const buf_t *buf, size_t *off, u8 *val)
+{
+	if (buf == NULL || off == NULL || val == NULL) {
+		return 1;
+	}
+
+	if (add_overflows(*off, sizeof(*val)) || *off + sizeof(*val) > buf->used) {
+		return 1;
+	}
+
+	return cbuf_read_u8be(buf->data, off, val);
+}
+
+int buf_read_u16be(const buf_t *buf, size_t *off, u16 *val)
+{
+	if (buf == NULL || off == NULL || val == NULL) {
+		return 1;
+	}
+
+	if (add_overflows(*off, sizeof(*val)) || *off + sizeof(*val) > buf->used) {
+		return 1;
+	}
+
+	return cbuf_read_u16be(buf->data, off, val);
+}
+
+int buf_read_u32be(const buf_t *buf, size_t *off, u32 *val)
+{
+	if (buf == NULL || off == NULL || val == NULL) {
+		return 1;
+	}
+
+	if (add_overflows(*off, sizeof(*val)) || *off + sizeof(*val) > buf->used) {
+		return 1;
+	}
+
+	return cbuf_read_u32be(buf->data, off, val);
+}
+
+int buf_read_u64be(const buf_t *buf, size_t *off, u64 *val)
+{
+	if (buf == NULL || off == NULL || val == NULL) {
+		return 1;
+	}
+
+	if (add_overflows(*off, sizeof(*val)) || *off + sizeof(*val) > buf->used) {
+		return 1;
+	}
+
+	return cbuf_read_u64be(buf->data, off, val);
 }
 
 strv_t buf_get_str(const buf_t *buf, loc_t loc)

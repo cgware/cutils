@@ -6,6 +6,7 @@ STEST(alloc);
 STEST(args);
 STEST(arr);
 STEST(buf);
+STEST(cbuf);
 STEST(dict);
 STEST(fs);
 STEST(list);
@@ -31,6 +32,7 @@ TEST(cutils)
 	RUN(args);
 	RUN(arr);
 	RUN(buf);
+	RUN(cbuf);
 	RUN(dict);
 	RUN(fs);
 	RUN(list);

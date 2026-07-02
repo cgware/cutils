@@ -603,14 +603,14 @@ TEST(fs_readb_bin)
 	EXPECT_EQ(fs_readb(&fs, STRV(TEST_FILE), &buf), 0);
 	char val   = 0;
 	size_t off = 0;
-	buf_get_int(&buf, off, sizeof(val), -1, &val);
+	mem_copy(&val, sizeof(val), buf_read(&buf, sizeof(val), &off), sizeof(val));
 	EXPECT_EQ(val, 'a');
 
 	val = 0;
 	off = 0;
 
 	EXPECT_EQ(fs_readb(&vfs, STRV(TEST_FILE), &buf), 0);
-	buf_get_int(&buf, off, sizeof(val), -1, &val);
+	mem_copy(&val, sizeof(val), buf_read(&buf, sizeof(val), &off), sizeof(val));
 	EXPECT_EQ(val, 'a');
 
 	fs_rmfile(&fs, STRV(TEST_FILE));
