@@ -271,6 +271,46 @@ TEST(sock_setopt_valid)
 	END;
 }
 
+TEST(sock_setopt_rcvbuf_invalid_size)
+{
+	START;
+
+	sock_t vss = {0};
+	void *vs;
+	size_t size = 1;
+
+	sock_init(&vss, 1, 1, ALLOC_STD);
+	sock_open(&vss, SOCK_FAMILY_UNIX, SOCK_TYPE_STREAM, 0, &vs);
+
+	log_set_quiet(0, 1);
+	EXPECT_EQ(sock_setopt(&vss, vs, SOCK_OPT_RCVBUF, &size, 1), CERR_VAL);
+	log_set_quiet(0, 0);
+
+	sock_close(&vss, vs);
+	sock_free(&vss);
+
+	END;
+}
+
+TEST(sock_setopt_rcvbuf_valid)
+{
+	START;
+
+	sock_t vss = {0};
+	void *vs;
+	size_t size = 1;
+
+	sock_init(&vss, 1, 1, ALLOC_STD);
+	sock_open(&vss, SOCK_FAMILY_UNIX, SOCK_TYPE_STREAM, 0, &vs);
+
+	EXPECT_EQ(sock_setopt(&vss, vs, SOCK_OPT_RCVBUF, &size, sizeof(size)), CERR_OK);
+
+	sock_close(&vss, vs);
+	sock_free(&vss);
+
+	END;
+}
+
 TEST(sock_get_flags_invalid)
 {
 	START;
@@ -680,6 +720,191 @@ TEST(sock_accept_valid)
 	END;
 }
 
+TEST(sock_script_invalid)
+{
+	START;
+
+	sock_t vss = {0};
+	void *vs;
+	uint8_t buf[1] = {0x12};
+
+	sock_init(&vss, 2, 1, ALLOC_STD);
+	sock_open(&vss, SOCK_FAMILY_UNIX, SOCK_TYPE_STREAM, 0, &vs);
+
+	EXPECT_EQ(sock_script(NULL, NULL, NULL, 0), CERR_VAL);
+	log_set_quiet(0, 1);
+	EXPECT_EQ(sock_script(&vss, NULL, buf, sizeof(buf)), CERR_VAL);
+	EXPECT_EQ(sock_script(&vss, vs, NULL, sizeof(buf)), CERR_VAL);
+	EXPECT_EQ(sock_script(&vss, (void *)-1, buf, sizeof(buf)), CERR_DESC);
+	EXPECT_EQ(sock_script(&vss, vs, buf, sizeof(buf)), CERR_STATE);
+	log_set_quiet(0, 0);
+
+	sock_close(&vss, vs);
+	sock_free(&vss);
+
+	END;
+}
+
+TEST(sock_script_valid)
+{
+	START;
+
+	sock_t vss	     = {0};
+	void *vs	     = NULL;
+	void *vc	     = NULL;
+	void *vp	     = NULL;
+	uint8_t script[]    = {0x12, 0x34};
+	uint8_t request[]   = {0x56};
+	uint8_t response[2] = {0};
+	uint8_t received[1] = {0};
+	size_t n	     = 0;
+
+	sock_init(&vss, 4, 1, ALLOC_STD);
+	sock_open(&vss, SOCK_FAMILY_UNIX, SOCK_TYPE_STREAM, 0, &vs);
+	sock_open(&vss, SOCK_FAMILY_UNIX, SOCK_TYPE_STREAM, 0, &vc);
+	sock_bind(&vss, vs, SOCK_FAMILY_UNIX, TEST_SOCK, sizeof(TEST_SOCK));
+	sock_listen(&vss, vs, 1);
+
+	EXPECT_EQ(sock_script(&vss, vs, script, sizeof(script)), CERR_OK);
+	EXPECT_EQ(sock_connect(&vss, vc, SOCK_FAMILY_UNIX, TEST_SOCK, sizeof(TEST_SOCK)), CERR_OK);
+	EXPECT_EQ(sock_read_all(&vss, vc, response, sizeof(response)), CERR_OK);
+	EXPECT_EQ(response[0], 0x12);
+	EXPECT_EQ(response[1], 0x34);
+
+	EXPECT_EQ(sock_accept(&vss, vs, &vp), CERR_OK);
+	EXPECT_EQ(sock_write_all(&vss, vc, request, sizeof(request)), CERR_OK);
+	EXPECT_EQ(sock_read(&vss, vp, received, sizeof(received), &n), CERR_OK);
+	EXPECT_EQ(n, sizeof(received));
+	EXPECT_EQ(received[0], 0x56);
+
+	sock_close(&vss, vp);
+	sock_close(&vss, vc);
+	sock_close(&vss, vs);
+	sock_free(&vss);
+
+	END;
+}
+
+TEST(sock_script_os_unsupported)
+{
+	START;
+
+	sock_t ss = {0};
+	uint8_t buf[1] = {0x12};
+
+	sock_init(&ss, 0, 0, ALLOC_STD);
+	log_set_quiet(0, 1);
+	EXPECT_EQ(sock_script(&ss, (void *)1, buf, sizeof(buf)), CERR_UNSUPPORTED);
+	log_set_quiet(0, 0);
+	sock_free(&ss);
+
+	END;
+}
+
+TEST(sock_script_replaces_previous)
+{
+	START;
+
+	sock_t vss = {0};
+	void *vs;
+	void *vc;
+	uint8_t first[] = {0x12};
+	uint8_t second[] = {0x34};
+	uint8_t out[1] = {0};
+
+	sock_init(&vss, 3, 1, ALLOC_STD);
+	sock_open(&vss, SOCK_FAMILY_UNIX, SOCK_TYPE_STREAM, 0, &vs);
+	sock_open(&vss, SOCK_FAMILY_UNIX, SOCK_TYPE_STREAM, 0, &vc);
+	sock_bind(&vss, vs, SOCK_FAMILY_UNIX, TEST_SOCK, sizeof(TEST_SOCK));
+	sock_listen(&vss, vs, 1);
+
+	sock_script(&vss, vs, first, sizeof(first));
+	EXPECT_EQ(sock_script(&vss, vs, second, sizeof(second)), CERR_OK);
+	sock_connect(&vss, vc, SOCK_FAMILY_UNIX, TEST_SOCK, sizeof(TEST_SOCK));
+	sock_read_all(&vss, vc, out, sizeof(out));
+	EXPECT_EQ(out[0], 0x34);
+
+	sock_close(&vss, vc);
+	sock_close(&vss, vs);
+	sock_free(&vss);
+
+	END;
+}
+
+TEST(sock_script_oom)
+{
+	START;
+
+	sock_t vss = {0};
+	void *vs;
+	uint8_t buf[1] = {0x12};
+
+	sock_init(&vss, 1, 1, ALLOC_STD);
+	sock_open(&vss, SOCK_FAMILY_UNIX, SOCK_TYPE_STREAM, 0, &vs);
+	sock_bind(&vss, vs, SOCK_FAMILY_UNIX, TEST_SOCK, sizeof(TEST_SOCK));
+	sock_listen(&vss, vs, 1);
+
+	mem_oom(1);
+	log_set_quiet(0, 1);
+	EXPECT_EQ(sock_script(&vss, vs, buf, sizeof(buf)), CERR_MEM);
+	log_set_quiet(0, 0);
+	mem_oom(0);
+
+	sock_close(&vss, vs);
+	sock_free(&vss);
+
+	END;
+}
+
+TEST(sock_free_script)
+{
+	START;
+
+	sock_t vss = {0};
+	void *vs;
+	uint8_t buf[1] = {0x12};
+
+	sock_init(&vss, 1, 1, ALLOC_STD);
+	sock_open(&vss, SOCK_FAMILY_UNIX, SOCK_TYPE_STREAM, 0, &vs);
+	sock_bind(&vss, vs, SOCK_FAMILY_UNIX, TEST_SOCK, sizeof(TEST_SOCK));
+	sock_listen(&vss, vs, 1);
+
+	EXPECT_EQ(sock_script(&vss, vs, buf, sizeof(buf)), CERR_OK);
+
+	sock_free(&vss);
+
+	END;
+}
+
+TEST(sock_connect_script_oom)
+{
+	START;
+
+	sock_t vss = {0};
+	void *vs;
+	void *vc;
+	uint8_t buf[1] = {0x12};
+
+	sock_init(&vss, 3, 1, ALLOC_STD);
+	sock_open(&vss, SOCK_FAMILY_UNIX, SOCK_TYPE_STREAM, 0, &vs);
+	sock_open(&vss, SOCK_FAMILY_UNIX, SOCK_TYPE_STREAM, 0, &vc);
+	sock_bind(&vss, vs, SOCK_FAMILY_UNIX, TEST_SOCK, sizeof(TEST_SOCK));
+	sock_listen(&vss, vs, 1);
+	sock_script(&vss, vs, buf, sizeof(buf));
+
+	mem_oom(1);
+	log_set_quiet(0, 1);
+	EXPECT_EQ(sock_connect(&vss, vc, SOCK_FAMILY_UNIX, TEST_SOCK, sizeof(TEST_SOCK)), CERR_MEM);
+	log_set_quiet(0, 0);
+	mem_oom(0);
+
+	sock_close(&vss, vc);
+	sock_close(&vss, vs);
+	sock_free(&vss);
+
+	END;
+}
+
 TEST(sock_write_invalid)
 {
 	START;
@@ -786,6 +1011,29 @@ TEST(sock_write_oom)
 	sock_close(&vss, c);
 	sock_close(&vss, s);
 	sock_free(&vss);
+
+	END;
+}
+
+TEST(sock_write_rcvbuf_full)
+{
+	START;
+
+	t_sock_conn_t c = {0};
+	uint8_t buf[1] = {0x12};
+	size_t n       = 0;
+	size_t rcvbuf  = 1;
+
+	t_sock_conn_open(&c);
+	t_sock_conn_connect(&c);
+	sock_setopt(&c.vss, c.vp, SOCK_OPT_RCVBUF, &rcvbuf, sizeof(rcvbuf));
+	sock_write(&c.vss, c.vc, buf, sizeof(buf), &n);
+
+	log_set_quiet(0, 1);
+	EXPECT_EQ(sock_write(&c.vss, c.vc, buf, sizeof(buf), &n), CERR_MEM);
+	log_set_quiet(0, 0);
+
+	t_sock_conn_close(&c);
 
 	END;
 }
@@ -1080,6 +1328,8 @@ STEST(sock)
 	RUN(sock_close_valid);
 	RUN(sock_setopt_invalid);
 	RUN(sock_setopt_valid);
+	RUN(sock_setopt_rcvbuf_invalid_size);
+	RUN(sock_setopt_rcvbuf_valid);
 	RUN(sock_get_flags_invalid);
 	RUN(sock_get_flags_valid);
 	RUN(sock_set_flags_invalid);
@@ -1098,10 +1348,18 @@ STEST(sock)
 	RUN(sock_accept_invalid);
 	RUN(sock_accept_nonblock_empty);
 	RUN(sock_accept_valid);
+	RUN(sock_script_invalid);
+	RUN(sock_script_valid);
+	RUN(sock_script_os_unsupported);
+	RUN(sock_script_replaces_previous);
+	RUN(sock_script_oom);
+	RUN(sock_free_script);
+	RUN(sock_connect_script_oom);
 	RUN(sock_write_invalid);
 	RUN(sock_write_unconnected);
 	RUN(sock_write_peer_closed);
 	RUN(sock_write_oom);
+	RUN(sock_write_rcvbuf_full);
 	RUN(sock_write_valid);
 	RUN(sock_write_all_invalid);
 	RUN(sock_write_all_valid);

@@ -17,6 +17,7 @@ typedef enum sock_type_e {
 typedef enum sock_opt_e {
 	SOCK_OPT_UNKNOWN,
 	SOCK_OPT_SNDBUF,
+	SOCK_OPT_RCVBUF,
 } sock_opt_t;
 
 typedef struct sock_s {
@@ -38,6 +39,7 @@ int sock_set_flags(sock_t *ss, void *sock, int flags);
 
 int sock_bind(sock_t *ss, void *sock, sock_family_t family, const char *path, size_t len);
 int sock_listen(sock_t *ss, void *sock, int n);
+int sock_script(sock_t *ss, void *sock, const void *data, size_t size);
 int sock_connect(sock_t *ss, void *sock, sock_family_t family, const char *path, size_t len);
 int sock_accept(sock_t *ss, void *sock, void **fd);
 

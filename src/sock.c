@@ -15,6 +15,7 @@ typedef cerr_t (*sock_set_flags_fn)(sock_t *ss, void *sock, int flags);
 
 typedef cerr_t (*sock_bind_fn)(sock_t *ss, void *sock, sock_family_t family, strv_t path, size_t len);
 typedef cerr_t (*sock_listen_fn)(sock_t *ss, void *sock, int n);
+typedef cerr_t (*sock_script_fn)(sock_t *ss, void *sock, const void *data, size_t size);
 typedef cerr_t (*sock_connect_fn)(sock_t *ss, void *sock, sock_family_t family, strv_t path, size_t len);
 typedef cerr_t (*sock_accept_fn)(sock_t *ss, void *sock, void **fd);
 
@@ -29,6 +30,7 @@ typedef struct fs_ops_s {
 	sock_set_flags_fn set_flags;
 	sock_bind_fn bind;
 	sock_listen_fn listen;
+	sock_script_fn script;
 	sock_connect_fn connect;
 	sock_accept_fn accept;
 	sock_write_fn write;
@@ -47,6 +49,8 @@ typedef enum fs_node_flag_e {
 typedef struct sock_node_s {
 	loc_t path;
 	buf_t data;
+	buf_t script;
+	size_t rcvbuf;
 	uint peer;
 	uint pending;
 	int flags;
@@ -163,6 +167,9 @@ static cerr_t vsock_close(sock_t *ss, void *sock)
 	if (node->data.data) {
 		buf_free(&node->data);
 	}
+	if (node->script.data) {
+		buf_free(&node->script);
+	}
 	sock_clear_flag(node, SOCK_NODE_FLAG_OPEN);
 
 	return CERR_OK;
@@ -176,19 +183,28 @@ static cerr_t osock_setopt(sock_t *ss, void *sock, sock_opt_t opt, void *val, si
 
 static cerr_t vsock_setopt(sock_t *ss, void *sock, sock_opt_t opt, void *val, size_t size)
 {
-	(void)size;
-
 	if (sock == NULL || val == NULL) {
 		return CERR_VAL;
 	}
 
 	switch (opt) {
 	case SOCK_OPT_SNDBUF: break;
+	case SOCK_OPT_RCVBUF: {
+		if (size != sizeof(size_t)) {
+			return CERR_VAL;
+		}
+		break;
+	}
 	default: return CERR_VAL;
 	}
 
-	if (get_open_node(ss, sock) == NULL) {
+	sock_node_t *node = get_open_node(ss, sock);
+	if (node == NULL) {
 		return CERR_DESC;
+	}
+
+	if (opt == SOCK_OPT_RCVBUF) {
+		node->rcvbuf = *(size_t *)val;
 	}
 
 	return CERR_OK;
@@ -308,6 +324,43 @@ static cerr_t osock_connect(sock_t *ss, void *sock, sock_family_t family, strv_t
 	return csock_connect(sock, (csock_family_t)family, path.data, len);
 }
 
+static cerr_t osock_script(sock_t *ss, void *sock, const void *data, size_t size)
+{
+	(void)ss;
+	(void)sock;
+	(void)data;
+	(void)size;
+	return CERR_UNSUPPORTED;
+}
+
+static cerr_t vsock_script(sock_t *ss, void *sock, const void *data, size_t size)
+{
+	if (sock == NULL || (data == NULL && size > 0)) {
+		return CERR_VAL;
+	}
+
+	sock_node_t *node = get_open_node(ss, sock);
+	if (node == NULL) {
+		return CERR_DESC;
+	}
+	if (!sock_flag(node, SOCK_NODE_FLAG_LISTEN)) {
+		return CERR_STATE;
+	}
+
+	if (node->script.data) {
+		buf_free(&node->script);
+	}
+	if (buf_init(&node->script, size > 0 ? size : 1, ss->paths.alloc) == NULL) {
+		return CERR_MEM;
+	}
+	if (size > 0) {
+		mem_copy(node->script.data, node->script.size, data, size);
+	}
+	node->script.used = size;
+
+	return CERR_OK;
+}
+
 static cerr_t vsock_connect(sock_t *ss, void *sock, sock_family_t family, strv_t path, size_t len)
 {
 	if (sock == NULL || path.data == NULL) {
@@ -344,6 +397,16 @@ static cerr_t vsock_connect(sock_t *ss, void *sock, sock_family_t family, strv_t
 		return CERR_MEM;
 	}
 	server = arr_get(&ss->nodes, server_id);
+
+	if (server->script.data) {
+		if (buf_init(&client->data, server->script.used > 0 ? server->script.used : 1, ss->paths.alloc) == NULL) {
+			return CERR_MEM;
+		}
+		if (server->script.used > 0) {
+			mem_copy(client->data.data, client->data.size, server->script.data, server->script.used);
+		}
+		client->data.used = server->script.used;
+	}
 
 	*peer = (sock_node_t){
 		.peer	 = sock_id(sock),
@@ -418,6 +481,9 @@ static cerr_t vsock_write(sock_t *ss, void *sock, const void *data, size_t size,
 	if (peer == NULL || !sock_flag(peer, SOCK_NODE_FLAG_OPEN)) {
 		return CERR_CONN;
 	}
+	if (peer->rcvbuf > 0 && (peer->data.used >= peer->rcvbuf || size > peer->rcvbuf - peer->data.used)) {
+		return CERR_MEM;
+	}
 
 	if (peer->data.data == NULL && buf_init(&peer->data, size > 0 ? size : 1, ss->paths.alloc) == NULL) {
 		return CERR_MEM;
@@ -477,6 +543,7 @@ static const fs_ops_t s_ss_ops[] = {
 			.set_flags = osock_set_flags,
 			.bind	   = osock_bind,
 			.listen	   = osock_listen,
+			.script	   = osock_script,
 			.connect   = osock_connect,
 			.accept	   = osock_accept,
 			.write	   = osock_write,
@@ -491,6 +558,7 @@ static const fs_ops_t s_ss_ops[] = {
 			.set_flags = vsock_set_flags,
 			.bind	   = vsock_bind,
 			.listen	   = vsock_listen,
+			.script	   = vsock_script,
 			.connect   = vsock_connect,
 			.accept	   = vsock_accept,
 			.write	   = vsock_write,
@@ -526,6 +594,9 @@ void sock_free(sock_t *ss)
 	{
 		if (node->data.data) {
 			buf_free(&node->data);
+		}
+		if (node->script.data) {
+			buf_free(&node->script);
 		}
 	}
 
@@ -631,6 +702,21 @@ int sock_listen(sock_t *ss, void *sock, int n)
 	cerr_t err = s_ss_ops[ss->virt].listen(ss, sock, n);
 	if (err) {
 		log_error("cutils", "sock", NULL, "failed to listen: %s", cerr_str(err));
+		return err;
+	}
+
+	return CERR_OK;
+}
+
+int sock_script(sock_t *ss, void *sock, const void *data, size_t size)
+{
+	if (ss == NULL) {
+		return CERR_VAL;
+	}
+
+	cerr_t err = s_ss_ops[ss->virt].script(ss, sock, data, size);
+	if (err) {
+		log_error("cutils", "sock", NULL, "failed to script: %s", cerr_str(err));
 		return err;
 	}
 
