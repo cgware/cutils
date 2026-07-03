@@ -170,6 +170,10 @@ static cerr_t vsock_close(sock_t *ss, void *sock)
 	if (node->script.data) {
 		buf_free(&node->script);
 	}
+	node->peer = (uint)-1;
+	node->pending = (uint)-1;
+	node->path = (loc_t){0};
+	node->rcvbuf = 0;
 	sock_clear_flag(node, SOCK_NODE_FLAG_OPEN);
 
 	return CERR_OK;
@@ -178,6 +182,16 @@ static cerr_t vsock_close(sock_t *ss, void *sock)
 static cerr_t osock_setopt(sock_t *ss, void *sock, sock_opt_t opt, void *val, size_t size)
 {
 	(void)ss;
+
+	if (sock == NULL || val == NULL) {
+		return CERR_VAL;
+	}
+
+	switch (opt) {
+	case SOCK_OPT_SNDBUF: break;
+	default: return CERR_VAL;
+	}
+
 	return csock_setopt(sock, (csock_opt_t)opt, val, size);
 }
 
@@ -396,10 +410,16 @@ static cerr_t vsock_connect(sock_t *ss, void *sock, sock_family_t family, strv_t
 	if (peer == NULL) {
 		return CERR_MEM;
 	}
+	*peer = (sock_node_t){
+		.peer	 = (uint)-1,
+		.pending = (uint)-1,
+	};
 	server = arr_get(&ss->nodes, server_id);
+	client = arr_get(&ss->nodes, sock_id(sock));
 
 	if (server->script.data) {
 		if (buf_init(&client->data, server->script.used > 0 ? server->script.used : 1, ss->paths.alloc) == NULL) {
+			arr_reset(&ss->nodes, peer_id);
 			return CERR_MEM;
 		}
 		if (server->script.used > 0) {
@@ -408,10 +428,7 @@ static cerr_t vsock_connect(sock_t *ss, void *sock, sock_family_t family, strv_t
 		client->data.used = server->script.used;
 	}
 
-	*peer = (sock_node_t){
-		.peer	 = sock_id(sock),
-		.pending = (uint)-1,
-	};
+	peer->peer = sock_id(sock);
 	sock_set_flag(peer, SOCK_NODE_FLAG_OPEN);
 	sock_set_flag(peer, SOCK_NODE_FLAG_CONNECTED);
 

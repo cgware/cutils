@@ -244,7 +244,7 @@ TEST(sock_setopt_invalid)
 	EXPECT_EQ(sock_setopt(&p.vss, NULL, SOCK_OPT_SNDBUF, &size, sizeof(size)), CERR_VAL);
 	EXPECT_EQ(sock_setopt(&p.ss, p.s, SOCK_OPT_SNDBUF, NULL, sizeof(size)), CERR_VAL);
 	EXPECT_EQ(sock_setopt(&p.vss, p.vs, SOCK_OPT_SNDBUF, NULL, sizeof(size)), CERR_VAL);
-	EXPECT_EQ(sock_setopt(&p.ss, p.s, -1, &size, sizeof(size)), T_OSOCK_EXPECT(CERR_VAL));
+	EXPECT_EQ(sock_setopt(&p.ss, p.s, -1, &size, sizeof(size)), CERR_VAL);
 	EXPECT_EQ(sock_setopt(&p.vss, p.vs, -1, &size, sizeof(size)), CERR_VAL);
 	EXPECT_EQ(sock_setopt(&p.ss, (void *)-1, SOCK_OPT_SNDBUF, &size, sizeof(size)), T_OSOCK_EXPECT(CERR_DESC));
 	EXPECT_EQ(sock_setopt(&p.vss, (void *)-1, SOCK_OPT_SNDBUF, &size, sizeof(size)), CERR_DESC);
