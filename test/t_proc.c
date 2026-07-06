@@ -5,6 +5,15 @@
 #include "platform.h"
 #include "test.h"
 
+typedef int (*proc_test_dlsym_fn)(void);
+
+static int proc_test_dlsym_impl(void)
+{
+	return 7;
+}
+
+static proc_test_dlsym_fn proc_test_dlsym = proc_test_dlsym_impl;
+
 TEST(proc_init_free)
 {
 	START;
@@ -419,6 +428,256 @@ TEST(proc_cmd)
 	END;
 }
 
+TEST(proc_setdlsym_rejects_op)
+{
+	START;
+
+	proc_t proc = {0};
+	proc_init(&proc, 0, 0);
+
+	EXPECT_EQ(proc_setdlsym(&proc, STRV("lib"), STRV("sym"), &proc_test_dlsym), 1);
+
+	proc_free(&proc);
+
+	END;
+}
+
+TEST(proc_setdlsym_adds_vp_symbol)
+{
+	START;
+
+	proc_t proc = {0};
+	proc_init(&proc, 0, 1);
+
+	EXPECT_EQ(proc_setdlsym(&proc, STRV("lib"), STRV("sym"), &proc_test_dlsym), 0);
+
+	proc_free(&proc);
+
+	END;
+}
+
+TEST(proc_dlopen_null_proc)
+{
+	START;
+
+	void *lib = NULL;
+
+	EXPECT_EQ(proc_dlopen(NULL, STRV("lib"), &lib), 1);
+
+	END;
+}
+
+TEST(proc_dlopen_null_name)
+{
+	START;
+
+	proc_t proc = {0};
+	void *lib   = NULL;
+	proc_init(&proc, 0, 0);
+
+	EXPECT_EQ(proc_dlopen(&proc, STRV_NULL, &lib), 1);
+
+	proc_free(&proc);
+
+	END;
+}
+
+TEST(proc_dlopen_null_lib)
+{
+	START;
+
+	proc_t proc = {0};
+	proc_init(&proc, 0, 0);
+
+	EXPECT_EQ(proc_dlopen(&proc, STRV("lib"), NULL), 1);
+
+	proc_free(&proc);
+
+	END;
+}
+
+TEST(proc_dlopen_vp_not_found)
+{
+	START;
+
+	proc_t proc = {0};
+	void *lib   = NULL;
+	proc_init(&proc, 0, 1);
+
+	EXPECT_EQ(proc_dlopen(&proc, STRV("missing"), &lib), 1);
+	EXPECT_EQ(lib, NULL);
+
+	proc_free(&proc);
+
+	END;
+}
+
+TEST(proc_dlopen_vp_found)
+{
+	START;
+
+	proc_t proc = {0};
+	void *lib   = NULL;
+	proc_init(&proc, 0, 1);
+	proc_setdlsym(&proc, STRV("lib"), STRV("sym"), &proc_test_dlsym);
+
+	EXPECT_EQ(proc_dlopen(&proc, STRV("lib"), &lib), 0);
+	EXPECT_NE(lib, NULL);
+
+	proc_free(&proc);
+
+	END;
+}
+
+TEST(proc_dlsym_null_proc)
+{
+	START;
+
+	void *sym = NULL;
+
+	EXPECT_EQ(proc_dlsym(NULL, (void *)"lib", STRV("sym"), &sym), 1);
+
+	END;
+}
+
+TEST(proc_dlsym_null_lib)
+{
+	START;
+
+	proc_t proc = {0};
+	void *sym   = NULL;
+	proc_init(&proc, 0, 0);
+
+	EXPECT_EQ(proc_dlsym(&proc, NULL, STRV("sym"), &sym), 1);
+
+	proc_free(&proc);
+
+	END;
+}
+
+TEST(proc_dlsym_null_name)
+{
+	START;
+
+	proc_t proc = {0};
+	void *sym   = NULL;
+	proc_init(&proc, 0, 0);
+
+	EXPECT_EQ(proc_dlsym(&proc, (void *)"lib", STRV_NULL, &sym), 1);
+
+	proc_free(&proc);
+
+	END;
+}
+
+TEST(proc_dlsym_null_sym)
+{
+	START;
+
+	proc_t proc = {0};
+	proc_init(&proc, 0, 0);
+
+	EXPECT_EQ(proc_dlsym(&proc, (void *)"lib", STRV("sym"), NULL), 1);
+
+	proc_free(&proc);
+
+	END;
+}
+
+TEST(proc_dlsym_vp_not_found)
+{
+	START;
+
+	proc_t proc = {0};
+	void *lib   = NULL;
+	void *sym   = NULL;
+	proc_init(&proc, 0, 1);
+	proc_setdlsym(&proc, STRV("lib"), STRV("sym"), &proc_test_dlsym);
+	proc_dlopen(&proc, STRV("lib"), &lib);
+
+	EXPECT_EQ(proc_dlsym(&proc, lib, STRV("missing"), &sym), 1);
+	EXPECT_EQ(sym, NULL);
+
+	proc_free(&proc);
+
+	END;
+}
+
+TEST(proc_dlsym_vp_found)
+{
+	START;
+
+	proc_t proc	       = {0};
+	void *lib	       = NULL;
+	void *sym	       = NULL;
+	proc_test_dlsym_fn *fn = NULL;
+	proc_init(&proc, 0, 1);
+	proc_setdlsym(&proc, STRV("lib"), STRV("sym"), &proc_test_dlsym);
+	proc_dlopen(&proc, STRV("lib"), &lib);
+
+	EXPECT_EQ(proc_dlsym(&proc, lib, STRV("sym"), &sym), 0);
+	fn = sym;
+	EXPECT_EQ((*fn)(), 7);
+
+	proc_free(&proc);
+
+	END;
+}
+
+TEST(proc_dlclose_null_proc)
+{
+	START;
+
+	EXPECT_EQ(proc_dlclose(NULL, (void *)"lib"), 1);
+
+	END;
+}
+
+TEST(proc_dlclose_null_lib)
+{
+	START;
+
+	proc_t proc = {0};
+	proc_init(&proc, 0, 0);
+
+	EXPECT_EQ(proc_dlclose(&proc, NULL), 1);
+
+	proc_free(&proc);
+
+	END;
+}
+
+TEST(proc_dlclose_vp_not_found)
+{
+	START;
+
+	proc_t proc = {0};
+	proc_init(&proc, 0, 1);
+
+	EXPECT_EQ(proc_dlclose(&proc, (void *)"missing"), 1);
+
+	proc_free(&proc);
+
+	END;
+}
+
+TEST(proc_dlclose_vp_found)
+{
+	START;
+
+	proc_t proc = {0};
+	void *lib   = NULL;
+	proc_init(&proc, 0, 1);
+	proc_setdlsym(&proc, STRV("lib"), STRV("sym"), &proc_test_dlsym);
+	proc_dlopen(&proc, STRV("lib"), &lib);
+
+	EXPECT_EQ(proc_dlclose(&proc, lib), 0);
+
+	proc_free(&proc);
+
+	END;
+}
+
 STEST(proc)
 {
 	SSTART;
@@ -445,6 +704,23 @@ STEST(proc)
 	RUN(proc_gethostname_vp_copy);
 	RUN(proc_gethostname_vp_too_small);
 	RUN(proc_gethostname_op_vp);
+	RUN(proc_setdlsym_rejects_op);
+	RUN(proc_setdlsym_adds_vp_symbol);
+	RUN(proc_dlopen_null_proc);
+	RUN(proc_dlopen_null_name);
+	RUN(proc_dlopen_null_lib);
+	RUN(proc_dlopen_vp_not_found);
+	RUN(proc_dlopen_vp_found);
+	RUN(proc_dlsym_null_proc);
+	RUN(proc_dlsym_null_lib);
+	RUN(proc_dlsym_null_name);
+	RUN(proc_dlsym_null_sym);
+	RUN(proc_dlsym_vp_not_found);
+	RUN(proc_dlsym_vp_found);
+	RUN(proc_dlclose_null_proc);
+	RUN(proc_dlclose_null_lib);
+	RUN(proc_dlclose_vp_not_found);
+	RUN(proc_dlclose_vp_found);
 
 	SEND;
 }
