@@ -85,7 +85,7 @@ int schema_add_fields(schema_t *schema, schema_field_desc_t *fields, size_t size
 			break;
 		}
 
-		f->vals	    = schema->vals.used;
+		f->vals	    = (uint)schema->vals.used;
 		f->vals_cnt = 0;
 		f->type	    = fields[i].type;
 		f->name	    = strs_cnt;

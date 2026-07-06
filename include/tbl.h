@@ -12,7 +12,7 @@ typedef struct tbl_s {
 tbl_t *tbl_init(tbl_t *tbl, uint cols_cap, uint layouts_cap, uint strs_cap, alloc_t alloc);
 void tbl_free(tbl_t *tbl);
 
-int tbl_init_rows(tbl_t *tbl, size_t cap, alloc_t alloc);
+int tbl_init_rows(tbl_t *tbl, uint cap, alloc_t alloc);
 void *tbl_add_row(tbl_t *tbl, uint *id);
 
 int tbl_set_cell(tbl_t *tbl, uint row, uint col, uint layout, void *val);

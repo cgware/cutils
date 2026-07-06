@@ -32,7 +32,7 @@ void tbl_free(tbl_t *tbl)
 	strvbuf_free(&tbl->strs);
 }
 
-int tbl_init_rows(tbl_t *tbl, size_t cap, alloc_t alloc)
+int tbl_init_rows(tbl_t *tbl, uint cap, alloc_t alloc)
 {
 	if (tbl == NULL) {
 		return 1;
