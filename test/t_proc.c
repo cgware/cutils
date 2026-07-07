@@ -456,6 +456,34 @@ TEST(proc_setdlsym_adds_vp_symbol)
 	END;
 }
 
+TEST(proc_setdlmain_rejects_op)
+{
+	START;
+
+	proc_t proc = {0};
+	proc_init(&proc, 0, 0);
+
+	EXPECT_EQ(proc_setdlmain(&proc, STRV("sym"), &proc_test_dlsym), 1);
+
+	proc_free(&proc);
+
+	END;
+}
+
+TEST(proc_setdlmain_adds_vp_symbol)
+{
+	START;
+
+	proc_t proc = {0};
+	proc_init(&proc, 0, 1);
+
+	EXPECT_EQ(proc_setdlmain(&proc, STRV("sym"), &proc_test_dlsym), 0);
+
+	proc_free(&proc);
+
+	END;
+}
+
 TEST(proc_dlopen_null_proc)
 {
 	START;
@@ -522,6 +550,64 @@ TEST(proc_dlopen_vp_found)
 	proc_setdlsym(&proc, STRV("lib"), STRV("sym"), &proc_test_dlsym);
 
 	EXPECT_EQ(proc_dlopen(&proc, STRV("lib"), &lib), 0);
+	EXPECT_NE(lib, NULL);
+
+	proc_free(&proc);
+
+	END;
+}
+
+TEST(proc_dlmain_null_proc)
+{
+	START;
+
+	void *lib = NULL;
+
+	EXPECT_EQ(proc_dlmain(NULL, &lib), 1);
+
+	END;
+}
+
+TEST(proc_dlmain_null_lib)
+{
+	START;
+
+	proc_t proc = {0};
+	proc_init(&proc, 0, 0);
+
+	EXPECT_EQ(proc_dlmain(&proc, NULL), 1);
+
+	proc_free(&proc);
+
+	END;
+}
+
+TEST(proc_dlmain_vp_not_found)
+{
+	START;
+
+	proc_t proc = {0};
+	void *lib   = NULL;
+	proc_init(&proc, 0, 1);
+
+	EXPECT_EQ(proc_dlmain(&proc, &lib), 1);
+	EXPECT_EQ(lib, NULL);
+
+	proc_free(&proc);
+
+	END;
+}
+
+TEST(proc_dlmain_vp_found)
+{
+	START;
+
+	proc_t proc = {0};
+	void *lib   = NULL;
+	proc_init(&proc, 0, 1);
+	proc_setdlmain(&proc, STRV("sym"), &proc_test_dlsym);
+
+	EXPECT_EQ(proc_dlmain(&proc, &lib), 0);
 	EXPECT_NE(lib, NULL);
 
 	proc_free(&proc);
@@ -624,6 +710,27 @@ TEST(proc_dlsym_vp_found)
 	END;
 }
 
+TEST(proc_dlsym_vp_main_found)
+{
+	START;
+
+	proc_t proc	       = {0};
+	void *lib	       = NULL;
+	void *sym	       = NULL;
+	proc_test_dlsym_fn *fn = NULL;
+	proc_init(&proc, 0, 1);
+	proc_setdlmain(&proc, STRV("sym"), &proc_test_dlsym);
+	proc_dlmain(&proc, &lib);
+
+	EXPECT_EQ(proc_dlsym(&proc, lib, STRV("sym"), &sym), 0);
+	fn = sym;
+	EXPECT_EQ((*fn)(), 7);
+
+	proc_free(&proc);
+
+	END;
+}
+
 TEST(proc_dlclose_null_proc)
 {
 	START;
@@ -706,17 +813,24 @@ STEST(proc)
 	RUN(proc_gethostname_op_vp);
 	RUN(proc_setdlsym_rejects_op);
 	RUN(proc_setdlsym_adds_vp_symbol);
+	RUN(proc_setdlmain_rejects_op);
+	RUN(proc_setdlmain_adds_vp_symbol);
 	RUN(proc_dlopen_null_proc);
 	RUN(proc_dlopen_null_name);
 	RUN(proc_dlopen_null_lib);
 	RUN(proc_dlopen_vp_not_found);
 	RUN(proc_dlopen_vp_found);
+	RUN(proc_dlmain_null_proc);
+	RUN(proc_dlmain_null_lib);
+	RUN(proc_dlmain_vp_not_found);
+	RUN(proc_dlmain_vp_found);
 	RUN(proc_dlsym_null_proc);
 	RUN(proc_dlsym_null_lib);
 	RUN(proc_dlsym_null_name);
 	RUN(proc_dlsym_null_sym);
 	RUN(proc_dlsym_vp_not_found);
 	RUN(proc_dlsym_vp_found);
+	RUN(proc_dlsym_vp_main_found);
 	RUN(proc_dlclose_null_proc);
 	RUN(proc_dlclose_null_lib);
 	RUN(proc_dlclose_vp_not_found);
