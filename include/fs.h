@@ -8,6 +8,7 @@
 typedef struct fs_s {
 	buf_t paths;
 	arr_t nodes;
+	alloc_t alloc;
 	int virt;
 } fs_t;
 

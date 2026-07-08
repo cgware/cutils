@@ -657,6 +657,8 @@ fs_t *fs_init(fs_t *fs, uint nodes_cap, int virt, alloc_t alloc)
 		return NULL;
 	}
 
+	fs->alloc = alloc;
+
 	if (virt &&
 	    (buf_init(&fs->paths, nodes_cap * 16, alloc) == NULL || arr_init(&fs->nodes, nodes_cap, sizeof(fs_node_t), alloc) == NULL)) {
 		return NULL;
@@ -952,7 +954,7 @@ int fs_rmpath(fs_t *fs, strv_t base, strv_t path)
 	path = STRVS(dir);
 
 	strbuf_t files = {0};
-	strbuf_init(&files, 4, 8, ALLOC_STD);
+	strbuf_init(&files, 4, 8, fs->alloc);
 
 	while (path.len > 0) {
 		path_push(&buf, path);

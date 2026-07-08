@@ -267,7 +267,7 @@ static proc_dlsym_t *vp_dlsym_find(proc_dllib_t *dllib, strv_t name)
 
 static int vp_dllib_add(proc_t *proc, strv_t name, int main, proc_dllib_t **out)
 {
-	if (proc->dllibs.data == NULL && arr_init(&proc->dllibs, 1, sizeof(proc_dllib_t), ALLOC_STD) == NULL) {
+	if (proc->dllibs.data == NULL && arr_init(&proc->dllibs, 1, sizeof(proc_dllib_t), proc->alloc) == NULL) {
 		return 1;
 	}
 
@@ -278,7 +278,7 @@ static int vp_dllib_add(proc_t *proc, strv_t name, int main, proc_dllib_t **out)
 		return 1;
 	}
 
-	if (arr_init(&dllib.dlsyms, 1, sizeof(proc_dlsym_t), ALLOC_STD) == NULL) {
+	if (arr_init(&dllib.dlsyms, 1, sizeof(proc_dlsym_t), proc->alloc) == NULL) {
 		str_free(&dllib.name);
 		return 1;
 	}
@@ -394,11 +394,13 @@ static const proc_ops_t s_proc_ops[] = {
 		},
 };
 
-proc_t *proc_init(proc_t *proc, size_t buf_size, int virt)
+proc_t *proc_init(proc_t *proc, size_t buf_size, int virt, alloc_t alloc)
 {
 	if (proc == NULL) {
 		return NULL;
 	}
+
+	proc->alloc = alloc;
 
 	if (virt) {
 		if (buf_size > 0) {
