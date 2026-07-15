@@ -18,7 +18,8 @@ void fs_free(fs_t *fs);
 int fs_open(fs_t *fs, strv_t path, const char *mode, void **file);
 int fs_close(fs_t *fs, void *file);
 
-int fs_write(fs_t *fs, void *file, strv_t str);
+int fs_writeb(fs_t *fs, void *file, buf_t buf);
+int fs_writes(fs_t *fs, void *file, strv_t str);
 int fs_readb(fs_t *fs, strv_t path, buf_t *buf);
 int fs_reads(fs_t *fs, strv_t path, str_t *str);
 

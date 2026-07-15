@@ -7,7 +7,8 @@
 typedef cerr_t (*fs_open_fn)(fs_t *fs, strv_t path, const char *mode, void **file);
 typedef cerr_t (*fs_close_fn)(fs_t *fs, void *file);
 
-typedef cerr_t (*fs_write_fn)(fs_t *fs, void *file, strv_t str);
+typedef cerr_t (*fs_writeb_fn)(fs_t *fs, void *file, buf_t buf);
+typedef cerr_t (*fs_writes_fn)(fs_t *fs, void *file, strv_t str);
 typedef cerr_t (*fs_readb_fn)(fs_t *fs, void *file, buf_t buf, size_t size);
 typedef cerr_t (*fs_reads_fn)(fs_t *fs, void *file, str_t str, size_t size);
 
@@ -32,7 +33,8 @@ typedef int (*fs_lsfile_fn)(fs_t *fs, strv_t path, strbuf_t *files);
 typedef struct fs_ops_s {
 	fs_open_fn open;
 	fs_close_fn close;
-	fs_write_fn write;
+	fs_writeb_fn writeb;
+	fs_writes_fn writes;
 	fs_readb_fn readb;
 	fs_reads_fn reads;
 	fs_du_fn du;
@@ -60,7 +62,7 @@ typedef enum fs_node_flag_e {
 
 typedef struct fs_node_s {
 	fs_node_type_t type;
-	str_t data;
+	buf_t data;
 	loc_t path;
 	int flags;
 } fs_node_t;
@@ -120,6 +122,8 @@ static cerr_t vfs_open(fs_t *fs, strv_t path, const char *mode, void **file)
 
 	uint id;
 	fs_node_t *node = find_node(fs, path, &id);
+	int created	= 0;
+	uint nodes_cnt	= fs->nodes.cnt;
 	if (node == NULL) {
 		strv_t dir, name;
 		pathv_rsplit(path, &dir, &name);
@@ -127,12 +131,16 @@ static cerr_t vfs_open(fs_t *fs, strv_t path, const char *mode, void **file)
 
 		if ((mode[0] == 'w' || mode[0] == 'a') && name.len > 0 && (dir.len == 0 || fs_isdir(fs, dir))) {
 			node = arr_add(&fs->nodes, &id);
-			buf_add_str(&fs->paths, path, &node->path);
 			if (node == NULL) {
 				return CERR_MEM;
 			}
+			if (buf_add_str(&fs->paths, path, &node->path)) {
+				arr_reset(&fs->nodes, nodes_cnt);
+				return CERR_MEM;
+			}
 			node->type = FS_NODE_TYPE_FILE;
-			node->data = STR_NULL;
+			node->data = (buf_t){0};
+			created	   = 1;
 		} else {
 			return CERR_NOT_FOUND;
 		}
@@ -142,13 +150,17 @@ static cerr_t vfs_open(fs_t *fs, strv_t path, const char *mode, void **file)
 		return node->type == FS_NODE_TYPE_DIR ? CERR_TYPE : CERR_VAL;
 	}
 
-	if (node->data.data == NULL) {
-		node->data = strz(256);
+	if ((mode[0] == 'w' || mode[0] == 'a') && node->data.data == NULL && buf_init(&node->data, 256, fs->alloc) == NULL) {
+		if (created) {
+			buf_replace(&fs->paths, node->path.off, NULL, node->path.len, 0);
+			arr_reset(&fs->nodes, nodes_cnt);
+		}
+		return CERR_MEM;
 	}
 
 	switch (mode[0]) {
 	case 'r': node->flags &= ~(1 << FS_NODE_FLAG_WRITE); break;
-	case 'w': node->data.len = 0; // fall-through
+	case 'w': buf_reset(&node->data, 0); // fall-through
 	case 'a': node->flags |= 1 << FS_NODE_FLAG_WRITE; break;
 	}
 
@@ -183,15 +195,21 @@ static cerr_t vfs_close(fs_t *fs, void *file)
 	return CERR_OK;
 }
 
-static cerr_t ofs_write(fs_t *fs, void *file, strv_t str)
+static cerr_t ofs_writeb(fs_t *fs, void *file, buf_t buf)
+{
+	(void)fs;
+	return cfs_write(file, buf.data, buf.used);
+}
+
+static cerr_t ofs_writes(fs_t *fs, void *file, strv_t str)
 {
 	(void)fs;
 	return cfs_write(file, str.data, str.len);
 }
 
-static cerr_t vfs_write(fs_t *fs, void *file, strv_t str)
+static cerr_t vfs_write(fs_t *fs, void *file, const void *data, size_t size)
 {
-	if (file == NULL || str.data == NULL) {
+	if (file == NULL || (data == NULL && size > 0)) {
 		return CERR_VAL;
 	}
 
@@ -206,11 +224,21 @@ static cerr_t vfs_write(fs_t *fs, void *file, strv_t str)
 		return CERR_DESC;
 	}
 
-	if (str_cat(&node->data, str) == NULL) {
+	if (buf_add(&node->data, size, data, NULL)) {
 		return CERR_MEM;
 	}
 
 	return CERR_OK;
+}
+
+static cerr_t vfs_writeb(fs_t *fs, void *file, buf_t buf)
+{
+	return vfs_write(fs, file, buf.data, buf.used);
+}
+
+static cerr_t vfs_writes(fs_t *fs, void *file, strv_t str)
+{
+	return vfs_write(fs, file, str.data, str.len);
 }
 
 static cerr_t ofs_readb(fs_t *fs, void *file, buf_t buf, size_t size)
@@ -266,7 +294,7 @@ static cerr_t vfs_du(fs_t *fs, void *file, size_t *size)
 		return CERR_NOT_FOUND;
 	}
 
-	*size = node->data.len;
+	*size = node->data.used;
 	return CERR_OK;
 }
 
@@ -389,7 +417,7 @@ static cerr_t vfs_mkfile(fs_t *fs, strv_t path)
 	}
 
 	node->type = FS_NODE_TYPE_FILE;
-	node->data = STR_NULL;
+	node->data = (buf_t){0};
 
 	return CERR_OK;
 }
@@ -469,8 +497,7 @@ static cerr_t vfs_rmfile(fs_t *fs, strv_t path)
 	}
 
 	if (node->data.data) {
-		str_free(&node->data);
-		node->data = STR_NULL;
+		buf_free(&node->data);
 	}
 
 	rmnode(fs, id, node);
@@ -617,7 +644,8 @@ static const fs_ops_t s_fs_ops[] = {
 		{
 			.open	= ofs_open,
 			.close	= ofs_close,
-			.write	= ofs_write,
+			.writeb = ofs_writeb,
+			.writes = ofs_writes,
 			.readb	= ofs_readb,
 			.reads	= ofs_reads,
 			.du	= ofs_du,
@@ -635,7 +663,8 @@ static const fs_ops_t s_fs_ops[] = {
 		{
 			.open	= vfs_open,
 			.close	= vfs_close,
-			.write	= vfs_write,
+			.writeb = vfs_writeb,
+			.writes = vfs_writes,
 			.readb	= vfs_readb,
 			.reads	= vfs_reads,
 			.du	= vfs_du,
@@ -680,7 +709,7 @@ void fs_free(fs_t *fs)
 	arr_foreach(&fs->nodes, i, node)
 	{
 		if (node->type == FS_NODE_TYPE_FILE && node->data.data) {
-			str_free(&node->data);
+			buf_free(&node->data);
 		}
 	}
 
@@ -718,13 +747,28 @@ int fs_close(fs_t *fs, void *file)
 	return CERR_OK;
 }
 
-int fs_write(fs_t *fs, void *file, strv_t str)
+int fs_writeb(fs_t *fs, void *file, buf_t buf)
 {
 	if (fs == NULL) {
 		return CERR_VAL;
 	}
 
-	cerr_t err = s_fs_ops[fs->virt].write(fs, file, str);
+	cerr_t err = s_fs_ops[fs->virt].writeb(fs, file, buf);
+	if (err) {
+		log_error("cutils", "file", NULL, "failed to write file: %s", cerr_str(err));
+		return err;
+	}
+
+	return CERR_OK;
+}
+
+int fs_writes(fs_t *fs, void *file, strv_t str)
+{
+	if (fs == NULL) {
+		return CERR_VAL;
+	}
+
+	cerr_t err = s_fs_ops[fs->virt].writes(fs, file, str);
 	if (err) {
 		log_error("cutils", "file", NULL, "failed to write file: %s", cerr_str(err));
 		return err;
@@ -1038,7 +1082,7 @@ int fs_lsfile(fs_t *fs, strv_t path, strbuf_t *files)
 size_t dputs_fs(dst_t dst, strv_t str)
 {
 	size_t len = str.len;
-	if (fs_write((fs_t *)dst.priv, dst.dst, STRVS(str))) {
+	if (fs_writes((fs_t *)dst.priv, dst.dst, STRVS(str))) {
 		len = 0;
 	}
 	return len;
@@ -1048,7 +1092,7 @@ size_t dputv_fs(dst_t dst, const char *fmt, va_list args)
 {
 	str_t str  = strv(fmt, args);
 	size_t len = str.len;
-	if (fs_write((fs_t *)dst.priv, dst.dst, STRVS(str))) {
+	if (fs_writes((fs_t *)dst.priv, dst.dst, STRVS(str))) {
 		len = 0;
 	}
 	str_free(&str);
