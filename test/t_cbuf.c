@@ -157,7 +157,7 @@ TEST(cbuf_get_le)
 	START;
 
 	u8 buf[] = {0x78, 0x56, 0x34, 0x12};
-	u32 val = 0;
+	u32 val	 = 0;
 
 	EXPECT_EQ(cbuf_get_le(buf, 0, &val, sizeof(val)), 0);
 	EXPECT_EQ(val, 0x12345678);
@@ -170,7 +170,7 @@ TEST(cbuf_get_be)
 	START;
 
 	u8 buf[] = {0x12, 0x34, 0x56, 0x78};
-	u32 val = 0;
+	u32 val	 = 0;
 
 	EXPECT_EQ(cbuf_get_be(buf, 0, &val, sizeof(val)), 0);
 	EXPECT_EQ(val, 0x12345678);
@@ -196,7 +196,7 @@ TEST(cbuf_get_u16le)
 	START;
 
 	u8 buf[] = {0x34, 0x12};
-	u16 val = 0;
+	u16 val	 = 0;
 
 	EXPECT_EQ(cbuf_get_u16le(buf, 0, &val), 0);
 	EXPECT_EQ(val, 0x1234);
@@ -209,7 +209,7 @@ TEST(cbuf_get_u32le)
 	START;
 
 	u8 buf[] = {0x78, 0x56, 0x34, 0x12};
-	u32 val = 0;
+	u32 val	 = 0;
 
 	EXPECT_EQ(cbuf_get_u32le(buf, 0, &val), 0);
 	EXPECT_EQ(val, 0x12345678);
@@ -222,7 +222,7 @@ TEST(cbuf_get_u64le)
 	START;
 
 	u8 buf[] = {0xf0, 0xde, 0xbc, 0x9a, 0x78, 0x56, 0x34, 0x12};
-	u64 val = 0;
+	u64 val	 = 0;
 
 	EXPECT_EQ(cbuf_get_u64le(buf, 0, &val), 0);
 	EXPECT_EQ(val, 0x123456789abcdef0);
@@ -248,7 +248,7 @@ TEST(cbuf_get_u16be)
 	START;
 
 	u8 buf[] = {0x12, 0x34};
-	u16 val = 0;
+	u16 val	 = 0;
 
 	EXPECT_EQ(cbuf_get_u16be(buf, 0, &val), 0);
 	EXPECT_EQ(val, 0x1234);
@@ -261,7 +261,7 @@ TEST(cbuf_get_u32be)
 	START;
 
 	u8 buf[] = {0x12, 0x34, 0x56, 0x78};
-	u32 val = 0;
+	u32 val	 = 0;
 
 	EXPECT_EQ(cbuf_get_u32be(buf, 0, &val), 0);
 	EXPECT_EQ(val, 0x12345678);
@@ -274,7 +274,7 @@ TEST(cbuf_get_u64be)
 	START;
 
 	u8 buf[] = {0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0};
-	u64 val = 0;
+	u64 val	 = 0;
 
 	EXPECT_EQ(cbuf_get_u64be(buf, 0, &val), 0);
 	EXPECT_EQ(val, 0x123456789abcdef0);
@@ -286,8 +286,8 @@ TEST(cbuf_write_le)
 {
 	START;
 
-	u8 buf[4] = {0};
-	u32 val	  = 0x12345678;
+	u8 buf[4]  = {0};
+	u32 val	   = 0x12345678;
 	size_t off = 0;
 
 	EXPECT_EQ(cbuf_write_le(buf, &off, &val, sizeof(val)), 0);
@@ -304,8 +304,8 @@ TEST(cbuf_write_be)
 {
 	START;
 
-	u8 buf[4] = {0};
-	u32 val	  = 0x12345678;
+	u8 buf[4]  = {0};
+	u32 val	   = 0x12345678;
 	size_t off = 0;
 
 	EXPECT_EQ(cbuf_write_be(buf, &off, &val, sizeof(val)), 0);

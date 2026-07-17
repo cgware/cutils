@@ -10,7 +10,10 @@ typedef struct loc_s {
 
 int loc_eq(loc_t l, loc_t r);
 
-#define LOCT(_off, _len) {.off = _off, .len = _len}
-#define LOC(_off, _len)	 ((loc_t)LOCT(_off, _len))
+#define LOCT(_off, _len)                                                                                                                   \
+	{                                                                                                                                  \
+		.off = _off, .len = _len                                                                                                   \
+	}
+#define LOC(_off, _len) ((loc_t)LOCT(_off, _len))
 
 #endif

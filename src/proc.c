@@ -272,8 +272,8 @@ static int vp_dllib_add(proc_t *proc, strv_t name, int main, proc_dllib_t **out)
 	}
 
 	proc_dllib_t dllib = {0};
-	dllib.name	    = strn(name.data, name.len, name.len + 1);
-	dllib.main	    = main;
+	dllib.name	   = strn(name.data, name.len, name.len + 1);
+	dllib.main	   = main;
 	if (dllib.name.data == NULL) {
 		return 1;
 	}
@@ -376,7 +376,7 @@ static const proc_ops_t s_proc_ops[] = {
 			.setenv	     = op_setenv,
 			.unsetenv    = op_unsetenv,
 			.dlopen	     = op_dlopen,
-			.dlmain      = op_dlmain,
+			.dlmain	     = op_dlmain,
 			.dlsym	     = op_dlsym,
 			.dlclose     = op_dlclose,
 		},
@@ -388,7 +388,7 @@ static const proc_ops_t s_proc_ops[] = {
 			.setenv	     = vp_setenv,
 			.unsetenv    = vp_unsetenv,
 			.dlopen	     = vp_dlopen,
-			.dlmain      = vp_dlmain,
+			.dlmain	     = vp_dlmain,
 			.dlsym	     = vp_dlsym,
 			.dlclose     = vp_dlclose,
 		},

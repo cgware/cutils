@@ -93,9 +93,9 @@ TEST(proc_setdlsym_uses_alloc)
 {
 	START;
 
-	proc_t proc		    = {0};
-	proc_test_alloc_t stats    = {0};
-	alloc_t alloc		    = {.alloc = proc_test_alloc, .realloc = proc_test_realloc, .free = proc_test_free, .priv = &stats};
+	proc_t proc		= {0};
+	proc_test_alloc_t stats = {0};
+	alloc_t alloc		= {.alloc = proc_test_alloc, .realloc = proc_test_realloc, .free = proc_test_free, .priv = &stats};
 
 	EXPECT_EQ(proc_init(&proc, 0, 1, alloc), &proc);
 	EXPECT_EQ(proc_setdlsym(&proc, STRV("lib"), STRV("sym"), &proc_test_dlsym), 0);
@@ -114,9 +114,9 @@ TEST(proc_setdlsym_dlsyms_alloc_oom)
 {
 	START;
 
-	proc_t proc		    = {0};
-	proc_test_alloc_t stats    = {.fail_alloc = 2};
-	alloc_t alloc		    = {.alloc = proc_test_alloc, .realloc = proc_test_realloc, .free = proc_test_free, .priv = &stats};
+	proc_t proc		= {0};
+	proc_test_alloc_t stats = {.fail_alloc = 2};
+	alloc_t alloc		= {.alloc = proc_test_alloc, .realloc = proc_test_realloc, .free = proc_test_free, .priv = &stats};
 
 	EXPECT_EQ(proc_init(&proc, 0, 1, alloc), &proc);
 	log_set_quiet(0, 1);
@@ -421,7 +421,7 @@ TEST(proc_gethostname_invalid)
 {
 	START;
 
-	proc_t proc = {0};
+	proc_t proc  = {0};
 	char name[1] = {0};
 	proc_init(&proc, 0, 0, ALLOC_STD);
 
@@ -438,7 +438,7 @@ TEST(proc_gethostname_vp_copy)
 {
 	START;
 
-	proc_t proc = {0};
+	proc_t proc  = {0};
 	char name[5] = {0};
 	proc_init(&proc, 1, 1, ALLOC_STD);
 	proc.hostname = STR("host");
@@ -455,7 +455,7 @@ TEST(proc_gethostname_vp_too_small)
 {
 	START;
 
-	proc_t proc = {0};
+	proc_t proc  = {0};
 	char name[4] = {0};
 	proc_init(&proc, 1, 1, ALLOC_STD);
 	proc.hostname = STR("host");
@@ -486,8 +486,8 @@ TEST(proc_gethostname_op_vp)
 {
 	START;
 
-	proc_t op = {0};
-	proc_t vp = {0};
+	proc_t op	= {0};
+	proc_t vp	= {0};
 	char oname[256] = {0};
 	char vname[256] = {0};
 	proc_init(&op, 0, 0, ALLOC_STD);
@@ -648,10 +648,10 @@ TEST(proc_setdlsym_oom_store_dllib)
 {
 	START;
 
-	proc_t proc	       = {0};
-	proc_dllib_t dllib     = {0};
-	alloc_t realloc_fails  = ALLOC_STD;
-	realloc_fails.realloc  = proc_test_realloc_fail;
+	proc_t proc	      = {0};
+	proc_dllib_t dllib    = {0};
+	alloc_t realloc_fails = ALLOC_STD;
+	realloc_fails.realloc = proc_test_realloc_fail;
 	proc_init(&proc, 0, 1, ALLOC_STD);
 	arr_init(&proc.dllibs, 1, sizeof(proc_dllib_t), realloc_fails);
 	dllib.name = STR("used");

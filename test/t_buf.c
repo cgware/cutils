@@ -80,7 +80,7 @@ TEST(buf_set)
 	EXPECT_EQ(buf_set(&buf, 0, 1, NULL), 1);
 	EXPECT_EQ(buf_set(&buf, 0, 0, NULL), 0);
 
-	val = 2;
+	val	 = 2;
 	buf.used = sizeof(val);
 	EXPECT_EQ(buf_set(&buf, 0, sizeof(val), &val), 0);
 	EXPECT_EQ(*(uint *)buf.data, 2);

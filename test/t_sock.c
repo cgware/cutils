@@ -2,12 +2,12 @@
 
 #include "cerr.h"
 #include "cfs.h"
-#include "platform.h"
 #include "log.h"
 #include "mem.h"
+#include "platform.h"
 #include "test.h"
 
-#define TEST_SOCK "/tmp/cutils_t_sock.sock"
+#define TEST_SOCK	"/tmp/cutils_t_sock.sock"
 #define TEST_SOCK_WRITE "/tmp/cutils_t_sock_write.sock"
 
 #if defined(C_LINUX)
@@ -60,7 +60,7 @@ static void t_sock_pair_open(t_sock_pair_t *p)
 #if defined(C_LINUX)
 	sock_open(&p->ss, SOCK_FAMILY_UNIX, SOCK_TYPE_STREAM, 0, &p->s);
 #else
-	p->s = (void *)1;
+	p->s  = (void *)1;
 #endif
 	sock_open(&p->vss, SOCK_FAMILY_UNIX, SOCK_TYPE_STREAM, 0, &p->vs);
 }
@@ -82,9 +82,9 @@ static void t_sock_conn_open(t_sock_conn_t *c)
 	sock_open(&c->ss, SOCK_FAMILY_UNIX, SOCK_TYPE_STREAM, 0, &c->s);
 	sock_open(&c->ss, SOCK_FAMILY_UNIX, SOCK_TYPE_STREAM, 0, &c->c);
 #else
-	c->s = (void *)1;
-	c->c = (void *)2;
-	c->p = (void *)3;
+	c->s  = (void *)1;
+	c->c  = (void *)2;
+	c->p  = (void *)3;
 #endif
 	sock_open(&c->vss, SOCK_FAMILY_UNIX, SOCK_TYPE_STREAM, 0, &c->vs);
 	sock_open(&c->vss, SOCK_FAMILY_UNIX, SOCK_TYPE_STREAM, 0, &c->vc);
@@ -375,7 +375,7 @@ TEST(sock_set_flags_nonblock)
 	START;
 
 	t_sock_pair_t p = {0};
-	int flags = 0, vflags;
+	int flags	= 0, vflags;
 	t_sock_pair_open(&p);
 
 	EXPECT_EQ(sock_get_flags(&p.ss, p.s, &flags), T_OSOCK_EXPECT(CERR_OK));
@@ -407,7 +407,7 @@ TEST(sock_bind_invalid)
 	START;
 
 	t_sock_pair_t p = {0};
-	char path[109] = {0};
+	char path[109]	= {0};
 	t_sock_pair_open(&p);
 
 	log_set_quiet(0, 1);
@@ -544,7 +544,7 @@ TEST(sock_connect_invalid)
 	START;
 
 	t_sock_conn_t c = {0};
-	char path[109] = {0};
+	char path[109]	= {0};
 	t_sock_conn_open(&c);
 
 	log_set_quiet(0, 1);
@@ -574,8 +574,10 @@ TEST(sock_connect_not_found)
 	t_sock_conn_open(&c);
 
 	log_set_quiet(0, 1);
-	EXPECT_EQ(sock_connect(&c.ss, c.c, SOCK_FAMILY_UNIX, "/tmp/cutils_not_found.sock", sizeof("/tmp/cutils_not_found.sock")), T_OSOCK_EXPECT(CERR_NOT_FOUND));
-	EXPECT_EQ(sock_connect(&c.vss, c.vc, SOCK_FAMILY_UNIX, "/tmp/cutils_not_found.sock", sizeof("/tmp/cutils_not_found.sock")), CERR_NOT_FOUND);
+	EXPECT_EQ(sock_connect(&c.ss, c.c, SOCK_FAMILY_UNIX, "/tmp/cutils_not_found.sock", sizeof("/tmp/cutils_not_found.sock")),
+		  T_OSOCK_EXPECT(CERR_NOT_FOUND));
+	EXPECT_EQ(sock_connect(&c.vss, c.vc, SOCK_FAMILY_UNIX, "/tmp/cutils_not_found.sock", sizeof("/tmp/cutils_not_found.sock")),
+		  CERR_NOT_FOUND);
 	log_set_quiet(0, 0);
 
 	t_sock_conn_close(&c);
@@ -749,15 +751,15 @@ TEST(sock_script_valid)
 {
 	START;
 
-	sock_t vss	     = {0};
-	void *vs	     = NULL;
-	void *vc	     = NULL;
-	void *vp	     = NULL;
+	sock_t vss	    = {0};
+	void *vs	    = NULL;
+	void *vc	    = NULL;
+	void *vp	    = NULL;
 	uint8_t script[]    = {0x12, 0x34};
 	uint8_t request[]   = {0x56};
 	uint8_t response[2] = {0};
 	uint8_t received[1] = {0};
-	size_t n	     = 0;
+	size_t n	    = 0;
 
 	sock_init(&vss, 4, 1, ALLOC_STD);
 	sock_open(&vss, SOCK_FAMILY_UNIX, SOCK_TYPE_STREAM, 0, &vs);
@@ -789,7 +791,7 @@ TEST(sock_script_os_unsupported)
 {
 	START;
 
-	sock_t ss = {0};
+	sock_t ss      = {0};
 	uint8_t buf[1] = {0x12};
 
 	sock_init(&ss, 0, 0, ALLOC_STD);
@@ -808,9 +810,9 @@ TEST(sock_script_replaces_previous)
 	sock_t vss = {0};
 	void *vs;
 	void *vc;
-	uint8_t first[] = {0x12};
+	uint8_t first[]	 = {0x12};
 	uint8_t second[] = {0x34};
-	uint8_t out[1] = {0};
+	uint8_t out[1]	 = {0};
 
 	sock_init(&vss, 3, 1, ALLOC_STD);
 	sock_open(&vss, SOCK_FAMILY_UNIX, SOCK_TYPE_STREAM, 0, &vs);
@@ -910,8 +912,8 @@ TEST(sock_write_invalid)
 	START;
 
 	t_sock_conn_t c = {0};
-	uint8_t buf[8] = {0};
-	size_t n       = 0;
+	uint8_t buf[8]	= {0};
+	size_t n	= 0;
 	t_sock_conn_open(&c);
 	t_sock_conn_connect(&c);
 
@@ -935,8 +937,8 @@ TEST(sock_write_unconnected)
 	START;
 
 	t_sock_pair_t p = {0};
-	uint8_t buf[8] = {0};
-	size_t n       = 0;
+	uint8_t buf[8]	= {0};
+	size_t n	= 0;
 
 	t_sock_pair_open(&p);
 
@@ -1020,9 +1022,9 @@ TEST(sock_write_rcvbuf_full)
 	START;
 
 	t_sock_conn_t c = {0};
-	uint8_t buf[1] = {0x12};
-	size_t n       = 0;
-	size_t rcvbuf  = 1;
+	uint8_t buf[1]	= {0x12};
+	size_t n	= 0;
+	size_t rcvbuf	= 1;
 
 	t_sock_conn_open(&c);
 	t_sock_conn_connect(&c);
@@ -1043,8 +1045,8 @@ TEST(sock_write_valid)
 	START;
 
 	t_sock_conn_t c = {0};
-	uint8_t buf[1] = {0x12};
-	size_t n       = 0;
+	uint8_t buf[1]	= {0x12};
+	size_t n	= 0;
 	t_sock_conn_open(&c);
 	t_sock_conn_connect(&c);
 
@@ -1068,7 +1070,7 @@ TEST(sock_write_all_invalid)
 	START;
 
 	t_sock_conn_t c = {0};
-	uint8_t buf[8] = {0};
+	uint8_t buf[8]	= {0};
 	t_sock_conn_open(&c);
 	t_sock_conn_connect(&c);
 
@@ -1092,9 +1094,9 @@ TEST(sock_write_all_valid)
 	START;
 
 	t_sock_conn_t c = {0};
-	uint8_t buf[8] = {0x12, 0x34, 0x56};
-	uint8_t out[8] = {0};
-	size_t n       = 0;
+	uint8_t buf[8]	= {0x12, 0x34, 0x56};
+	uint8_t out[8]	= {0};
+	size_t n	= 0;
 	t_sock_conn_open(&c);
 	t_sock_conn_connect(&c);
 
@@ -1130,8 +1132,8 @@ TEST(sock_read_invalid)
 	START;
 
 	t_sock_conn_t c = {0};
-	uint8_t buf[8] = {0};
-	size_t n       = 0;
+	uint8_t buf[8]	= {0};
+	size_t n	= 0;
 	t_sock_conn_open(&c);
 	t_sock_conn_connect(&c);
 
@@ -1155,7 +1157,7 @@ TEST(sock_read_all_invalid)
 	START;
 
 	t_sock_conn_t c = {0};
-	uint8_t buf[8] = {0};
+	uint8_t buf[8]	= {0};
 	t_sock_conn_open(&c);
 	t_sock_conn_connect(&c);
 
@@ -1179,8 +1181,8 @@ TEST(sock_read_unconnected)
 	START;
 
 	t_sock_pair_t p = {0};
-	uint8_t buf[8] = {0};
-	size_t n       = 0;
+	uint8_t buf[8]	= {0};
+	size_t n	= 0;
 
 	t_sock_pair_open(&p);
 
@@ -1228,9 +1230,9 @@ TEST(sock_read_all_valid)
 	START;
 
 	t_sock_conn_t c = {0};
-	uint8_t buf[8] = {0x12, 0x34, 0x56};
-	uint8_t out[8] = {0};
-	size_t n       = 0;
+	uint8_t buf[8]	= {0x12, 0x34, 0x56};
+	uint8_t out[8]	= {0};
+	size_t n	= 0;
 	t_sock_conn_open(&c);
 	t_sock_conn_connect(&c);
 
@@ -1266,8 +1268,8 @@ TEST(sock_read_nonblock_empty)
 	START;
 
 	t_sock_conn_t c = {0};
-	uint8_t buf[8] = {0};
-	size_t n       = 0;
+	uint8_t buf[8]	= {0};
+	size_t n	= 0;
 #if defined(C_LINUX)
 	int flags;
 #endif
@@ -1297,8 +1299,8 @@ TEST(sock_read_partial)
 	START;
 
 	t_sock_conn_t c = {0};
-	uint8_t buf[8] = {0x12, 0x34, 0x56};
-	size_t n       = 0;
+	uint8_t buf[8]	= {0x12, 0x34, 0x56};
+	size_t n	= 0;
 	t_sock_conn_open(&c);
 	t_sock_conn_connect(&c);
 
