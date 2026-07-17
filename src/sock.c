@@ -170,10 +170,10 @@ static cerr_t vsock_close(sock_t *ss, void *sock)
 	if (node->script.data) {
 		buf_free(&node->script);
 	}
-	node->peer = (uint)-1;
+	node->peer    = (uint)-1;
 	node->pending = (uint)-1;
-	node->path = (loc_t){0};
-	node->rcvbuf = 0;
+	node->path    = (loc_t){0};
+	node->rcvbuf  = 0;
 	sock_clear_flag(node, SOCK_NODE_FLAG_OPEN);
 
 	return CERR_OK;
@@ -536,6 +536,11 @@ static cerr_t vsock_read(sock_t *ss, void *sock, void *data, size_t size, size_t
 	    (sock_flag(node, SOCK_NODE_FLAG_LISTEN) && !sock_flag(node, SOCK_NODE_FLAG_ACCEPTED))) {
 		return CERR_STATE;
 	}
+
+	sock_node_t *peer = arr_get(&ss->nodes, node->peer);
+	if ((peer == NULL || !sock_flag(peer, SOCK_NODE_FLAG_OPEN)) && node->data.used == 0) {
+		return CERR_CONN;
+	}
 	if (node->data.used == 0) {
 		return sock_flag(node, SOCK_NODE_FLAG_NONBLOCK) ? CERR_AGAIN : CERR_STATE;
 	}
@@ -817,7 +822,9 @@ int sock_read(sock_t *ss, void *sock, void *data, size_t size, size_t *n)
 
 	cerr_t err = s_ss_ops[ss->virt].read(ss, sock, data, size, n);
 	if (err) {
-		log_error("cutils", "sock", NULL, "failed to read: %s", cerr_str(err));
+		if (err != CERR_AGAIN) {
+			log_error("cutils", "sock", NULL, "failed to read: %s", cerr_str(err));
+		}
 		return err;
 	}
 

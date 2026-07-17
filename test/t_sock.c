@@ -1194,6 +1194,35 @@ TEST(sock_read_unconnected)
 	END;
 }
 
+TEST(sock_read_peer_closed)
+{
+	START;
+
+	sock_t vss = {0};
+	void *s, *c, *p;
+	uint8_t buf[8] = {0};
+	size_t n       = 0;
+
+	sock_init(&vss, 4, 1, ALLOC_STD);
+	sock_open(&vss, SOCK_FAMILY_UNIX, SOCK_TYPE_STREAM, 0, &s);
+	sock_open(&vss, SOCK_FAMILY_UNIX, SOCK_TYPE_STREAM, 0, &c);
+	sock_bind(&vss, s, SOCK_FAMILY_UNIX, TEST_SOCK, sizeof(TEST_SOCK));
+	sock_listen(&vss, s, 1);
+	sock_connect(&vss, c, SOCK_FAMILY_UNIX, TEST_SOCK, sizeof(TEST_SOCK));
+	sock_accept(&vss, s, &p);
+	sock_close(&vss, c);
+
+	log_set_quiet(0, 1);
+	EXPECT_EQ(sock_read(&vss, p, buf, 1, &n), CERR_CONN);
+	log_set_quiet(0, 0);
+
+	sock_close(&vss, p);
+	sock_close(&vss, s);
+	sock_free(&vss);
+
+	END;
+}
+
 TEST(sock_read_all_valid)
 {
 	START;
@@ -1366,6 +1395,7 @@ STEST(sock)
 	RUN(sock_read_invalid);
 	RUN(sock_read_all_invalid);
 	RUN(sock_read_unconnected);
+	RUN(sock_read_peer_closed);
 	RUN(sock_read_all_valid);
 	RUN(sock_read_nonblock_empty);
 	RUN(sock_read_partial);
