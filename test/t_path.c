@@ -8,7 +8,7 @@ TEST(path_init)
 {
 	START;
 
-	EXPECT_EQ(path_init(NULL, STRV_NULL), NULL);
+	EXPECT_NULL(path_init(NULL, STRV_NULL));
 
 	END;
 }
@@ -19,18 +19,18 @@ TEST(path_init_s)
 
 	path_t path = {0};
 
-	EXPECT_EQ(path_init_s(NULL, STRV_NULL, 0), NULL);
-	EXPECT_EQ(path_init_s(NULL, STRVN(NULL, 1), 0), NULL);
-	EXPECT_EQ(path_init_s(&path, STRVN("", 256), 0), NULL);
-	EXPECT_EQ(path_init_s(&path, STRV("."), 0), &path);
+	EXPECT_NULL(path_init_s(NULL, STRV_NULL, 0));
+	EXPECT_NULL(path_init_s(NULL, STRVN(NULL, 1), 0));
+	EXPECT_NULL(path_init_s(&path, STRVN("", 256), 0));
+	EXPECT_PTR(path_init_s(&path, STRV("."), 0), &path);
 	EXPECT_EQ(path.len, 1);
-	EXPECT_EQ(path_init_s(&path, STRV_NULL, 0), &path);
+	EXPECT_PTR(path_init_s(&path, STRV_NULL, 0), &path);
 	EXPECT_EQ(path.len, 0);
-	EXPECT_EQ(path_init_s(&path, STRV(""), 0), &path);
+	EXPECT_PTR(path_init_s(&path, STRV(""), 0), &path);
 	EXPECT_EQ(path.len, 0);
-	EXPECT_EQ(path_init_s(&path, STRV("a/b"), '/'), &path);
+	EXPECT_PTR(path_init_s(&path, STRV("a/b"), '/'), &path);
 	EXPECT_STRN(path.data, "a/b", path.len);
-	EXPECT_EQ(path_init_s(&path, STRV("a/b"), '\\'), &path);
+	EXPECT_PTR(path_init_s(&path, STRV("a/b"), '\\'), &path);
 	EXPECT_STRN(path.data, "a\\b", path.len);
 
 	END;
@@ -43,9 +43,9 @@ TEST(path_push)
 	path_t path = {0};
 	path_init(&path, STRV("a/"));
 
-	EXPECT_EQ(path_push(NULL, STRV_NULL), NULL);
-	EXPECT_EQ(path_push(&path, STRV_NULL), NULL);
-	EXPECT_EQ(path_push(&path, STRV("b")), &path);
+	EXPECT_NULL(path_push(NULL, STRV_NULL));
+	EXPECT_NULL(path_push(&path, STRV_NULL));
+	EXPECT_PTR(path_push(&path, STRV("b")), &path);
 
 	EXPECT_EQ(path.len, 3);
 
@@ -59,9 +59,9 @@ TEST(path_push_s)
 	path_t path = {0};
 	path_init(&path, STRV("a"));
 
-	EXPECT_EQ(path_push_s(NULL, STRV_NULL, 0), NULL);
-	EXPECT_EQ(path_push_s(&path, STRV_NULL, 0), NULL);
-	EXPECT_EQ(path_push_s(&path, STRV("b"), '/'), &path);
+	EXPECT_NULL(path_push_s(NULL, STRV_NULL, 0));
+	EXPECT_NULL(path_push_s(&path, STRV_NULL, 0));
+	EXPECT_PTR(path_push_s(&path, STRV("b"), '/'), &path);
 
 	EXPECT_EQ(path.len, 3);
 	EXPECT_STR(path.data, "a/b");
@@ -78,12 +78,12 @@ TEST(path_pop)
 	path.data[1] = '/';
 	path.data[3] = '\\';
 
-	EXPECT_EQ(path_pop(NULL), NULL);
-	EXPECT_EQ(path_pop(&path), &path);
+	EXPECT_NULL(path_pop(NULL));
+	EXPECT_PTR(path_pop(&path), &path);
 	EXPECT_STR(path.data, "a/b\\");
-	EXPECT_EQ(path_pop(&path), &path);
+	EXPECT_PTR(path_pop(&path), &path);
 	EXPECT_STR(path.data, "a/");
-	EXPECT_EQ(path_pop(&path), &path);
+	EXPECT_PTR(path_pop(&path), &path);
 	EXPECT_STR(path.data, "");
 
 	END;
@@ -96,8 +96,8 @@ TEST(path_set_len)
 	path_t path = {0};
 	path_init(&path, STRV("a"));
 
-	EXPECT_EQ(path_set_len(NULL, 0), NULL);
-	EXPECT_EQ(path_set_len(&path, 0), &path);
+	EXPECT_NULL(path_set_len(NULL, 0));
+	EXPECT_PTR(path_set_len(&path, 0), &path);
 
 	EXPECT_EQ(path.len, 0);
 	EXPECT_STR(path.data, "");
@@ -248,130 +248,130 @@ STEST(path_merge)
 
 	path_t path = {0};
 
-	EXPECT_EQ(path_merge(NULL, STRV_NULL), NULL);
+	EXPECT_NULL(path_merge(NULL, STRV_NULL));
 
 	path_init_s(&path, STRV(""), '/');
-	EXPECT_EQ(path_merge(&path, STRV_NULL), &path);
+	EXPECT_PTR(path_merge(&path, STRV_NULL), &path);
 	EXPECT_STR(path.data, "");
 
 	path_init_s(&path, STRV("/"), '/');
-	EXPECT_EQ(path_merge(&path, STRV_NULL), &path);
+	EXPECT_PTR(path_merge(&path, STRV_NULL), &path);
 	EXPECT_STR(path.data, "/");
 
 	path_init_s(&path, STRV("/a"), '/');
-	EXPECT_EQ(path_merge(&path, STRV_NULL), &path);
+	EXPECT_PTR(path_merge(&path, STRV_NULL), &path);
 	EXPECT_STR(path.data, "/a");
 
 	path_init_s(&path, STRV("/"), '/');
-	EXPECT_EQ(path_merge(&path, STRV(".")), &path);
+	EXPECT_PTR(path_merge(&path, STRV(".")), &path);
 	EXPECT_STR(path.data, "/");
 
 	path_init_s(&path, STRV("/a"), '/');
-	EXPECT_EQ(path_merge(&path, STRV(".")), &path);
+	EXPECT_PTR(path_merge(&path, STRV(".")), &path);
 	EXPECT_STR(path.data, "/a");
 
 	path_init_s(&path, STRV("/a"), '/');
-	EXPECT_EQ(path_merge(&path, STRV("./")), &path);
+	EXPECT_PTR(path_merge(&path, STRV("./")), &path);
 	EXPECT_STR(path.data, "/a");
 
 	path_init_s(&path, STRV("/a/"), '/');
-	EXPECT_EQ(path_merge(&path, STRV(".")), &path);
+	EXPECT_PTR(path_merge(&path, STRV(".")), &path);
 	EXPECT_STR(path.data, "/a/");
 
 	path_init_s(&path, STRV("/a/"), '/');
-	EXPECT_EQ(path_merge(&path, STRV("./")), &path);
+	EXPECT_PTR(path_merge(&path, STRV("./")), &path);
 	EXPECT_STR(path.data, "/a/");
 
 	path_init_s(&path, STRV("/a"), '/');
-	EXPECT_EQ(path_merge(&path, STRV("..")), &path);
+	EXPECT_PTR(path_merge(&path, STRV("..")), &path);
 	EXPECT_STR(path.data, "/");
 
 	path_init_s(&path, STRV("/a"), '/');
-	EXPECT_EQ(path_merge(&path, STRV("../")), &path);
+	EXPECT_PTR(path_merge(&path, STRV("../")), &path);
 	EXPECT_STR(path.data, "/");
 
 	path_init_s(&path, STRV("/a/"), '/');
-	EXPECT_EQ(path_merge(&path, STRV("..")), &path);
+	EXPECT_PTR(path_merge(&path, STRV("..")), &path);
 	EXPECT_STR(path.data, "/");
 
 	path_init_s(&path, STRV("/a/"), '/');
-	EXPECT_EQ(path_merge(&path, STRV("../")), &path);
+	EXPECT_PTR(path_merge(&path, STRV("../")), &path);
 	EXPECT_STR(path.data, "/");
 
 	path_init_s(&path, STRV("/a/b"), '/');
-	EXPECT_EQ(path_merge(&path, STRV("..")), &path);
+	EXPECT_PTR(path_merge(&path, STRV("..")), &path);
 	EXPECT_STR(path.data, "/a/");
 
 	path_init_s(&path, STRV("/a/b"), '/');
-	EXPECT_EQ(path_merge(&path, STRV("../")), &path);
+	EXPECT_PTR(path_merge(&path, STRV("../")), &path);
 	EXPECT_STR(path.data, "/a/");
 
 	path_init_s(&path, STRV("/a/b/"), '/');
-	EXPECT_EQ(path_merge(&path, STRV("..")), &path);
+	EXPECT_PTR(path_merge(&path, STRV("..")), &path);
 	EXPECT_STR(path.data, "/a/");
 
 	path_init_s(&path, STRV("/a/b/"), '/');
-	EXPECT_EQ(path_merge(&path, STRV("../")), &path);
+	EXPECT_PTR(path_merge(&path, STRV("../")), &path);
 	EXPECT_STR(path.data, "/a/");
 
 	path_init_s(&path, STRV("/a"), '/');
-	EXPECT_EQ(path_merge(&path, STRV("b")), &path);
+	EXPECT_PTR(path_merge(&path, STRV("b")), &path);
 	EXPECT_STR(path.data, "/a" SEP "b");
 
 	path_init_s(&path, STRV("/a/"), '/');
-	EXPECT_EQ(path_merge(&path, STRV("b")), &path);
+	EXPECT_PTR(path_merge(&path, STRV("b")), &path);
 	EXPECT_STR(path.data, "/a/b");
 
 	path_init_s(&path, STRV("/a"), '/');
-	EXPECT_EQ(path_merge(&path, STRV("b")), &path);
+	EXPECT_PTR(path_merge(&path, STRV("b")), &path);
 	EXPECT_STR(path.data, "/a" SEP "b");
 
 	path_init_s(&path, STRV("/a/"), '/');
-	EXPECT_EQ(path_merge(&path, STRV("./b")), &path);
+	EXPECT_PTR(path_merge(&path, STRV("./b")), &path);
 	EXPECT_STR(path.data, "/a/b");
 
 	path_init_s(&path, STRV("/a/b"), '/');
-	EXPECT_EQ(path_merge(&path, STRV("../c")), &path);
+	EXPECT_PTR(path_merge(&path, STRV("../c")), &path);
 	EXPECT_STR(path.data, "/a/c");
 
 	path_init_s(&path, STRV("/a/b/"), '/');
-	EXPECT_EQ(path_merge(&path, STRV("../c")), &path);
+	EXPECT_PTR(path_merge(&path, STRV("../c")), &path);
 	EXPECT_STR(path.data, "/a/c");
 
 	path_init_s(&path, STRV("/a/b/c"), '/');
-	EXPECT_EQ(path_merge(&path, STRV("../..")), &path);
+	EXPECT_PTR(path_merge(&path, STRV("../..")), &path);
 	EXPECT_STR(path.data, "/a/");
 
 	path_init_s(&path, STRV("/a/b/c"), '/');
-	EXPECT_EQ(path_merge(&path, STRV("../../")), &path);
+	EXPECT_PTR(path_merge(&path, STRV("../../")), &path);
 	EXPECT_STR(path.data, "/a/");
 
 	path_init_s(&path, STRV("/a/b/c/"), '/');
-	EXPECT_EQ(path_merge(&path, STRV("../..")), &path);
+	EXPECT_PTR(path_merge(&path, STRV("../..")), &path);
 	EXPECT_STR(path.data, "/a/");
 
 	path_init_s(&path, STRV("/a/b/c/"), '/');
-	EXPECT_EQ(path_merge(&path, STRV("../../")), &path);
+	EXPECT_PTR(path_merge(&path, STRV("../../")), &path);
 	EXPECT_STR(path.data, "/a/");
 
 	path_init_s(&path, STRV("/a/b/c"), '/');
-	EXPECT_EQ(path_merge(&path, STRV("../../e/f")), &path);
+	EXPECT_PTR(path_merge(&path, STRV("../../e/f")), &path);
 	EXPECT_STR(path.data, "/a/e/f");
 
 	path_init_s(&path, STRV("/a/b/c"), '/');
-	EXPECT_EQ(path_merge(&path, STRV(".e/f")), &path);
+	EXPECT_PTR(path_merge(&path, STRV(".e/f")), &path);
 	EXPECT_STR(path.data, "/a/b/c" SEP ".e/f");
 
 	path_init_s(&path, STRV("/a/b/c"), '/');
-	EXPECT_EQ(path_merge(&path, STRV("..e/f")), &path);
+	EXPECT_PTR(path_merge(&path, STRV("..e/f")), &path);
 	EXPECT_STR(path.data, "/a/b/c" SEP "..e/f");
 
 	path_init_s(&path, STRV("/a/b/c"), '/');
-	EXPECT_EQ(path_merge(&path, STRV("/")), &path);
+	EXPECT_PTR(path_merge(&path, STRV("/")), &path);
 	EXPECT_STR(path.data, "/");
 
 	path_init_s(&path, STRV("/a/b/c"), '/');
-	EXPECT_EQ(path_merge(&path, STRV("/d")), &path);
+	EXPECT_PTR(path_merge(&path, STRV("/d")), &path);
 	EXPECT_STR(path.data, "/d");
 	END;
 }

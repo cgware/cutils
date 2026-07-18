@@ -10,20 +10,20 @@ TEST(strvbuf_init_free)
 
 	strvbuf_t buf = {0};
 
-	EXPECT_EQ(strvbuf_init(NULL, 0, 0, ALLOC_STD), NULL);
+	EXPECT_NULL(strvbuf_init(NULL, 0, 0, ALLOC_STD));
 	mem_oom(1);
-	EXPECT_EQ(strvbuf_init(&buf, 1, 0, ALLOC_STD), NULL);
+	EXPECT_NULL(strvbuf_init(&buf, 1, 0, ALLOC_STD));
 	mem_oom(0);
-	EXPECT_EQ(strvbuf_init(&buf, 1, 1, ALLOC_STD), &buf);
+	EXPECT_PTR(strvbuf_init(&buf, 1, 1, ALLOC_STD), &buf);
 
-	EXPECT_NE(buf.data, NULL);
+	EXPECT_NOT_NULL(buf.data);
 	EXPECT_EQ(buf.size, sizeof(size_t) + sizeof(char) * 1);
 	EXPECT_EQ(buf.used, 0);
 
 	strvbuf_free(NULL);
 	strvbuf_free(&buf);
 
-	EXPECT_EQ(buf.data, NULL);
+	EXPECT_NULL(buf.data);
 	EXPECT_EQ(buf.size, 0);
 	EXPECT_EQ(buf.used, 0);
 
@@ -91,9 +91,9 @@ TEST(strvbuf_get)
 	strvbuf_t buf = {0};
 	strvbuf_init(&buf, 1, 1, ALLOC_STD);
 
-	EXPECT_EQ(strvbuf_get(NULL, 0).data, NULL);
+	EXPECT_NULL(strvbuf_get(NULL, 0).data);
 	log_set_quiet(0, 1);
-	EXPECT_EQ(strvbuf_get(&buf, 0).data, NULL);
+	EXPECT_NULL(strvbuf_get(&buf, 0).data);
 	log_set_quiet(0, 0);
 
 	size_t off0, off1, off2;

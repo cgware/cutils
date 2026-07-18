@@ -10,21 +10,21 @@ TEST(strbuf_init_free)
 
 	strbuf_t strbuf = {0};
 
-	EXPECT_EQ(strbuf_init(NULL, 0, 0, ALLOC_STD), NULL);
+	EXPECT_NULL(strbuf_init(NULL, 0, 0, ALLOC_STD));
 	mem_oom(1);
-	EXPECT_EQ(strbuf_init(&strbuf, 1, 1, ALLOC_STD), NULL);
-	EXPECT_EQ(strbuf_init(&strbuf, 1, 0, ALLOC_STD), NULL);
+	EXPECT_NULL(strbuf_init(&strbuf, 1, 1, ALLOC_STD));
+	EXPECT_NULL(strbuf_init(&strbuf, 1, 0, ALLOC_STD));
 	mem_oom(0);
-	EXPECT_EQ(strbuf_init(&strbuf, 1, 1, ALLOC_STD), &strbuf);
+	EXPECT_PTR(strbuf_init(&strbuf, 1, 1, ALLOC_STD), &strbuf);
 
-	EXPECT_NE(strbuf.buf.data, NULL);
+	EXPECT_NOT_NULL(strbuf.buf.data);
 	EXPECT_EQ(strbuf.buf.size, sizeof(size_t) + sizeof(char) * 1);
 	EXPECT_EQ(strbuf.buf.used, 0);
 
 	strbuf_free(NULL);
 	strbuf_free(&strbuf);
 
-	EXPECT_EQ(strbuf.buf.data, NULL);
+	EXPECT_NULL(strbuf.buf.data);
 	EXPECT_EQ(strbuf.buf.size, 0);
 	EXPECT_EQ(strbuf.buf.used, 0);
 
@@ -107,9 +107,9 @@ TEST(strbuf_get)
 	strbuf_t strbuf = {0};
 	strbuf_init(&strbuf, 1, 1, ALLOC_STD);
 
-	EXPECT_EQ(strbuf_get(NULL, 0).data, NULL);
+	EXPECT_NULL(strbuf_get(NULL, 0).data);
 	log_set_quiet(0, 1);
-	EXPECT_EQ(strbuf_get(&strbuf, 0).data, NULL);
+	EXPECT_NULL(strbuf_get(&strbuf, 0).data);
 	log_set_quiet(0, 0);
 
 	EXPECT_EQ(strbuf_add(&strbuf, STRV("abc"), NULL), 0);
@@ -146,7 +146,7 @@ TEST(strbuf_get_off)
 	*(size_t *)arr_add(&strbuf.off, &id) = 0;
 
 	log_set_quiet(0, 1);
-	EXPECT_EQ(strbuf_get(&strbuf, id).data, NULL);
+	EXPECT_NULL(strbuf_get(&strbuf, id).data);
 	log_set_quiet(0, 0);
 
 	strbuf_free(&strbuf);
@@ -256,8 +256,8 @@ TEST(strbuf_sort)
 	strbuf_add(&strbuf, STRV("bb"), NULL);
 	strbuf_add(&strbuf, STRV("a"), NULL);
 
-	EXPECT_EQ(strbuf_sort(NULL), NULL);
-	EXPECT_EQ(strbuf_sort(&strbuf), &strbuf);
+	EXPECT_NULL(strbuf_sort(NULL));
+	EXPECT_PTR(strbuf_sort(&strbuf), &strbuf);
 
 	strv_t val;
 	val = strbuf_get(&strbuf, 0);

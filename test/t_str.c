@@ -43,7 +43,7 @@ TEST(strf)
 	strf(NULL);
 
 	mem_oom(1);
-	EXPECT_EQ(strf("%s", "a").data, NULL);
+	EXPECT_NULL(strf("%s", "a").data);
 	mem_oom(0);
 
 	str_t str = strf("%s", "a");
@@ -119,12 +119,12 @@ TEST(str_cat)
 
 	str_t str = STR("abc");
 
-	EXPECT_EQ(str_cat(NULL, STRV("")), NULL);
-	EXPECT_EQ(str_cat(&str, STRV_NULL), NULL);
+	EXPECT_NULL(str_cat(NULL, STRV("")));
+	EXPECT_NULL(str_cat(&str, STRV_NULL));
 	mem_oom(1);
-	EXPECT_EQ(str_cat(&str, STRVN("def", 2)), NULL);
+	EXPECT_NULL(str_cat(&str, STRVN("def", 2)));
 	mem_oom(0);
-	EXPECT_EQ(str_cat(&str, STRVN("def", 2)), &str);
+	EXPECT_PTR(str_cat(&str, STRVN("def", 2)), &str);
 
 	EXPECT_STR(str.data, "abcde");
 	EXPECT_EQ(str.size, 6);

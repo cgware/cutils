@@ -77,11 +77,11 @@ TEST(proc_init_free)
 
 	proc_t proc = {0};
 
-	EXPECT_EQ(proc_init(NULL, 0, 0, ALLOC_STD), NULL);
+	EXPECT_NULL(proc_init(NULL, 0, 0, ALLOC_STD));
 	mem_oom(1);
-	EXPECT_EQ(proc_init(&proc, 1, 1, ALLOC_STD), NULL);
+	EXPECT_NULL(proc_init(&proc, 1, 1, ALLOC_STD));
 	mem_oom(0);
-	EXPECT_EQ(proc_init(&proc, 1, 1, ALLOC_STD), &proc);
+	EXPECT_PTR(proc_init(&proc, 1, 1, ALLOC_STD), &proc);
 
 	proc_free(NULL);
 	proc_free(&proc);
@@ -97,7 +97,7 @@ TEST(proc_setdlsym_uses_alloc)
 	proc_test_alloc_t stats = {0};
 	alloc_t alloc		= {.alloc = proc_test_alloc, .realloc = proc_test_realloc, .free = proc_test_free, .priv = &stats};
 
-	EXPECT_EQ(proc_init(&proc, 0, 1, alloc), &proc);
+	EXPECT_PTR(proc_init(&proc, 0, 1, alloc), &proc);
 	EXPECT_EQ(proc_setdlsym(&proc, STRV("lib"), STRV("sym"), &proc_test_dlsym), 0);
 	EXPECT_EQ(proc_setdlsym(&proc, STRV("lib"), STRV("sym2"), &proc_test_dlsym), 0);
 	EXPECT_EQ(proc_setdlsym(&proc, STRV("lib2"), STRV("sym"), &proc_test_dlsym), 0);
@@ -118,7 +118,7 @@ TEST(proc_setdlsym_dlsyms_alloc_oom)
 	proc_test_alloc_t stats = {.fail_alloc = 2};
 	alloc_t alloc		= {.alloc = proc_test_alloc, .realloc = proc_test_realloc, .free = proc_test_free, .priv = &stats};
 
-	EXPECT_EQ(proc_init(&proc, 0, 1, alloc), &proc);
+	EXPECT_PTR(proc_init(&proc, 0, 1, alloc), &proc);
 	log_set_quiet(0, 1);
 	EXPECT_EQ(proc_setdlsym(&proc, STRV("lib"), STRV("sym"), &proc_test_dlsym), 1);
 	log_set_quiet(0, 0);
@@ -137,9 +137,9 @@ TEST(proc_getenv_invalid)
 	proc_t proc = {0};
 	proc_init(&proc, 0, 0, ALLOC_STD);
 
-	EXPECT_EQ(proc_getenv(NULL, STRV("A")).data, NULL);
-	EXPECT_EQ(proc_getenv(&proc, STRV_NULL).data, NULL);
-	EXPECT_EQ(proc_getenv(&proc, STRV("A\n")).data, NULL);
+	EXPECT_NULL(proc_getenv(NULL, STRV("A")).data);
+	EXPECT_NULL(proc_getenv(&proc, STRV_NULL).data);
+	EXPECT_NULL(proc_getenv(&proc, STRV("A\n")).data);
 
 	proc_free(&proc);
 
@@ -171,8 +171,8 @@ TEST(proc_getenv_vp_not_found)
 	proc_init(&proc, 1, 1, ALLOC_STD);
 	proc.env = STR("A=1\nB\n");
 
-	EXPECT_EQ(proc_getenv(&proc, STRV("B")).data, NULL);
-	EXPECT_EQ(proc_getenv(&proc, STRV("C")).data, NULL);
+	EXPECT_NULL(proc_getenv(&proc, STRV("B")).data);
+	EXPECT_NULL(proc_getenv(&proc, STRV("C")).data);
 
 	proc_free(&proc);
 
@@ -375,7 +375,7 @@ TEST(proc_unsetenv_vp_set)
 
 	proc_setenv(&proc, STRV("A"), STRV("1"), 1);
 	EXPECT_EQ(proc_unsetenv(&proc, STRV("A")), 0);
-	EXPECT_EQ(proc_getenv(&proc, STRV("A")).data, NULL);
+	EXPECT_NULL(proc_getenv(&proc, STRV("A")).data);
 
 	proc_free(&proc);
 
@@ -798,7 +798,7 @@ TEST(proc_dlopen_op_not_found)
 	proc_init(&proc, 0, 0, ALLOC_STD);
 
 	EXPECT_EQ(proc_dlopen(&proc, STRV("cutils_proc_missing_library"), &lib), 1);
-	EXPECT_EQ(lib, NULL);
+	EXPECT_NULL(lib);
 
 	proc_free(&proc);
 
@@ -818,7 +818,7 @@ TEST(proc_dlopen_op_found)
 #else
 	EXPECT_EQ(proc_dlopen(&proc, STRV("libc.so.6"), &lib), 0);
 #endif
-	EXPECT_NE(lib, NULL);
+	EXPECT_NOT_NULL(lib);
 	EXPECT_EQ(proc_dlclose(&proc, lib), 0);
 
 	proc_free(&proc);
@@ -835,7 +835,7 @@ TEST(proc_dlopen_vp_not_found)
 	proc_init(&proc, 0, 1, ALLOC_STD);
 
 	EXPECT_EQ(proc_dlopen(&proc, STRV("missing"), &lib), 1);
-	EXPECT_EQ(lib, NULL);
+	EXPECT_NULL(lib);
 
 	proc_free(&proc);
 
@@ -852,7 +852,7 @@ TEST(proc_dlopen_vp_found)
 	proc_setdlsym(&proc, STRV("lib"), STRV("sym"), &proc_test_dlsym);
 
 	EXPECT_EQ(proc_dlopen(&proc, STRV("lib"), &lib), 0);
-	EXPECT_NE(lib, NULL);
+	EXPECT_NOT_NULL(lib);
 
 	proc_free(&proc);
 
@@ -893,7 +893,7 @@ TEST(proc_dlmain_op_found)
 	proc_init(&proc, 0, 0, ALLOC_STD);
 
 	EXPECT_EQ(proc_dlmain(&proc, &lib), 0);
-	EXPECT_NE(lib, NULL);
+	EXPECT_NOT_NULL(lib);
 	EXPECT_EQ(proc_dlclose(&proc, lib), 0);
 
 	proc_free(&proc);
@@ -910,7 +910,7 @@ TEST(proc_dlmain_vp_not_found)
 	proc_init(&proc, 0, 1, ALLOC_STD);
 
 	EXPECT_EQ(proc_dlmain(&proc, &lib), 1);
-	EXPECT_EQ(lib, NULL);
+	EXPECT_NULL(lib);
 
 	proc_free(&proc);
 
@@ -927,7 +927,7 @@ TEST(proc_dlmain_vp_found)
 	proc_setdlmain(&proc, STRV("sym"), &proc_test_dlsym);
 
 	EXPECT_EQ(proc_dlmain(&proc, &lib), 0);
-	EXPECT_NE(lib, NULL);
+	EXPECT_NOT_NULL(lib);
 
 	proc_free(&proc);
 
@@ -1005,7 +1005,7 @@ TEST(proc_dlsym_op_found)
 	proc_dlopen(&proc, STRV("libc.so.6"), &lib);
 	EXPECT_EQ(proc_dlsym(&proc, lib, STRV("malloc"), &sym), 0);
 #endif
-	EXPECT_NE(sym, NULL);
+	EXPECT_NOT_NULL(sym);
 	EXPECT_EQ(proc_dlclose(&proc, lib), 0);
 
 	proc_free(&proc);
@@ -1022,7 +1022,7 @@ TEST(proc_dlsym_vp_unknown_lib)
 	proc_init(&proc, 0, 1, ALLOC_STD);
 
 	EXPECT_EQ(proc_dlsym(&proc, (void *)"missing", STRV("sym"), &sym), 1);
-	EXPECT_EQ(sym, NULL);
+	EXPECT_NULL(sym);
 
 	proc_free(&proc);
 
@@ -1041,7 +1041,7 @@ TEST(proc_dlsym_vp_not_found)
 	proc_dlopen(&proc, STRV("lib"), &lib);
 
 	EXPECT_EQ(proc_dlsym(&proc, lib, STRV("missing"), &sym), 1);
-	EXPECT_EQ(sym, NULL);
+	EXPECT_NULL(sym);
 
 	proc_free(&proc);
 

@@ -10,11 +10,11 @@ TEST(schema_init_free)
 
 	schema_t schema = {0};
 
-	EXPECT_EQ(schema_init(NULL, 1, 1, 1, ALLOC_STD), NULL);
+	EXPECT_NULL(schema_init(NULL, 1, 1, 1, ALLOC_STD));
 	mem_oom(1);
-	EXPECT_EQ(schema_init(&schema, 1, 1, 1, ALLOC_STD), NULL);
+	EXPECT_NULL(schema_init(&schema, 1, 1, 1, ALLOC_STD));
 	mem_oom(0);
-	EXPECT_EQ(schema_init(&schema, 1, 1, 1, ALLOC_STD), &schema);
+	EXPECT_PTR(schema_init(&schema, 1, 1, 1, ALLOC_STD), &schema);
 
 	schema_free(&schema);
 	schema_free(NULL);
@@ -122,11 +122,11 @@ TEST(schema_get_field)
 	schema_field_desc_t fields = {STRV_NULL, 0, SCHEMA_TYPE_INT, NULL, 0};
 	schema_add_fields(&schema, &fields, sizeof(fields));
 
-	EXPECT_EQ(schema_get_field(NULL, 0), NULL);
+	EXPECT_NULL(schema_get_field(NULL, 0));
 	log_set_quiet(0, 1);
-	EXPECT_EQ(schema_get_field(&schema, schema.fields.cnt), NULL);
+	EXPECT_NULL(schema_get_field(&schema, schema.fields.cnt));
 	log_set_quiet(0, 0);
-	EXPECT_NE(schema_get_field(&schema, 0), NULL);
+	EXPECT_NOT_NULL(schema_get_field(&schema, 0));
 
 	schema_free(&schema);
 
@@ -189,11 +189,11 @@ TEST(schema_get_layout)
 	uint layout;
 	schema_add_layout(&schema, NULL, 0, &layout);
 
-	EXPECT_EQ(schema_get_layout(NULL, schema.layouts.cnt), NULL);
+	EXPECT_NULL(schema_get_layout(NULL, schema.layouts.cnt));
 	log_set_quiet(0, 1);
-	EXPECT_EQ(schema_get_layout(&schema, schema.layouts.cnt), NULL);
+	EXPECT_NULL(schema_get_layout(&schema, schema.layouts.cnt));
 	log_set_quiet(0, 0);
-	EXPECT_NE(schema_get_layout(&schema, layout), NULL);
+	EXPECT_NOT_NULL(schema_get_layout(&schema, layout));
 
 	schema_free(&schema);
 
@@ -236,12 +236,12 @@ TEST(schema_get_member)
 	schema_member_desc_t members = {0, 1};
 	schema_add_layout(&schema, &members, sizeof(members), &layout);
 
-	EXPECT_EQ(schema_get_member(NULL, schema.layouts.cnt, schema.members.cnt), NULL);
+	EXPECT_NULL(schema_get_member(NULL, schema.layouts.cnt, schema.members.cnt));
 	log_set_quiet(0, 1);
-	EXPECT_EQ(schema_get_member(&schema, schema.layouts.cnt, schema.members.cnt), NULL);
-	EXPECT_EQ(schema_get_member(&schema, layout, schema.members.cnt), NULL);
+	EXPECT_NULL(schema_get_member(&schema, schema.layouts.cnt, schema.members.cnt));
+	EXPECT_NULL(schema_get_member(&schema, layout, schema.members.cnt));
 	log_set_quiet(0, 0);
-	EXPECT_NE(schema_get_member(&schema, layout, 0), NULL);
+	EXPECT_NOT_NULL(schema_get_member(&schema, layout, 0));
 
 	schema_free(&schema);
 
@@ -256,7 +256,7 @@ TEST(schema_get_str)
 
 	schema_init(&schema, 1, 1, 1, ALLOC_STD);
 
-	EXPECT_EQ(schema_get_str(NULL, schema.strs.size).data, NULL);
+	EXPECT_NULL(schema_get_str(NULL, schema.strs.size).data);
 
 	schema_free(&schema);
 
@@ -333,7 +333,7 @@ TEST(schema_get_val)
 	schema_init(&schema, 1, 1, 1, ALLOC_STD);
 
 	log_set_quiet(0, 1);
-	EXPECT_EQ(schema_get_val(&schema, 1, NULL), NULL);
+	EXPECT_NULL(schema_get_val(&schema, 1, NULL));
 	log_set_quiet(0, 0);
 
 	schema_field_desc_t fields = {STRV_NULL, sizeof(int), SCHEMA_TYPE_INT, NULL, 0};
@@ -345,11 +345,11 @@ TEST(schema_get_val)
 
 	int data = 1;
 
-	EXPECT_EQ(schema_get_val(NULL, 1, NULL), NULL);
+	EXPECT_NULL(schema_get_val(NULL, 1, NULL));
 	log_set_quiet(0, 1);
-	EXPECT_EQ(schema_get_val(&schema, 1, NULL), NULL);
+	EXPECT_NULL(schema_get_val(&schema, 1, NULL));
 	log_set_quiet(0, 0);
-	EXPECT_NE(schema_get_val(&schema, 0, &data), NULL);
+	EXPECT_NOT_NULL(schema_get_val(&schema, 0, &data));
 
 	schema_free(&schema);
 

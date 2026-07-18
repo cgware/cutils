@@ -101,7 +101,7 @@ TEST(strv_lsplit)
 
 	EXPECT_EQ(strv_lsplit(STRV(""), ' ', &l, &r), 0);
 	EXPECT_STRN(l.data, "", l.len);
-	EXPECT_EQ(r.data, NULL);
+	EXPECT_NULL(r.data);
 
 	EXPECT_EQ(strv_lsplit(STRV(" "), ' ', &l, &r), 0);
 	EXPECT_STRN(l.data, "", l.len);
@@ -109,7 +109,7 @@ TEST(strv_lsplit)
 
 	EXPECT_EQ(strv_lsplit(STRV("a"), ' ', &l, &r), 0);
 	EXPECT_STRN(l.data, "a", l.len);
-	EXPECT_EQ(r.data, NULL);
+	EXPECT_NULL(r.data);
 
 	EXPECT_EQ(strv_lsplit(STRV("a b"), ' ', &l, &r), 0);
 	EXPECT_STRN(l.data, "a", l.len);
@@ -131,7 +131,7 @@ TEST(strv_rsplit)
 	strv_t l, r;
 
 	EXPECT_EQ(strv_rsplit(STRV(""), ' ', &l, &r), 0);
-	EXPECT_EQ(l.data, NULL);
+	EXPECT_NULL(l.data);
 	EXPECT_STRN(r.data, "", r.len);
 
 	EXPECT_EQ(strv_rsplit(STRV(" "), ' ', &l, &r), 0);
@@ -139,7 +139,7 @@ TEST(strv_rsplit)
 	EXPECT_STRN(r.data, "", r.len);
 
 	EXPECT_EQ(strv_rsplit(STRV("a"), ' ', &l, &r), 0);
-	EXPECT_EQ(l.data, NULL);
+	EXPECT_NULL(l.data);
 	EXPECT_STRN(r.data, "a", r.len);
 
 	EXPECT_EQ(strv_rsplit(STRV("a b"), ' ', &l, &r), 0);

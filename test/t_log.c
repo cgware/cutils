@@ -8,7 +8,7 @@ TEST(log_set_get)
 
 	const log_t *log = log_get();
 
-	EXPECT_EQ(log_set(NULL), log);
+	EXPECT_PTR(log_set(NULL), log);
 
 	log_set((log_t *)log);
 

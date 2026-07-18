@@ -10,13 +10,13 @@ TEST(arr_init_free)
 
 	arr_t arr = {0};
 
-	EXPECT_EQ(arr_init(NULL, 0, sizeof(int), ALLOC_STD), NULL);
+	EXPECT_NULL(arr_init(NULL, 0, sizeof(int), ALLOC_STD));
 	mem_oom(1);
-	EXPECT_EQ(arr_init(&arr, 1, sizeof(int), ALLOC_STD), NULL);
+	EXPECT_NULL(arr_init(&arr, 1, sizeof(int), ALLOC_STD));
 	mem_oom(0);
-	EXPECT_EQ(arr_init(&arr, 1, sizeof(int), ALLOC_STD), &arr);
+	EXPECT_PTR(arr_init(&arr, 1, sizeof(int), ALLOC_STD), &arr);
 
-	EXPECT_NE(arr.data, NULL);
+	EXPECT_NOT_NULL(arr.data);
 	EXPECT_EQ(arr.cap, 1);
 	EXPECT_EQ(arr.cnt, 0);
 	EXPECT_EQ(arr.size, sizeof(int));
@@ -24,7 +24,7 @@ TEST(arr_init_free)
 	arr_free(&arr);
 	arr_free(NULL);
 
-	EXPECT_EQ(arr.data, NULL);
+	EXPECT_NULL(arr.data);
 	EXPECT_EQ(arr.cap, 0);
 	EXPECT_EQ(arr.cnt, 0);
 	EXPECT_EQ(arr.size, 0);
@@ -57,13 +57,13 @@ TEST(arr_add)
 
 	uint id;
 
-	EXPECT_EQ(arr_add(NULL, NULL), NULL);
+	EXPECT_NULL(arr_add(NULL, NULL));
 	mem_oom(1);
-	EXPECT_EQ(arr_add(&arr, NULL), NULL);
+	EXPECT_NULL(arr_add(&arr, NULL));
 	mem_oom(0);
-	EXPECT_NE(arr_add(&arr, &id), NULL);
+	EXPECT_NOT_NULL(arr_add(&arr, &id));
 	EXPECT_EQ(id, 0);
-	EXPECT_NE(arr_add(&arr, &id), NULL);
+	EXPECT_NOT_NULL(arr_add(&arr, &id));
 	EXPECT_EQ(id, 1);
 	EXPECT_EQ(arr.cnt, 2);
 	EXPECT_EQ(arr.cap, 2);
@@ -80,9 +80,9 @@ TEST(arr_get)
 	arr_t arr = {0};
 	arr_init(&arr, 1, sizeof(int), ALLOC_STD);
 
-	EXPECT_EQ(arr_get(NULL, 0), NULL);
+	EXPECT_NULL(arr_get(NULL, 0));
 	log_set_quiet(0, 1);
-	EXPECT_EQ(arr_get(&arr, 0), NULL);
+	EXPECT_NULL(arr_get(&arr, 0));
 	log_set_quiet(0, 0);
 	arr_add(&arr, NULL);
 	*(int *)arr_get(&arr, 0) = 1;
@@ -105,13 +105,13 @@ TEST(arr_set)
 
 	arr_add(&arr, NULL);
 
-	EXPECT_EQ(arr_set(NULL, arr.cnt, NULL), NULL);
-	EXPECT_EQ(arr_set(&arr, arr.cnt, NULL), NULL);
-	EXPECT_EQ(arr_set(&arr, 0, NULL), NULL);
+	EXPECT_NULL(arr_set(NULL, arr.cnt, NULL));
+	EXPECT_NULL(arr_set(&arr, arr.cnt, NULL));
+	EXPECT_NULL(arr_set(&arr, 0, NULL));
 	log_set_quiet(0, 1);
-	EXPECT_EQ(arr_set(&arr, arr.cnt, &value), NULL);
+	EXPECT_NULL(arr_set(&arr, arr.cnt, &value));
 	log_set_quiet(0, 0);
-	EXPECT_NE(arr_set(&arr, 0, &value), NULL);
+	EXPECT_NOT_NULL(arr_set(&arr, 0, &value));
 
 	EXPECT_EQ(*(int *)arr_get(&arr, 0), value);
 
@@ -265,10 +265,10 @@ TEST(arr_add_all)
 	*(int *)arr_add(&arr1, NULL) = 1;
 	*(int *)arr_add(&arr1, NULL) = 2;
 
-	EXPECT_EQ(arr_add_all(NULL, &arr1), NULL);
-	EXPECT_EQ(arr_add_all(&arr, NULL), NULL);
-	EXPECT_EQ(arr_add_all(&arr, &arr0), &arr);
-	EXPECT_EQ(arr_add_all(&arr, &arr1), &arr);
+	EXPECT_NULL(arr_add_all(NULL, &arr1));
+	EXPECT_NULL(arr_add_all(&arr, NULL));
+	EXPECT_PTR(arr_add_all(&arr, &arr0), &arr);
+	EXPECT_PTR(arr_add_all(&arr, &arr1), &arr);
 
 	EXPECT_EQ(arr.cnt, 4);
 	EXPECT_EQ(arr.cap, 4);
@@ -303,13 +303,13 @@ TEST(arr_add_unique)
 	*(int *)arr_add(&arr1, NULL) = 1;
 	*(int *)arr_add(&arr1, NULL) = 2;
 
-	EXPECT_EQ(arr_add_unique(NULL, &arr1), NULL);
-	EXPECT_EQ(arr_add_unique(&arr, NULL), NULL);
+	EXPECT_NULL(arr_add_unique(NULL, &arr1));
+	EXPECT_NULL(arr_add_unique(&arr, NULL));
 	mem_oom(1);
-	EXPECT_EQ(arr_add_unique(&arr, &arr0), NULL);
+	EXPECT_NULL(arr_add_unique(&arr, &arr0));
 	mem_oom(0);
-	EXPECT_EQ(arr_add_unique(&arr, &arr0), &arr);
-	EXPECT_EQ(arr_add_unique(&arr, &arr1), &arr);
+	EXPECT_PTR(arr_add_unique(&arr, &arr0), &arr);
+	EXPECT_PTR(arr_add_unique(&arr, &arr1), &arr);
 
 	EXPECT_EQ(arr.cnt, 3);
 	EXPECT_EQ(arr.cap, 4);
@@ -342,12 +342,12 @@ TEST(arr_merge_all)
 	*(int *)arr_add(&arr1, NULL) = 1;
 	*(int *)arr_add(&arr1, NULL) = 2;
 
-	EXPECT_EQ(arr_merge_all(NULL, &arr0, &arr1), NULL);
-	EXPECT_EQ(arr_merge_all(&arr, NULL, &arr1), NULL);
-	EXPECT_EQ(arr_merge_all(&arr, &arr0, NULL), NULL);
-	EXPECT_EQ(arr_merge_all(&arr, &arrs, &arr1), NULL);
-	EXPECT_EQ(arr_merge_all(&arr, &arr0, &arrs), NULL);
-	EXPECT_EQ(arr_merge_all(&arr, &arr0, &arr1), &arr);
+	EXPECT_NULL(arr_merge_all(NULL, &arr0, &arr1));
+	EXPECT_NULL(arr_merge_all(&arr, NULL, &arr1));
+	EXPECT_NULL(arr_merge_all(&arr, &arr0, NULL));
+	EXPECT_NULL(arr_merge_all(&arr, &arrs, &arr1));
+	EXPECT_NULL(arr_merge_all(&arr, &arr0, &arrs));
+	EXPECT_PTR(arr_merge_all(&arr, &arr0, &arr1), &arr);
 
 	EXPECT_EQ(arr.cnt, 4);
 	EXPECT_EQ(arr.cap, 4);
@@ -382,12 +382,12 @@ TEST(arr_merge_unique)
 	*(int *)arr_add(&arr1, NULL) = 1;
 	*(int *)arr_add(&arr1, NULL) = 2;
 
-	EXPECT_EQ(arr_merge_unique(NULL, &arr0, &arr1), NULL);
-	EXPECT_EQ(arr_merge_unique(&arr, NULL, &arr1), NULL);
-	EXPECT_EQ(arr_merge_unique(&arr, &arr0, NULL), NULL);
-	EXPECT_EQ(arr_merge_unique(&arr, &arrs, &arr1), NULL);
-	EXPECT_EQ(arr_merge_unique(&arr, &arr0, &arrs), NULL);
-	EXPECT_NE(arr_merge_unique(&arr, &arr0, &arr1), NULL);
+	EXPECT_NULL(arr_merge_unique(NULL, &arr0, &arr1));
+	EXPECT_NULL(arr_merge_unique(&arr, NULL, &arr1));
+	EXPECT_NULL(arr_merge_unique(&arr, &arr0, NULL));
+	EXPECT_NULL(arr_merge_unique(&arr, &arrs, &arr1));
+	EXPECT_NULL(arr_merge_unique(&arr, &arr0, &arrs));
+	EXPECT_NOT_NULL(arr_merge_unique(&arr, &arr0, &arr1));
 
 	EXPECT_EQ(arr.cnt, 3);
 	EXPECT_EQ(arr.cap, 4);
@@ -421,9 +421,9 @@ TEST(arr_sort)
 	*(int *)arr_add(&arr, NULL) = 2;
 	*(int *)arr_add(&arr, NULL) = 0;
 
-	EXPECT_EQ(arr_sort(NULL, NULL, NULL), NULL);
-	EXPECT_EQ(arr_sort(&arr, NULL, NULL), &arr);
-	EXPECT_EQ(arr_sort(&arr, t_arr_sort_cb, NULL), &arr);
+	EXPECT_NULL(arr_sort(NULL, NULL, NULL));
+	EXPECT_PTR(arr_sort(&arr, NULL, NULL), &arr);
+	EXPECT_PTR(arr_sort(&arr, t_arr_sort_cb, NULL), &arr);
 
 	EXPECT_EQ(*(int *)arr_get(&arr, 0), 0);
 	EXPECT_EQ(*(int *)arr_get(&arr, 1), 1);

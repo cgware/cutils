@@ -383,9 +383,9 @@ TEST(args_parse_enum)
 	int val = 1;
 
 	const opt_enum_val_t enums[] = {
-		[0] = {STRVT("a"), "A"},
-		[1] = {STRVT("b"), "B"},
-		[2] = {STRVT("c"), "C"},
+		[0] = {STRVT("a"), "A", NULL},
+		[1] = {STRVT("b"), "B", NULL},
+		[2] = {STRVT("c"), "C", NULL},
 	};
 
 	const opt_enum_t enums_desc = {

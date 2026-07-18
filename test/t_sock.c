@@ -135,11 +135,11 @@ TEST(sock_init_free)
 
 	sock_t ss = {0};
 
-	EXPECT_EQ(sock_init(NULL, 0, 0, ALLOC_STD), NULL);
+	EXPECT_NULL(sock_init(NULL, 0, 0, ALLOC_STD));
 	mem_oom(1);
-	EXPECT_EQ(sock_init(&ss, 1, 1, ALLOC_STD), NULL);
+	EXPECT_NULL(sock_init(&ss, 1, 1, ALLOC_STD));
 	mem_oom(0);
-	EXPECT_EQ(sock_init(&ss, 1, 1, ALLOC_STD), &ss);
+	EXPECT_PTR(sock_init(&ss, 1, 1, ALLOC_STD), &ss);
 
 	sock_free(NULL);
 	sock_free(&ss);

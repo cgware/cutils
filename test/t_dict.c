@@ -9,11 +9,11 @@ TEST(dict_init_free)
 
 	dict_t dict = {0};
 
-	EXPECT_EQ(dict_init(NULL, 0), NULL);
+	EXPECT_NULL(dict_init(NULL, 0));
 	mem_oom(1);
-	EXPECT_EQ(dict_init(&dict, 1), NULL);
+	EXPECT_NULL(dict_init(&dict, 1));
 	mem_oom(0);
-	EXPECT_EQ(dict_init(&dict, 1), &dict);
+	EXPECT_PTR(dict_init(&dict, 1), &dict);
 
 	dict_free(NULL);
 	dict_free(&dict);
@@ -27,7 +27,7 @@ TEST(dict_set_get)
 
 	dict_t dict = {0};
 
-	EXPECT_EQ(dict_init(&dict, 2), &dict);
+	EXPECT_PTR(dict_init(&dict, 2), &dict);
 
 	dict_set(NULL, NULL, 0, NULL);
 	dict_set(&dict, "one", 3, "1");
@@ -55,7 +55,7 @@ TEST(dict_foreach)
 
 	dict_t dict = {0};
 
-	EXPECT_EQ(dict_init(&dict, 4), &dict);
+	EXPECT_PTR(dict_init(&dict, 4), &dict);
 
 	dict_set(&dict, "one", 3, "1");
 	dict_set(&dict, "two", 3, "2");

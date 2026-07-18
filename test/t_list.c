@@ -10,13 +10,13 @@ TEST(list_init_free)
 
 	list_t list = {0};
 
-	EXPECT_EQ(list_init(NULL, 0, sizeof(int), ALLOC_STD), NULL);
+	EXPECT_NULL(list_init(NULL, 0, sizeof(int), ALLOC_STD));
 	mem_oom(1);
-	EXPECT_EQ(list_init(&list, 1, sizeof(int), ALLOC_STD), NULL);
+	EXPECT_NULL(list_init(&list, 1, sizeof(int), ALLOC_STD));
 	mem_oom(0);
-	EXPECT_EQ(list_init(&list, 1, sizeof(int), ALLOC_STD), &list);
+	EXPECT_PTR(list_init(&list, 1, sizeof(int), ALLOC_STD), &list);
 
-	EXPECT_NE(list.data, NULL);
+	EXPECT_NOT_NULL(list.data);
 	EXPECT_EQ(list.cap, 1);
 	EXPECT_EQ(list.cnt, 0);
 	EXPECT_NE(list.size, 0);
@@ -24,7 +24,7 @@ TEST(list_init_free)
 	list_free(&list);
 	list_free(NULL);
 
-	EXPECT_EQ(list.data, NULL);
+	EXPECT_NULL(list.data);
 	EXPECT_EQ(list.cap, 0);
 	EXPECT_EQ(list.cnt, 0);
 	EXPECT_EQ(list.size, 0);
@@ -54,7 +54,7 @@ TEST(list_reset)
 
 	list_node_t *next = data - 1;
 
-	EXPECT_EQ(*next, (list_node_t)-1);
+	EXPECT_EQ(*next, -1);
 	EXPECT_EQ(*data, 10);
 
 	list_reset(&list, 2);
@@ -77,10 +77,10 @@ TEST(list_node)
 	list_node_t node;
 
 	mem_oom(1);
-	EXPECT_EQ(list_node(&list, NULL), NULL);
+	EXPECT_NULL(list_node(&list, NULL));
 	mem_oom(0);
-	EXPECT_EQ(list_node(NULL, NULL), NULL);
-	EXPECT_NE(list_node(&list, &node), NULL);
+	EXPECT_NULL(list_node(NULL, NULL));
+	EXPECT_NOT_NULL(list_node(&list, &node));
 
 	EXPECT_EQ(node, 0);
 	EXPECT_EQ(list.cnt, 1);
@@ -100,9 +100,9 @@ TEST(list_nodes)
 
 	list_node_t node;
 
-	EXPECT_NE(list_node(&list, &node), NULL);
+	EXPECT_NOT_NULL(list_node(&list, &node));
 	EXPECT_EQ(node, 0);
-	EXPECT_NE(list_node(&list, &node), NULL);
+	EXPECT_NOT_NULL(list_node(&list, &node));
 	EXPECT_EQ(node, 1);
 
 	EXPECT_EQ(list.cnt, 2);
@@ -207,8 +207,8 @@ TEST(list_remove_middle)
 
 	list_remove(&list, n1);
 
-	EXPECT_NE(list_get_next(&list, root, &node), NULL);
-	EXPECT_EQ(node, n2)
+	EXPECT_NOT_NULL(list_get_next(&list, root, &node));
+	EXPECT_EQ(node, n2);
 
 	list_free(&list);
 
@@ -232,8 +232,8 @@ TEST(list_remove_last)
 
 	list_remove(&list, n2);
 
-	EXPECT_EQ(list_get_next(&list, n1, &node), 0);
-	EXPECT_EQ(node, (list_node_t)-1);
+	EXPECT_NULL(list_get_next(&list, n1, &node));
+	EXPECT_EQ(node, -1);
 
 	list_free(&list);
 
@@ -250,9 +250,9 @@ TEST(list_get)
 	list_node_t node;
 	list_node(&list, &node);
 
-	EXPECT_EQ(list_get(NULL, list.cnt), NULL);
+	EXPECT_NULL(list_get(NULL, list.cnt));
 	log_set_quiet(0, 1);
-	EXPECT_EQ(list_get(&list, list.cnt), NULL);
+	EXPECT_NULL(list_get(&list, list.cnt));
 	log_set_quiet(0, 0);
 	*(int *)list_get(&list, node) = 8;
 
@@ -279,14 +279,14 @@ TEST(list_get_next)
 
 	uint cnt = list.cnt;
 
-	EXPECT_EQ(list_get_next(NULL, list.cnt, NULL), NULL);
+	EXPECT_NULL(list_get_next(NULL, list.cnt, NULL));
 	log_set_quiet(0, 1);
-	EXPECT_EQ(list_get_next(&list, list.cnt, NULL), NULL);
+	EXPECT_NULL(list_get_next(&list, list.cnt, NULL));
 	list.cnt--;
-	EXPECT_EQ(list_get_next(&list, root, &node), NULL);
+	EXPECT_NULL(list_get_next(&list, root, &node));
 	list.cnt = cnt;
 	log_set_quiet(0, 0);
-	EXPECT_NE(list_get_next(&list, root, &node), NULL);
+	EXPECT_NOT_NULL(list_get_next(&list, root, &node));
 	EXPECT_EQ(node, next);
 
 	list_free(&list);
@@ -306,7 +306,7 @@ TEST(list_get_next_loop)
 	*((list_node_t *)list_get(&list, root) - 1) = root;
 
 	log_set_quiet(0, 1);
-	EXPECT_EQ(list_get_next(&list, root, NULL), NULL);
+	EXPECT_NULL(list_get_next(&list, root, NULL));
 	log_set_quiet(0, 0);
 
 	list_free(&list);
@@ -329,9 +329,9 @@ TEST(list_get_at)
 	list_app(&list, root, n1);
 	list_app(&list, root, n2);
 
-	EXPECT_EQ(list_get_at(NULL, list.cnt, list.cnt, NULL), NULL);
+	EXPECT_NULL(list_get_at(NULL, list.cnt, list.cnt, NULL));
 	log_set_quiet(0, 1);
-	EXPECT_EQ(list_get_at(&list, list.cnt, list.cnt, NULL), NULL);
+	EXPECT_NULL(list_get_at(&list, list.cnt, list.cnt, NULL));
 	log_set_quiet(0, 0);
 	EXPECT_EQ(*(int *)list_get_at(&list, root, 0, &node), 1);
 	EXPECT_EQ(node, root);
@@ -340,9 +340,9 @@ TEST(list_get_at)
 	EXPECT_EQ(*(int *)list_get_at(&list, root, 2, &node), 3);
 	EXPECT_EQ(node, n2);
 	log_set_quiet(0, 1);
-	EXPECT_EQ(list_get_at(&list, root, 3, &node), NULL);
+	EXPECT_NULL(list_get_at(&list, root, 3, &node));
 	log_set_quiet(0, 0);
-	EXPECT_EQ(node, (uint)-1);
+	EXPECT_EQ(node, -1);
 
 	list_free(&list);
 
@@ -437,7 +437,7 @@ TEST(list_print)
 	EXPECT_EQ(list_print(&list, list.cnt, NULL, DST_BUF(buf), NULL), 0);
 	EXPECT_EQ(list_print(&list, node, NULL, DST_BUF(buf), NULL), 0);
 
-	EXPECT_EQ(list_print(&list, node, print_list, DST_BUF(buf), 0), 6);
+	EXPECT_EQ(list_print(&list, node, print_list, DST_BUF(buf), NULL), 6);
 	EXPECT_STR(buf,
 		   "0\n"
 		   "1\n"

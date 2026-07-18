@@ -57,7 +57,7 @@ TEST(mem_alloc)
 	void *data = mem_alloc(0);
 	log_set_quiet(0, 0);
 
-	EXPECT_NE(data, NULL);
+	EXPECT_NOT_NULL(data);
 
 	mem_free(NULL, 0);
 	mem_free(data, 0);
@@ -73,7 +73,7 @@ TEST(mem_calloc)
 	void *data = mem_calloc(0, 0);
 	log_set_quiet(0, 0);
 
-	EXPECT_NE(data, NULL);
+	EXPECT_NOT_NULL(data);
 
 	mem_free(data, 0);
 
@@ -85,21 +85,21 @@ TEST(mem_realloc)
 	START;
 
 	log_set_quiet(0, 1);
-	EXPECT_EQ(mem_realloc(NULL, 0, 0), NULL);
+	EXPECT_NULL(mem_realloc(NULL, 0, 0));
 	log_set_quiet(0, 0);
 
 	log_set_quiet(0, 1);
 	void *ptr  = mem_alloc(0);
 	void *prev = ptr;
-	EXPECT_EQ(ptr = mem_realloc(ptr, 0, 0), prev);
+	EXPECT_PTR(ptr = mem_realloc(ptr, 0, 0), prev);
 	log_set_quiet(0, 0);
-	EXPECT_NE(ptr = mem_realloc(ptr, 1, 0), NULL);
+	EXPECT_NOT_NULL(ptr = mem_realloc(ptr, 1, 0));
 	log_set_quiet(0, 1);
-	EXPECT_NE(ptr = mem_realloc(ptr, 0, 1), NULL);
-	EXPECT_NE(ptr = mem_realloc(ptr, 1, 1), NULL);
+	EXPECT_NOT_NULL(ptr = mem_realloc(ptr, 0, 1));
+	EXPECT_NOT_NULL(ptr = mem_realloc(ptr, 1, 1));
 	log_set_quiet(0, 0);
-	EXPECT_NE(ptr = mem_realloc(ptr, 2, 1), NULL);
-	EXPECT_NE(ptr = mem_realloc(ptr, 1, 2), NULL);
+	EXPECT_NOT_NULL(ptr = mem_realloc(ptr, 2, 1));
+	EXPECT_NOT_NULL(ptr = mem_realloc(ptr, 1, 2));
 	mem_free(ptr, 1);
 
 	END;
@@ -111,8 +111,8 @@ TEST(mem_set)
 
 	char data[] = "abc";
 
-	EXPECT_EQ(mem_set(NULL, 0, 0), NULL);
-	EXPECT_EQ(mem_set(data, 0, 3), data);
+	EXPECT_NULL(mem_set(NULL, 0, 0));
+	EXPECT_PTR(mem_set(data, 0, 3), data);
 
 	EXPECT_STR(data, "");
 
@@ -125,11 +125,11 @@ TEST(mem_copy)
 
 	char dst[5] = "ab";
 
-	EXPECT_EQ(mem_copy(NULL, 0, NULL, 0), NULL);
+	EXPECT_NULL(mem_copy(NULL, 0, NULL, 0));
 	log_set_quiet(0, 1);
-	EXPECT_EQ(mem_copy(dst, 0, dst, 1), NULL);
+	EXPECT_NULL(mem_copy(dst, 0, dst, 1));
 	log_set_quiet(0, 0);
-	EXPECT_EQ(mem_copy(dst + 2, 3, dst, 2), dst + 2);
+	EXPECT_PTR(mem_copy(dst + 2, 3, dst, 2), dst + 2);
 
 	EXPECT_STR(dst, "abab");
 
@@ -142,11 +142,11 @@ TEST(mem_move)
 
 	char dst[4] = "ab";
 
-	EXPECT_EQ(mem_move(NULL, 0, NULL, 0), NULL);
+	EXPECT_NULL(mem_move(NULL, 0, NULL, 0));
 	log_set_quiet(0, 1);
-	EXPECT_EQ(mem_move(dst, 0, dst, 1), NULL);
+	EXPECT_NULL(mem_move(dst, 0, dst, 1));
 	log_set_quiet(0, 0);
-	EXPECT_EQ(mem_move(dst + 1, 3, dst, 2), dst + 1);
+	EXPECT_PTR(mem_move(dst + 1, 3, dst, 2), dst + 1);
 
 	EXPECT_STR(dst, "aab");
 
@@ -159,11 +159,11 @@ TEST(mem_replace)
 
 	char str[10] = "ac";
 
-	EXPECT_EQ(mem_replace(NULL, 0, 0, NULL, 0, 0), NULL);
+	EXPECT_NULL(mem_replace(NULL, 0, 0, NULL, 0, 0));
 	log_set_quiet(0, 1);
-	EXPECT_EQ(mem_replace(str, 1, 1, "ab", 1, 2), NULL);
+	EXPECT_NULL(mem_replace(str, 1, 1, "ab", 1, 2));
 	log_set_quiet(0, 0);
-	EXPECT_EQ(mem_replace(str, 3, 2, "ab", 1, 2), str);
+	EXPECT_PTR(mem_replace(str, 3, 2, "ab", 1, 2), str);
 
 	EXPECT_STR(str, "abc");
 

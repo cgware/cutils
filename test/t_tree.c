@@ -10,10 +10,10 @@ TEST(tree_init_free)
 
 	tree_t tree = {0};
 
-	EXPECT_EQ(tree_init(NULL, 0, sizeof(int), ALLOC_STD), NULL);
-	EXPECT_EQ(tree_init(&tree, 1, sizeof(int), ALLOC_STD), &tree);
+	EXPECT_NULL(tree_init(NULL, 0, sizeof(int), ALLOC_STD));
+	EXPECT_PTR(tree_init(&tree, 1, sizeof(int), ALLOC_STD), &tree);
 
-	EXPECT_NE(tree.data, NULL);
+	EXPECT_NOT_NULL(tree.data);
 	EXPECT_EQ(tree.cap, 1);
 	EXPECT_EQ(tree.cnt, 0);
 	EXPECT_NE(tree.size, 0);
@@ -21,7 +21,7 @@ TEST(tree_init_free)
 	tree_free(&tree);
 	tree_free(NULL);
 
-	EXPECT_EQ(tree.data, NULL);
+	EXPECT_NULL(tree.data);
 	EXPECT_EQ(tree.cap, 0);
 	EXPECT_EQ(tree.cnt, 0);
 	EXPECT_EQ(tree.size, 0);
@@ -51,7 +51,7 @@ TEST(tree_reset)
 
 	tree_node_t *child = data - 1;
 
-	EXPECT_EQ(*child, (tree_node_t)-1);
+	EXPECT_EQ(*child, -1);
 	EXPECT_EQ(*data, 10);
 	EXPECT_EQ(tree.cnt, 1);
 
@@ -73,11 +73,11 @@ TEST(tree_node)
 	log_set_quiet(0, 0);
 
 	tree_node_t node;
-	EXPECT_EQ(tree_node(NULL, NULL), NULL);
+	EXPECT_NULL(tree_node(NULL, NULL));
 	mem_oom(1);
-	EXPECT_EQ(tree_node(&tree, &node), NULL);
+	EXPECT_NULL(tree_node(&tree, &node));
 	mem_oom(0);
-	EXPECT_NE(tree_node(&tree, &node), NULL);
+	EXPECT_NOT_NULL(tree_node(&tree, &node));
 	EXPECT_EQ(node, 0);
 
 	EXPECT_EQ(tree.cnt, 1);
@@ -225,9 +225,9 @@ TEST(tree_get)
 	tree_t tree = {0};
 	tree_init(&tree, 1, sizeof(int), ALLOC_STD);
 
-	EXPECT_EQ(tree_get(NULL, tree.cnt), NULL);
+	EXPECT_NULL(tree_get(NULL, tree.cnt));
 	log_set_quiet(0, 1);
-	EXPECT_EQ(tree_get(&tree, tree.cnt), NULL);
+	EXPECT_NULL(tree_get(&tree, tree.cnt));
 	log_set_quiet(0, 0);
 
 	tree_node_t root;
@@ -246,9 +246,9 @@ TEST(tree_get_child)
 	tree_t tree = {0};
 	tree_init(&tree, 1, sizeof(int), ALLOC_STD);
 
-	EXPECT_EQ(tree_get_child(NULL, tree.cnt, NULL), NULL);
+	EXPECT_NULL(tree_get_child(NULL, tree.cnt, NULL));
 	log_set_quiet(0, 1);
-	EXPECT_EQ(tree_get_child(&tree, tree.cnt, NULL), NULL);
+	EXPECT_NULL(tree_get_child(&tree, tree.cnt, NULL));
 	log_set_quiet(0, 0);
 
 	tree_node_t root, n1, n2, n3, node;
@@ -260,7 +260,7 @@ TEST(tree_get_child)
 	tree_add(&tree, root, n2);
 	tree_add(&tree, n1, n3);
 
-	EXPECT_NE(tree_get_child(&tree, root, &node), NULL);
+	EXPECT_NOT_NULL(tree_get_child(&tree, root, &node));
 	EXPECT_EQ(node, n1);
 
 	tree_free(&tree);
@@ -308,8 +308,8 @@ TEST(tree_get_next)
 	EXPECT_EQ(*(int *)tree_get_next(&tree, n1, &next), 2);
 	EXPECT_EQ(next, n2);
 
-	EXPECT_EQ(tree_get_next(&tree, n2, &next), NULL);
-	EXPECT_EQ(next, (tree_node_t)-1);
+	EXPECT_NULL(tree_get_next(&tree, n2, &next));
+	EXPECT_EQ(next, -1);
 
 	tree_free(&tree);
 

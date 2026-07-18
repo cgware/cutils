@@ -14,11 +14,11 @@ TEST(fs_init_free)
 
 	fs_t fs = {0};
 
-	EXPECT_EQ(fs_init(NULL, 0, 0, ALLOC_STD), NULL);
+	EXPECT_NULL(fs_init(NULL, 0, 0, ALLOC_STD));
 	mem_oom(1);
-	EXPECT_EQ(fs_init(&fs, 1, 1, ALLOC_STD), NULL);
+	EXPECT_NULL(fs_init(&fs, 1, 1, ALLOC_STD));
 	mem_oom(0);
-	EXPECT_EQ(fs_init(&fs, 1, 1, ALLOC_STD), &fs);
+	EXPECT_PTR(fs_init(&fs, 1, 1, ALLOC_STD), &fs);
 
 	fs_free(NULL);
 	fs_free(&fs);
@@ -216,8 +216,8 @@ TEST(fs_open_w_does_not_exist)
 	EXPECT_EQ(fs_open(&fs, STRV(TEST_FILE), "w", &f), CERR_OK);
 	EXPECT_EQ(fs_open(&vfs, STRV(TEST_FILE), "w", &vf), CERR_OK);
 
-	EXPECT_NE(f, NULL);
-	EXPECT_NE(vf, NULL);
+	EXPECT_NOT_NULL(f);
+	EXPECT_NOT_NULL(vf);
 
 	EXPECT_EQ(fs_close(&fs, f), 0);
 	EXPECT_EQ(fs_close(&vfs, vf), 0);
@@ -245,8 +245,8 @@ TEST(fs_open_wb_does_not_exist)
 	EXPECT_EQ(fs_open(&fs, STRV(TEST_FILE), "wb", &f), CERR_OK);
 	EXPECT_EQ(fs_open(&vfs, STRV(TEST_FILE), "wb", &vf), CERR_OK);
 
-	EXPECT_NE(f, NULL);
-	EXPECT_NE(vf, NULL);
+	EXPECT_NOT_NULL(f);
+	EXPECT_NOT_NULL(vf);
 
 	EXPECT_EQ(fs_close(&fs, f), 0);
 	EXPECT_EQ(fs_close(&vfs, vf), 0);
@@ -302,8 +302,8 @@ TEST(fs_open_r_exist)
 	EXPECT_EQ(fs_open(&fs, STRV(TEST_FILE), "r", &f), CERR_OK);
 	EXPECT_EQ(fs_open(&vfs, STRV(TEST_FILE), "r", &vf), CERR_OK);
 
-	EXPECT_NE(f, NULL);
-	EXPECT_NE(vf, NULL);
+	EXPECT_NOT_NULL(f);
+	EXPECT_NOT_NULL(vf);
 
 	EXPECT_EQ(fs_close(&fs, f), 0);
 	EXPECT_EQ(fs_close(&vfs, vf), 0);

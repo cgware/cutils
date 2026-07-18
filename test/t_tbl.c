@@ -10,11 +10,11 @@ TEST(tbl_init_free)
 
 	tbl_t tbl = {0};
 
-	EXPECT_EQ(tbl_init(NULL, 0, 0, 0, ALLOC_STD), NULL);
+	EXPECT_NULL(tbl_init(NULL, 0, 0, 0, ALLOC_STD));
 	mem_oom(1);
-	EXPECT_EQ(tbl_init(&tbl, 1, 1, 1, ALLOC_STD), NULL);
+	EXPECT_NULL(tbl_init(&tbl, 1, 1, 1, ALLOC_STD));
 	mem_oom(0);
-	EXPECT_EQ(tbl_init(&tbl, 1, 1, 1, ALLOC_STD), &tbl);
+	EXPECT_PTR(tbl_init(&tbl, 1, 1, 1, ALLOC_STD), &tbl);
 
 	tbl_free(&tbl);
 	tbl_free(NULL);
@@ -65,13 +65,13 @@ TEST(tbl_add_row)
 	tbl_init_rows(&tbl, 1, ALLOC_STD);
 
 	uint row;
-	EXPECT_EQ(tbl_add_row(NULL, &row), NULL);
+	EXPECT_NULL(tbl_add_row(NULL, &row));
 	mem_oom(1);
 	tbl.rows.cnt = tbl.rows.cap;
-	EXPECT_EQ(tbl_add_row(&tbl, &row), NULL);
+	EXPECT_NULL(tbl_add_row(&tbl, &row));
 	tbl.rows.cnt = 0;
 	mem_oom(0);
-	EXPECT_NE(tbl_add_row(&tbl, &row), NULL);
+	EXPECT_NOT_NULL(tbl_add_row(&tbl, &row));
 	EXPECT_EQ(row, 0);
 
 	tbl_free(&tbl);
@@ -162,12 +162,12 @@ TEST(tbl_get_cell)
 	tbl_init_rows(&tbl, 1, ALLOC_STD);
 	tbl_add_row(&tbl, &row);
 
-	EXPECT_EQ(tbl_get_cell(NULL, row, 0), NULL);
+	EXPECT_NULL(tbl_get_cell(NULL, row, 0));
 	log_set_quiet(0, 1);
-	EXPECT_EQ(tbl_get_cell(&tbl, tbl.rows.cnt, 0), NULL);
-	EXPECT_EQ(tbl_get_cell(&tbl, row, 1), NULL);
+	EXPECT_NULL(tbl_get_cell(&tbl, tbl.rows.cnt, 0));
+	EXPECT_NULL(tbl_get_cell(&tbl, row, 1));
 	log_set_quiet(0, 0);
-	EXPECT_NE(tbl_get_cell(&tbl, row, 0), NULL);
+	EXPECT_NOT_NULL(tbl_get_cell(&tbl, row, 0));
 
 	tbl_free(&tbl);
 
