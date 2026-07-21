@@ -46,6 +46,37 @@ TEST(arr_reset)
 	END;
 }
 
+TEST(arr_resize)
+{
+	START;
+
+	arr_t arr = {0};
+	arr_init(&arr, 1, sizeof(int), ALLOC_STD);
+
+	EXPECT_EQ(arr_resize(NULL, 0), 1);
+
+	*(int *)arr_add(&arr, NULL) = 1;
+	EXPECT_EQ(arr_resize(&arr, 3), 0);
+	EXPECT_EQ(arr.cnt, 1);
+	EXPECT_EQ(arr.cap, 3);
+	EXPECT_EQ(*(int *)arr_get(&arr, 0), 1);
+
+	EXPECT_EQ(arr_resize(&arr, 1), 0);
+	EXPECT_EQ(arr.cnt, 1);
+	EXPECT_EQ(arr.cap, 3);
+	EXPECT_EQ(*(int *)arr_get(&arr, 0), 1);
+
+	mem_oom(1);
+	EXPECT_EQ(arr_resize(&arr, 4), 1);
+	mem_oom(0);
+	EXPECT_EQ(arr.cnt, 1);
+	EXPECT_EQ(arr.cap, 3);
+
+	arr_free(&arr);
+
+	END;
+}
+
 TEST(arr_add)
 {
 	START;
@@ -496,6 +527,7 @@ STEST(arr)
 
 	RUN(arr_init_free);
 	RUN(arr_reset);
+	RUN(arr_resize);
 	RUN(arr_add);
 	RUN(arr_get);
 	RUN(arr_set);

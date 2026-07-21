@@ -50,25 +50,28 @@ void arr_reset(arr_t *arr, uint cnt)
 	arr->cnt = cnt;
 }
 
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
-
-static inline int arr_resize(arr_t *arr)
+int arr_resize(arr_t *arr, uint cap)
 {
-	if (arr->cnt < arr->cap) {
+	if (arr == NULL) {
+		return 1;
+	}
+
+	if (cap <= arr->cap) {
 		return 0;
 	}
 
 	size_t old_size = arr->cap * arr->size;
-	uint new_cap	= MAX(1, arr->cap * 2);
-
-	if (alloc_realloc(&arr->alloc, &arr->data, &old_size, new_cap * arr->size)) {
+	if (alloc_realloc(&arr->alloc, &arr->data, &old_size, cap * arr->size)) {
+		log_error("cutils", "arr", NULL, "failed to resize array");
 		return 1;
 	}
 
-	arr->cap = new_cap;
+	arr->cap = cap;
 
 	return 0;
 }
+
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 void *arr_add(arr_t *arr, uint *id)
 {
@@ -76,7 +79,7 @@ void *arr_add(arr_t *arr, uint *id)
 		return NULL;
 	}
 
-	if (arr_resize(arr)) {
+	if (arr->cnt >= arr->cap && arr_resize(arr, MAX(1, arr->cap * 2))) {
 		log_error("cutils", "arr", NULL, "failed to add element");
 		return NULL;
 	}

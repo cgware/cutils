@@ -18,6 +18,8 @@ void arr_free(arr_t *arr);
 
 void arr_reset(arr_t *arr, uint cnt);
 
+int arr_resize(arr_t *arr, uint cap);
+
 void *arr_add(arr_t *arr, uint *id);
 void *arr_get(const arr_t *arr, uint id);
 void *arr_set(arr_t *arr, uint id, const void *value);
