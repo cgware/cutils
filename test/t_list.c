@@ -485,8 +485,8 @@ STEST(list)
 	RUN(list_reset);
 	RUN(list_node);
 	RUN(list_nodes);
-	RUN(list_app)
-	RUN(list_app_loop)
+	RUN(list_app);
+	RUN(list_app_loop);
 	RUN(list_remove);
 	RUN(list_remove_middle);
 	RUN(list_remove_last);
