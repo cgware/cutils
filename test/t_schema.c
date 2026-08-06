@@ -380,7 +380,7 @@ TEST(schema_print_val)
 	m->field	   = schema.fields.cnt;
 	EXPECT_EQ(schema_print_val(&schema, layout, 0, NULL, DST_NONE()), 0);
 	m->field = tmp_def;
-	log_set_quiet(0, 1);
+	log_set_quiet(0, 0);
 	EXPECT_EQ(schema_print_val(&schema, layout, 0, NULL, DST_NONE()), 0);
 
 	schema_free(&schema);
