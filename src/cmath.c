@@ -1,5 +1,82 @@
 #include "cmath.h"
 
+float float_clamp(float value, float min, float max)
+{
+	if (value < min) {
+		return min;
+	}
+	if (value > max) {
+		return max;
+	}
+	return value;
+}
+
+float float_wrap_angle(float angle)
+{
+	const float pi	   = 3.14159265358979323846f;
+	const float two_pi = 6.28318530717958647692f;
+	while (angle > pi) {
+		angle -= two_pi;
+	}
+	while (angle < -pi) {
+		angle += two_pi;
+	}
+	return angle;
+}
+
+static float float_sin_poly(float x)
+{
+	float x2 = x * x;
+	return x * (1.0f + x2 * (-0.1666666667f + x2 * (0.0083333333f + x2 * -0.0001984127f)));
+}
+
+static float float_cos_poly(float x)
+{
+	float x2 = x * x;
+	return 1.0f + x2 * (-0.5f + x2 * (0.0416666667f + x2 * -0.0013888889f));
+}
+
+float float_sin(float angle)
+{
+	const float pi	    = 3.14159265358979323846f;
+	const float half_pi = 1.57079632679489661923f;
+	float x		    = float_wrap_angle(angle);
+	if (x > half_pi) {
+		x = pi - x;
+	} else if (x < -half_pi) {
+		x = -pi - x;
+	}
+	return float_sin_poly(x);
+}
+
+float float_cos(float angle)
+{
+	const float pi	    = 3.14159265358979323846f;
+	const float half_pi = 1.57079632679489661923f;
+	float x		    = float_wrap_angle(angle);
+	float sign	    = 1.0f;
+	if (x > half_pi) {
+		x    = pi - x;
+		sign = -1.0f;
+	} else if (x < -half_pi) {
+		x    = -pi - x;
+		sign = -1.0f;
+	}
+	return sign * float_cos_poly(x);
+}
+
+float float_sqrt(float value)
+{
+	if (value <= 0.0f) {
+		return 0.0f;
+	}
+	float x = value > 1.0f ? value : 1.0f;
+	for (int i = 0; i < 8; i++) {
+		x = 0.5f * (x + value / x);
+	}
+	return x;
+}
+
 vec2f_t vec2f(float x, float y)
 {
 	return (vec2f_t){x, y};
@@ -78,6 +155,20 @@ float vec3f_dot(vec3f_t a, vec3f_t b)
 float vec3f_len2(vec3f_t v)
 {
 	return vec3f_dot(v, v);
+}
+
+float vec3f_len(vec3f_t v)
+{
+	return float_sqrt(vec3f_len2(v));
+}
+
+vec3f_t vec3f_normalize(vec3f_t v)
+{
+	float len = vec3f_len(v);
+	if (len <= 0.0f) {
+		return vec3f(0.0f, 0.0f, 0.0f);
+	}
+	return vec3f_scale(v, 1.0f / len);
 }
 
 vec3f_t vec3f_cross(vec3f_t a, vec3f_t b)
@@ -241,4 +332,27 @@ mat4f_t mat4f_frustum(float left, float right, float bottom, float top, float ne
 	m.m[11]	  = -1.0f;
 	m.m[14]	  = -(2.0f * far * near) / (far - near);
 	return m;
+}
+
+mat4f_t mat4f_look_to(vec3f_t eye, vec3f_t forward, vec3f_t up)
+{
+	vec3f_t f    = vec3f_normalize(forward);
+	vec3f_t r    = vec3f_normalize(vec3f_cross(f, up));
+	vec3f_t u    = vec3f_cross(r, f);
+	vec3f_t back = vec3f_scale(f, -1.0f);
+
+	mat4f_t view = mat4f_identity();
+	view.m[0]    = r.x;
+	view.m[4]    = r.y;
+	view.m[8]    = r.z;
+	view.m[12]   = -vec3f_dot(r, eye);
+	view.m[1]    = u.x;
+	view.m[5]    = u.y;
+	view.m[9]    = u.z;
+	view.m[13]   = -vec3f_dot(u, eye);
+	view.m[2]    = back.x;
+	view.m[6]    = back.y;
+	view.m[10]   = back.z;
+	view.m[14]   = -vec3f_dot(back, eye);
+	return view;
 }

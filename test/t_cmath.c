@@ -34,6 +34,27 @@
 		}                                                                                                                          \
 	} while (0)
 
+TEST(cmath_float)
+{
+	START;
+
+	EXPECT_EQ(float_clamp(2.0f, 0.0f, 1.0f), 1.0f);
+	EXPECT_EQ(float_clamp(-1.0f, 0.0f, 1.0f), 0.0f);
+	EXPECT_EQ(float_clamp(0.5f, 0.0f, 1.0f), 0.5f);
+	EXPECT_EQ(float_wrap_angle(7.0f), 0.7168145f);
+	EXPECT_EQ(float_wrap_angle(-7.0f), -0.7168145f);
+	EXPECT_EQ(float_sin(0.0f), 0.0f);
+	EXPECT_EQ(float_sin(3.1415927f), 0.0f);
+	EXPECT_EQ(float_sin(-3.1415927f), 0.0f);
+	EXPECT_EQ(float_cos(0.0f), 1.0f);
+	EXPECT_EQ(float_cos(3.1415927f), -1.0f);
+	EXPECT_EQ(float_cos(-3.1415927f), -1.0f);
+	EXPECT_EQ(float_sqrt(0.0f), 0.0f);
+	EXPECT_EQ(float_sqrt(4.0f), 2.0f);
+
+	END;
+}
+
 TEST(cmath_vec2f)
 {
 	START;
@@ -66,6 +87,9 @@ TEST(cmath_vec3f)
 	EXPECT_VEC3F(vec3f_scale(a, 3.0f), 6.0f, 24.0f, 12.0f);
 	EXPECT_EQ(vec3f_dot(a, b), 28.0f);
 	EXPECT_EQ(vec3f_len2(a), 84.0f);
+	EXPECT_EQ(vec3f_len(vec3f(0.0f, 3.0f, 4.0f)), 5.0f);
+	EXPECT_VEC3F(vec3f_normalize(vec3f(0.0f, 0.0f, 0.0f)), 0.0f, 0.0f, 0.0f);
+	EXPECT_VEC3F(vec3f_normalize(vec3f(0.0f, 0.0f, 2.0f)), 0.0f, 0.0f, 1.0f);
 	EXPECT_VEC3F(vec3f_cross(vec3f(1.0f, 0.0f, 0.0f), vec3f(0.0f, 1.0f, 0.0f)), 0.0f, 0.0f, 1.0f);
 
 	END;
@@ -179,10 +203,29 @@ TEST(cmath_mat4f_projection)
 	END;
 }
 
+TEST(cmath_mat4f_look_to)
+{
+	START;
+
+	// clang-format off
+	const float view[] = {
+		1.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+		-2.0f, -3.0f, -4.0f, 1.0f,
+	};
+	// clang-format on
+
+	EXPECT_MAT4F(mat4f_look_to(vec3f(2.0f, 3.0f, 4.0f), vec3f(0.0f, 0.0f, -1.0f), vec3f(0.0f, 1.0f, 0.0f)), view);
+
+	END;
+}
+
 STEST(cmath)
 {
 	SSTART;
 
+	RUN(cmath_float);
 	RUN(cmath_vec2f);
 	RUN(cmath_vec3f);
 	RUN(cmath_vec4f);
@@ -190,6 +233,7 @@ STEST(cmath)
 	RUN(cmath_mat4f_mul_transform);
 	RUN(cmath_mat4f_rotate);
 	RUN(cmath_mat4f_projection);
+	RUN(cmath_mat4f_look_to);
 
 	SEND;
 }

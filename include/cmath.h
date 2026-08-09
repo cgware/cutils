@@ -17,6 +17,12 @@ typedef struct mat4f_s {
 	float m[16];
 } mat4f_t;
 
+float float_clamp(float value, float min, float max);
+float float_wrap_angle(float angle);
+float float_sin(float angle);
+float float_cos(float angle);
+float float_sqrt(float value);
+
 vec2f_t vec2f(float x, float y);
 vec2f_t vec2f_add(vec2f_t a, vec2f_t b);
 vec2f_t vec2f_sub(vec2f_t a, vec2f_t b);
@@ -34,6 +40,8 @@ vec3f_t vec3f_div(vec3f_t a, vec3f_t b);
 vec3f_t vec3f_scale(vec3f_t v, float s);
 float vec3f_dot(vec3f_t a, vec3f_t b);
 float vec3f_len2(vec3f_t v);
+float vec3f_len(vec3f_t v);
+vec3f_t vec3f_normalize(vec3f_t v);
 vec3f_t vec3f_cross(vec3f_t a, vec3f_t b);
 
 vec4f_t vec4f(float x, float y, float z, float w);
@@ -56,5 +64,6 @@ mat4f_t mat4f_rotate_y(float c, float s);
 mat4f_t mat4f_rotate_z(float c, float s);
 mat4f_t mat4f_ortho(float left, float right, float bottom, float top, float near, float far);
 mat4f_t mat4f_frustum(float left, float right, float bottom, float top, float near, float far);
+mat4f_t mat4f_look_to(vec3f_t eye, vec3f_t forward, vec3f_t up);
 
 #endif
