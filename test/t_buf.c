@@ -117,6 +117,47 @@ TEST(buf_add)
 	END;
 }
 
+TEST(buf_alloc)
+{
+	START;
+
+	buf_t buf = {0};
+	log_set_quiet(0, 1);
+	buf_init(&buf, 0, ALLOC_STD);
+	log_set_quiet(0, 0);
+
+	EXPECT_NULL(buf_alloc(NULL, 1, NULL));
+	size_t off;
+	EXPECT_PTR(buf_alloc(&buf, 0, &off), buf.data);
+	EXPECT_EQ(off, 0);
+	EXPECT_EQ(buf.used, 0);
+	mem_oom(1);
+	EXPECT_NULL(buf_alloc(&buf, sizeof(uint), NULL));
+	mem_oom(0);
+	EXPECT_EQ(buf.used, 0);
+
+	uint *val0 = buf_alloc(&buf, sizeof(*val0), &off);
+	EXPECT_PTR(val0, buf.data);
+	EXPECT_EQ(off, 0);
+	*val0 = 1;
+	EXPECT_EQ(buf.used, sizeof(*val0));
+	EXPECT_EQ(*(uint *)buf.data, 1);
+
+	uint *val1 = buf_alloc(&buf, sizeof(*val1), &off);
+	EXPECT_PTR(val1, (uint *)buf.data + 1);
+	EXPECT_EQ(off, sizeof(*val0));
+	*val1 = 2;
+	EXPECT_EQ(buf.used, sizeof(*val0) + sizeof(*val1));
+	EXPECT_EQ(val1[0], 2);
+
+	buf.used = -1;
+	EXPECT_NULL(buf_alloc(&buf, 1, NULL));
+
+	buf_free(&buf);
+
+	END;
+}
+
 TEST(buf_write_le)
 {
 	START;
@@ -975,6 +1016,7 @@ STEST(buf)
 	RUN(buf_resize);
 	RUN(buf_set);
 	RUN(buf_add);
+	RUN(buf_alloc);
 	RUN(buf_write_le);
 	RUN(buf_write_be);
 	RUN(buf_write_u8le);

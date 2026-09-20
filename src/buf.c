@@ -99,26 +99,48 @@ int buf_add(buf_t *buf, size_t size, const void *data, size_t *off)
 		return 1;
 	}
 
-	if (add_overflows(buf->used, size)) {
+	size_t used = buf->used;
+	if (size != 0 && buf_alloc(buf, size, NULL) == NULL) {
 		return 1;
 	}
 
-	size_t used = buf->used + size;
-	if (used > buf->size && (used > (size_t)-1 / 2 || buf_resize(buf, used * 2))) {
-		return 1;
-	}
-
-	if (buf_set(buf, buf->used, size, data)) {
+	if (buf_set(buf, used, size, data)) {
+		buf->used = used;
 		return 1;
 	}
 
 	if (off) {
-		*off = buf->used;
+		*off = used;
 	}
 
-	buf->used += size;
-
 	return 0;
+}
+
+void *buf_alloc(buf_t *buf, size_t size, size_t *off)
+{
+	if (buf == NULL) {
+		return NULL;
+	}
+
+	if (add_overflows(buf->used, size)) {
+		return NULL;
+	}
+
+	size_t used = buf->used + size;
+	if (used > buf->size && (used > (size_t)-1 / 2 || buf_resize(buf, used * 2))) {
+		return NULL;
+	}
+
+	void *data = buf->data;
+	if (data != NULL) {
+		data = (uint8_t *)data + buf->used;
+	}
+	if (off) {
+		*off = buf->used;
+	}
+	buf->used = used;
+
+	return data;
 }
 
 int buf_write_le(buf_t *buf, const void *val, size_t size)

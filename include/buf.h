@@ -22,6 +22,7 @@ int buf_resize(buf_t *buf, size_t size);
 
 int buf_set(buf_t *buf, size_t off, size_t size, const void *data);
 int buf_add(buf_t *buf, size_t size, const void *data, size_t *off);
+void *buf_alloc(buf_t *buf, size_t size, size_t *off);
 
 int buf_set_str(buf_t *buf, size_t off, strv_t str, loc_t *loc);
 
