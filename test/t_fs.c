@@ -3,7 +3,13 @@
 #include "cerr.h"
 #include "log.h"
 #include "mem.h"
+#include "platform.h"
 #include "test.h"
+
+#ifdef C_LINUX
+	#include <dirent.h>
+	#include <unistd.h>
+#endif
 
 #define TEST_FILE "t_fs_file.txt"
 #define TEST_DIR  "t_fs_tmp"
@@ -927,6 +933,48 @@ TEST(fs_reads_oom)
 
 	END;
 }
+
+#ifdef C_LINUX
+static int open_fd_count()
+{
+	DIR *dir = opendir("/proc/self/fd");
+	if (dir == NULL) {
+		return -1;
+	}
+	int count = 0;
+	while (readdir(dir) != NULL) {
+		count++;
+	}
+	closedir(dir);
+	return count;
+}
+
+TEST(fs_read_nonseekable)
+{
+	START;
+
+	int fds[2];
+	EXPECT_EQ(pipe(fds), 0);
+	char path[64];
+	int length = snprintf(path, sizeof(path), "/proc/self/fd/%d", fds[0]);
+	fs_t fs = {0};
+	fs_init(&fs, 0, 0, ALLOC_STD);
+	buf_t buf = {0};
+	str_t str = {0};
+	int open_before = open_fd_count();
+	EXPECT_EQ(open_before >= 0, 1);
+	log_set_quiet(0, 1);
+	EXPECT_EQ(fs_readb(&fs, STRVN(path, (size_t)length), &buf), CERR_DESC);
+	EXPECT_EQ(fs_reads(&fs, STRVN(path, (size_t)length), &str), CERR_DESC);
+	log_set_quiet(0, 0);
+	EXPECT_EQ(open_fd_count(), open_before);
+	fs_free(&fs);
+	close(fds[0]);
+	close(fds[1]);
+
+	END;
+}
+#endif
 
 TEST(fs_reads_empty)
 {
@@ -2331,6 +2379,9 @@ STEST(fs)
 	RUN(fs_reads_not_found);
 	RUN(fs_reads_arr);
 	RUN(fs_reads_oom);
+#ifdef C_LINUX
+	RUN(fs_read_nonseekable);
+#endif
 	RUN(fs_reads_empty);
 	RUN(fs_reads_str);
 	RUN(fs_du);

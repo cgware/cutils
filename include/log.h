@@ -1,41 +1,25 @@
 #ifndef LOG_H
 #define LOG_H
 
-#include "ctime.h"
 #include "dst.h"
+#include "type.h"
+
+#include <stdio.h>
 
 typedef struct log_event_s {
-	va_list ap;
-	const char *pkg;
+	const char *component;
 	const char *file;
 	const char *func;
-	const char *tag;
 	const char *fmt;
-	char time[CTIME_BUF_SIZE];
+	va_list args;
 	int line;
-	dst_t dst;
-	int colors;
+	u64 timestamp;
 	int level;
-	int header;
 } log_event_t;
 
-typedef size_t (*log_cb)(log_event_t *ev);
-
-typedef struct log_callback_s {
-	log_cb log;
-	dst_t dst;
-	int level;
-	int header;
-	int colors;
-	int quiet;
-} log_callback_t;
+typedef void (*log_callback_fn)(log_event_t *ev, void *user);
 
 #define LOG_MAX_CALLBACKS 32
-
-typedef struct log_s {
-	void *priv;
-	log_callback_t callbacks[LOG_MAX_CALLBACKS];
-} log_t;
 
 enum {
 	LOG_TRACE,
@@ -46,27 +30,25 @@ enum {
 	LOG_FATAL
 };
 
-#define log_trace(_pkg, _file, _tag, ...) log_log(LOG_TRACE, _pkg, _file, __func__, __LINE__, _tag, __VA_ARGS__)
-#define log_debug(_pkg, _file, _tag, ...) log_log(LOG_DEBUG, _pkg, _file, __func__, __LINE__, _tag, __VA_ARGS__)
-#define log_info(_pkg, _file, _tag, ...)  log_log(LOG_INFO, _pkg, _file, __func__, __LINE__, _tag, __VA_ARGS__)
-#define log_warn(_pkg, _file, _tag, ...)  log_log(LOG_WARN, _pkg, _file, __func__, __LINE__, _tag, __VA_ARGS__)
-#define log_error(_pkg, _file, _tag, ...) log_log(LOG_ERROR, _pkg, _file, __func__, __LINE__, _tag, __VA_ARGS__)
-#define log_fatal(_pkg, _file, _tag, ...) log_log(LOG_FATAL, _pkg, _file, __func__, __LINE__, _tag, __VA_ARGS__)
+#define log_trace(component, ...) log_write(LOG_TRACE, component, __FILE__, __func__, __LINE__, __VA_ARGS__)
+#define log_debug(component, ...) log_write(LOG_DEBUG, component, __FILE__, __func__, __LINE__, __VA_ARGS__)
+#define log_info(component, ...)  log_write(LOG_INFO, component, __FILE__, __func__, __LINE__, __VA_ARGS__)
+#define log_warn(component, ...)  log_write(LOG_WARN, component, __FILE__, __func__, __LINE__, __VA_ARGS__)
+#define log_error(component, ...) log_write(LOG_ERROR, component, __FILE__, __func__, __LINE__, __VA_ARGS__)
+#define log_fatal(component, ...) log_write(LOG_FATAL, component, __FILE__, __func__, __LINE__, __VA_ARGS__)
 
-log_t *log_set(log_t *log);
-const log_t *log_get();
+int log_add_callback(log_callback_fn callback, void *user, int minimum);
+int log_add_output(dst_t dst, int minimum, int header, int colors);
+int log_add_file(FILE *file, int minimum);
+int log_remove_callback(int id);
+int log_set_level(int id, int minimum);
+int log_set_quiet(int id, int quiet);
+int log_set_header(int id, int enabled);
+void log_set_location(int enabled);
 
-size_t log_std_cb(log_event_t *ev);
-
+size_t log_format(dst_t dst, log_event_t *event, int header, int colors, int location);
 const char *log_level_str(int level);
-int log_set_level(int cb, int level);
-int log_set_quiet(int cb, int quiet);
-int log_set_header(int cb, int enable);
-int log_add_callback(log_cb log, dst_t print, int level, int header, int colors);
-int log_remove_callback(int cb);
-
-int log_log(int level, const char *pkg, const char *file, const char *func, int line, const char *tag, const char *fmt, ...);
-
+int log_write(int level, const char *component, const char *file, const char *function, int line, const char *format, ...);
 const char *log_strerror(int errnum);
 
 #endif

@@ -9,7 +9,7 @@ strbuf_t *strbuf_init(strbuf_t *buf, uint cap, size_t len, alloc_t alloc)
 	}
 
 	if (strvbuf_init(&buf->buf, cap, len, alloc) == NULL || arr_init(&buf->off, cap, sizeof(size_t), alloc) == NULL) {
-		log_error("cutils", "strbuf", NULL, "failed to intialize buffer or array");
+		log_error("cutils.strbuf", "failed to intialize buffer or array");
 		return NULL;
 	}
 
@@ -60,13 +60,13 @@ int strbuf_add(strbuf_t *buf, strv_t strv, uint *id)
 
 	size_t *off = arr_add(&buf->off, id);
 	if (off == NULL) {
-		log_error("cutils", "strbuf", NULL, "failed to add offset");
+		log_error("cutils.strbuf", "failed to add offset");
 		return 1;
 	}
 
 	if (strvbuf_add(&buf->buf, strv, off)) {
 		arr_reset(&buf->off, cnt);
-		log_error("cutils", "strbuf", NULL, "failed to add string");
+		log_error("cutils.strbuf", "failed to add string");
 		return 1;
 	}
 
@@ -81,13 +81,13 @@ strv_t strbuf_get(const strbuf_t *buf, uint id)
 
 	size_t *off = arr_get(&buf->off, id);
 	if (off == NULL) {
-		log_error("cutils", "strbuf", NULL, "failed to get offset");
+		log_error("cutils.strbuf", "failed to get offset");
 		return STRV_NULL;
 	}
 
 	strv_t str = strvbuf_get(&buf->buf, *off);
 	if (str.data == NULL) {
-		log_error("cutils", "strbuf", NULL, "failed to get string");
+		log_error("cutils.strbuf", "failed to get string");
 		return STRV_NULL;
 	}
 
@@ -124,7 +124,7 @@ int strbuf_set(strbuf_t *buf, uint id, strv_t strv)
 
 	size_t *off = arr_get(&buf->off, id);
 	if (off == NULL) {
-		log_error("cutils", "strbuf", NULL, "failed to get offset");
+		log_error("cutils.strbuf", "failed to get offset");
 		return 1;
 	}
 
@@ -132,7 +132,7 @@ int strbuf_set(strbuf_t *buf, uint id, strv_t strv)
 	size_t diff = strv.len - *len;
 
 	if (strvbuf_set(&buf->buf, *off, strv)) {
-		log_error("cutils", "strbuf", NULL, "failed to set string: '%.*s'", strv.len, strv.data);
+		log_error("cutils.strbuf", "failed to set string: '%.*s'", strv.len, strv.data);
 		return 1;
 	}
 
@@ -153,12 +153,12 @@ int strbuf_app(strbuf_t *buf, uint id, strv_t strv)
 
 	size_t *off = arr_get(&buf->off, id);
 	if (off == NULL) {
-		log_error("cutils", "strbuf", NULL, "failed to get offset");
+		log_error("cutils.strbuf", "failed to get offset");
 		return 1;
 	}
 
 	if (strvbuf_app(&buf->buf, *off, strv)) {
-		log_error("cutils", "strbuf", NULL, "failed to append string: '%.*s'", strv.len, strv.data);
+		log_error("cutils.strbuf", "failed to append string: '%.*s'", strv.len, strv.data);
 		return 1;
 	}
 

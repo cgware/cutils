@@ -47,7 +47,7 @@ void *tree_node(tree_t *tree, tree_node_t *node)
 
 	header_t *header = list_node(tree, node);
 	if (header == NULL) {
-		log_error("cutils", "tree", NULL, "failed to create node");
+		log_error("cutils.tree", "failed to create node");
 		return NULL;
 	}
 
@@ -64,12 +64,12 @@ int tree_add(tree_t *tree, tree_node_t node, tree_node_t child)
 
 	header_t *header = list_get(tree, node);
 	if (header == NULL) {
-		log_error("cutils", "tree", NULL, "invalid node: %d", node);
+		log_error("cutils.tree", "invalid node: %d", node);
 		return 1;
 	}
 
 	if (list_get(tree, child) == NULL) {
-		log_error("cutils", "tree", NULL, "invalid node: %d", child);
+		log_error("cutils.tree", "invalid node: %d", child);
 		return 1;
 	}
 
@@ -88,7 +88,7 @@ int tree_app(tree_t *tree, tree_node_t node, tree_node_t next)
 	}
 
 	if (list_app(tree, node, next)) {
-		log_error("cutils", "tree", NULL, "failed to append");
+		log_error("cutils.tree", "failed to append");
 		return 1;
 	}
 
@@ -119,7 +119,7 @@ void *tree_get(const tree_t *tree, tree_node_t node)
 
 	header_t *header = list_get(tree, node);
 	if (header == NULL) {
-		log_error("cutils", "tree", NULL, "invalid node: %d", node);
+		log_error("cutils.tree", "invalid node: %d", node);
 		return NULL;
 	}
 
@@ -134,7 +134,7 @@ void *tree_get_child(const tree_t *tree, tree_node_t node, tree_node_t *child)
 
 	header_t *header = list_get(tree, node);
 	if (header == NULL) {
-		log_error("cutils", "tree", NULL, "invalid node: %d", node);
+		log_error("cutils.tree", "invalid node: %d", node);
 		return NULL;
 	}
 
@@ -256,7 +256,7 @@ void *tree_it_next(tree_it *it)
 	void *data;
 	if ((data = tree_get_child(it->tree, node, &child))) {
 		if (it->top >= TREE_MAX_DEPTH) {
-			log_error("cutils", "tree", NULL, "exceeded max depth of %d", TREE_MAX_DEPTH);
+			log_error("cutils.tree", "exceeded max depth of %d", TREE_MAX_DEPTH);
 			it->stack[it->top - 1] = (tree_node_t)-1;
 			return NULL;
 		}

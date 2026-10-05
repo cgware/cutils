@@ -9,7 +9,7 @@ strvbuf_t *strvbuf_init(strvbuf_t *buf, uint cap, size_t len, alloc_t alloc)
 	}
 
 	if (buf_init(buf, cap * (sizeof(size_t) + len), alloc) == NULL) {
-		log_error("cutils", "strvbuf", NULL, "failed to intialize buffer");
+		log_error("cutils.strvbuf", "failed to intialize buffer");
 		return NULL;
 	}
 
@@ -35,13 +35,13 @@ int strvbuf_add(strvbuf_t *buf, strv_t strv, size_t *off)
 	size_t used = buf->used;
 
 	if (buf_add(buf, sizeof(size_t), &strv.len, off)) {
-		log_error("cutils", "strvbuf", NULL, "failed to add size");
+		log_error("cutils.strvbuf", "failed to add size");
 		return 1;
 	}
 
 	if (buf_add_str(buf, strv, NULL)) {
 		buf_reset(buf, used);
-		log_error("cutils", "strvbuf", NULL, "failed to add string: %zu", strv.len);
+		log_error("cutils.strvbuf", "failed to add string: %zu", strv.len);
 		return 1;
 	}
 
@@ -56,7 +56,7 @@ strv_t strvbuf_get(const strvbuf_t *buf, size_t off)
 
 	size_t *data = buf_get(buf, off);
 	if (data == NULL) {
-		log_error("cutils", "strvbuf", NULL, "failed to get string");
+		log_error("cutils.strvbuf", "failed to get string");
 		return STRV_NULL;
 	}
 
@@ -74,12 +74,12 @@ int strvbuf_set(strvbuf_t *buf, size_t off, strv_t strv)
 
 	size_t *len = buf_get(buf, off);
 	if (len == NULL) {
-		log_error("cutils", "strvbuf", NULL, "invalid offset: %zu", off);
+		log_error("cutils.strvbuf", "invalid offset: %zu", off);
 		return 1;
 	}
 
 	if (buf_replace(buf, off + sizeof(size_t), strv.data, *len, strv.len) == NULL) {
-		log_error("cutils", "strvbuf", NULL, "failed to set string: '%.*s'", strv.len, strv.data);
+		log_error("cutils.strvbuf", "failed to set string: '%.*s'", strv.len, strv.data);
 		return 1;
 	}
 
@@ -97,12 +97,12 @@ int strvbuf_app(strvbuf_t *buf, size_t off, strv_t strv)
 
 	size_t *len = buf_get(buf, off);
 	if (len == NULL) {
-		log_error("cutils", "strvbuf", NULL, "invalid offset: %zu", off);
+		log_error("cutils.strvbuf", "invalid offset: %zu", off);
 		return 1;
 	}
 
 	if (buf_replace(buf, off + sizeof(size_t) + *len, strv.data, 0, strv.len) == NULL) {
-		log_error("cutils", "strvbuf", NULL, "failed to append string: '%.*s'", strv.len, strv.data);
+		log_error("cutils.strvbuf", "failed to append string: '%.*s'", strv.len, strv.data);
 		return 1;
 	}
 

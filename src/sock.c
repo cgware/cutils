@@ -634,7 +634,7 @@ int sock_open(sock_t *ss, sock_family_t family, sock_type_t type, int protocol, 
 
 	cerr_t err = s_ss_ops[ss->virt].open(ss, family, type, protocol, sock);
 	if (err) {
-		log_error("cutils", "sock", NULL, "failed to open sock: %s", cerr_str(err));
+		log_error("cutils.sock", "failed to open sock: %s", cerr_str(err));
 	}
 
 	return err;
@@ -648,7 +648,7 @@ int sock_close(sock_t *ss, void *sock)
 
 	cerr_t err = s_ss_ops[ss->virt].close(ss, sock);
 	if (err) {
-		log_error("cutils", "sock", NULL, "failed to close socket: %s", cerr_str(err));
+		log_error("cutils.sock", "failed to close socket: %s", cerr_str(err));
 		return err;
 	}
 
@@ -663,7 +663,7 @@ int sock_setopt(sock_t *ss, void *sock, sock_opt_t opt, void *val, size_t size)
 
 	cerr_t err = s_ss_ops[ss->virt].setopt(ss, sock, opt, val, size);
 	if (err) {
-		log_error("cutils", "sock", NULL, "failed to setopt: %s", cerr_str(err));
+		log_error("cutils.sock", "failed to setopt: %s", cerr_str(err));
 		return err;
 	}
 
@@ -678,7 +678,7 @@ int sock_get_flags(sock_t *ss, void *sock, int *flags)
 
 	cerr_t err = s_ss_ops[ss->virt].get_flags(ss, sock, flags);
 	if (err) {
-		log_error("cutils", "sock", NULL, "failed to get flags: %s", cerr_str(err));
+		log_error("cutils.sock", "failed to get flags: %s", cerr_str(err));
 		return err;
 	}
 
@@ -693,7 +693,7 @@ int sock_set_flags(sock_t *ss, void *sock, int flags)
 
 	cerr_t err = s_ss_ops[ss->virt].set_flags(ss, sock, flags);
 	if (err) {
-		log_error("cutils", "sock", NULL, "failed to set flags: %s", cerr_str(err));
+		log_error("cutils.sock", "failed to set flags: %s", cerr_str(err));
 		return err;
 	}
 
@@ -708,7 +708,7 @@ int sock_bind(sock_t *ss, void *sock, sock_family_t family, const char *path, si
 
 	cerr_t err = s_ss_ops[ss->virt].bind(ss, sock, family, strv_cstr(path), len);
 	if (err) {
-		log_error("cutils", "sock", NULL, "failed to bind: %s", cerr_str(err));
+		log_error("cutils.sock", "failed to bind: %s", cerr_str(err));
 		return err;
 	}
 
@@ -723,7 +723,7 @@ int sock_listen(sock_t *ss, void *sock, int n)
 
 	cerr_t err = s_ss_ops[ss->virt].listen(ss, sock, n);
 	if (err) {
-		log_error("cutils", "sock", NULL, "failed to listen: %s", cerr_str(err));
+		log_error("cutils.sock", "failed to listen: %s", cerr_str(err));
 		return err;
 	}
 
@@ -738,7 +738,7 @@ int sock_script(sock_t *ss, void *sock, const void *data, size_t size)
 
 	cerr_t err = s_ss_ops[ss->virt].script(ss, sock, data, size);
 	if (err) {
-		log_error("cutils", "sock", NULL, "failed to script: %s", cerr_str(err));
+		log_error("cutils.sock", "failed to script: %s", cerr_str(err));
 		return err;
 	}
 
@@ -753,7 +753,7 @@ int sock_connect(sock_t *ss, void *sock, sock_family_t family, const char *path,
 
 	cerr_t err = s_ss_ops[ss->virt].connect(ss, sock, family, strv_cstr(path), len);
 	if (err) {
-		log_error("cutils", "sock", NULL, "failed to connect: %s", cerr_str(err));
+		log_error("cutils.sock", "failed to connect: %s", cerr_str(err));
 		return err;
 	}
 
@@ -768,7 +768,7 @@ int sock_accept(sock_t *ss, void *sock, void **fd)
 
 	cerr_t err = s_ss_ops[ss->virt].accept(ss, sock, fd);
 	if (err) {
-		log_error("cutils", "sock", NULL, "failed to accept: %s", cerr_str(err));
+		log_error("cutils.sock", "failed to accept: %s", cerr_str(err));
 		return err;
 	}
 
@@ -783,7 +783,7 @@ int sock_write(sock_t *ss, void *sock, const void *data, size_t size, size_t *n)
 
 	cerr_t err = s_ss_ops[ss->virt].write(ss, sock, data, size, n);
 	if (err) {
-		log_error("cutils", "sock", NULL, "failed to write: %s", cerr_str(err));
+		log_error("cutils.sock", "failed to write: %s", cerr_str(err));
 		return err;
 	}
 
@@ -803,7 +803,7 @@ int sock_write_all(sock_t *ss, void *sock, const void *data, size_t size)
 		} while (err == CERR_INTERRUPT);
 
 		if (err) {
-			log_error("cutils", "sock", NULL, "failed to write all: %s", cerr_str(err));
+			log_error("cutils.sock", "failed to write all: %s", cerr_str(err));
 			return err;
 		}
 
@@ -823,7 +823,7 @@ int sock_read(sock_t *ss, void *sock, void *data, size_t size, size_t *n)
 	cerr_t err = s_ss_ops[ss->virt].read(ss, sock, data, size, n);
 	if (err) {
 		if (err != CERR_AGAIN) {
-			log_error("cutils", "sock", NULL, "failed to read: %s", cerr_str(err));
+			log_error("cutils.sock", "failed to read: %s", cerr_str(err));
 		}
 		return err;
 	}
@@ -844,7 +844,7 @@ int sock_read_all(sock_t *ss, void *sock, void *data, size_t size)
 		} while (err == CERR_INTERRUPT);
 
 		if (err) {
-			log_error("cutils", "sock", NULL, "failed to read all: %s", cerr_str(err));
+			log_error("cutils.sock", "failed to read all: %s", cerr_str(err));
 			return err;
 		}
 

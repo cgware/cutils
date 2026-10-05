@@ -1,201 +1,247 @@
 #include "log.h"
 
-#include "platform.h"
+#include "cspinlock.h"
+#include "cterm.h"
+#include "ctime.h"
+#include "mem.h"
 
-#define DEFAULT_QUIET 0
+typedef enum log_sink_kind_e {
+	LOG_SINK_NONE,
+	LOG_SINK_CALLBACK,
+	LOG_SINK_OUTPUT,
+	LOG_SINK_FILE
+} log_sink_kind_t;
 
-static log_t *s_log;
+typedef struct log_sink_s {
+	log_sink_kind_t kind;
+	log_callback_fn callback;
+	void *user;
+	dst_t dst;
+	FILE *file;
+	int level;
+	int quiet;
+	int header;
+	int colors;
+} log_sink_t;
 
-static const char *level_strs[] = {"TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"};
+static log_sink_t sinks[LOG_MAX_CALLBACKS];
+static cspinlock_t config_lock = CSPINLOCK_INIT;
+static cspinlock_t output_lock = CSPINLOCK_INIT;
+static int location_enabled;
 
+static const char *level_strs[]	  = {"TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"};
 static const char *level_colors[] = {"\033[94m", "\033[36m", "\033[32m", "\033[33m", "\033[31m", "\033[35m"};
 
-size_t log_std_cb(log_event_t *ev)
+size_t log_format(dst_t dst, log_event_t *ev, int header, int colors, int location)
 {
-	const char *tag_s = "";
-	const char *tag_e = "";
-	const char *tag	  = "";
-	if (ev->tag != NULL) {
-		tag_s = "[";
-		tag_e = "] ";
-		tag   = ev->tag;
+	if (ev == NULL || ev->level < LOG_TRACE || ev->level > LOG_FATAL || ev->component == NULL || ev->fmt == NULL) {
+		return 0;
 	}
-
-	size_t off = ev->dst.off;
-
-	if (ev->header) {
-		if (ev->colors) {
-			ev->dst.off += dputf(ev->dst,
-					     "\033[90m%s %s%-5s\033[0m [%s:%s] \033[90m%s:%d:\033[0m %s%s%s",
-					     ev->time,
-					     level_colors[ev->level],
-					     level_strs[ev->level],
-					     ev->pkg,
-					     ev->file,
-					     ev->func,
-					     ev->line,
-					     tag_s,
-					     tag,
-					     tag_e);
-		} else {
-			ev->dst.off += dputf(ev->dst,
-					     "%s %-5s [%s:%s] %s:%d: %s%s%s",
-					     ev->time,
-					     level_strs[ev->level],
-					     ev->pkg,
-					     ev->file,
-					     ev->func,
-					     ev->line,
-					     tag_s,
-					     tag,
-					     tag_e);
+	size_t start = dst.off;
+	if (header) {
+		char time[CTIME_BUF_SIZE];
+		if (c_time_format_utc(time, sizeof(time), ev->timestamp) != 0) {
+			mem_copy(time, sizeof(time), "0000-00-00 00:00:00.000", sizeof(time));
 		}
-	} else {
-		ev->dst.off += dputf(ev->dst, "%s%s%s", tag_s, tag, tag_e);
+		if (colors) {
+			dst.off += dputf(dst,
+					 "\033[90m%s\033[0m %s%-5s\033[0m %-16s ",
+					 time,
+					 level_colors[ev->level],
+					 level_strs[ev->level],
+					 ev->component);
+		} else {
+			dst.off += dputf(dst, "%s %-5s %-16s ", time, level_strs[ev->level], ev->component);
+		}
 	}
-
-	ev->dst.off += dputv(ev->dst, ev->fmt, ev->ap);
-	ev->dst.off += dputs(ev->dst, STRV("\n"));
-
-	return ev->dst.off - off;
+	if (location && ev->file != NULL && ev->line > 0) {
+		if (colors) {
+			dst.off += dputf(dst, "\033[90m");
+		}
+		dst.off += dputf(dst, "%s:%d", ev->file, ev->line);
+		if (ev->func != NULL) {
+			dst.off += dputf(dst, ":%s", ev->func);
+		}
+		if (colors) {
+			dst.off += dputf(dst, "\033[0m");
+		}
+		dst.off += dputf(dst, " ");
+	}
+	va_list copy;
+	va_copy(copy, ev->args);
+	dst.off += dputv(dst, ev->fmt, copy);
+	va_end(copy);
+	dst.off += dputf(dst, "\n");
+	return dst.off - start;
 }
 
-log_t *log_set(log_t *log)
+static size_t file_putv(dst_t dst, const char *format, va_list args)
 {
-	log_t *cur = s_log;
-
-	s_log = log;
-
-	return cur;
+	int length = vfprintf(dst.dst, format, args);
+	return length > 0 ? (size_t)length : 0;
 }
 
-const log_t *log_get()
+static int add_sink(log_sink_t sink)
 {
-	return s_log;
+	if (sink.level < LOG_TRACE || sink.level > LOG_FATAL) {
+		return -1;
+	}
+	cspinlock_lock(&output_lock);
+	cspinlock_lock(&config_lock);
+	for (int i = 0; i < LOG_MAX_CALLBACKS; i++) {
+		if (sinks[i].kind != LOG_SINK_NONE) {
+			continue;
+		}
+		sinks[i] = sink;
+		cspinlock_unlock(&config_lock);
+		cspinlock_unlock(&output_lock);
+		return i;
+	}
+	cspinlock_unlock(&config_lock);
+	cspinlock_unlock(&output_lock);
+	return -1;
+}
+
+int log_add_callback(log_callback_fn callback, void *user, int minimum)
+{
+	if (callback == NULL) {
+		return -1;
+	}
+	return add_sink((log_sink_t){.kind = LOG_SINK_CALLBACK, .callback = callback, .user = user, .level = minimum});
+}
+
+int log_add_output(dst_t dst, int minimum, int header, int colors)
+{
+	if (dst.putv == NULL) {
+		return -1;
+	}
+	return add_sink((log_sink_t){.kind = LOG_SINK_OUTPUT, .dst = dst, .level = minimum, .header = header != 0, .colors = colors != 0});
+}
+
+int log_add_file(FILE *file, int minimum)
+{
+	if (file == NULL) {
+		return -1;
+	}
+	return add_sink((log_sink_t){.kind = LOG_SINK_FILE, .file = file, .level = minimum, .header = 1});
+}
+
+int log_remove_callback(int id)
+{
+	cspinlock_lock(&output_lock);
+	cspinlock_lock(&config_lock);
+	if (id < 0 || id >= LOG_MAX_CALLBACKS || sinks[id].kind == LOG_SINK_NONE) {
+		cspinlock_unlock(&config_lock);
+		cspinlock_unlock(&output_lock);
+		return 1;
+	}
+	sinks[id] = (log_sink_t){0};
+	cspinlock_unlock(&config_lock);
+	cspinlock_unlock(&output_lock);
+	return 0;
+}
+
+int log_set_level(int id, int minimum)
+{
+	cspinlock_lock(&config_lock);
+	if (id < 0 || id >= LOG_MAX_CALLBACKS || sinks[id].kind == LOG_SINK_NONE || minimum < LOG_TRACE || minimum > LOG_FATAL) {
+		cspinlock_unlock(&config_lock);
+		return -1;
+	}
+	int previous	= sinks[id].level;
+	sinks[id].level = minimum;
+	cspinlock_unlock(&config_lock);
+	return previous;
+}
+
+int log_set_quiet(int id, int quiet)
+{
+	cspinlock_lock(&config_lock);
+	if (id < 0 || id >= LOG_MAX_CALLBACKS || sinks[id].kind == LOG_SINK_NONE) {
+		cspinlock_unlock(&config_lock);
+		return -1;
+	}
+	int previous	= sinks[id].quiet;
+	sinks[id].quiet = quiet != 0;
+	cspinlock_unlock(&config_lock);
+	return previous;
+}
+
+int log_set_header(int id, int enabled)
+{
+	cspinlock_lock(&config_lock);
+	if (id < 0 || id >= LOG_MAX_CALLBACKS || sinks[id].kind == LOG_SINK_NONE) {
+		cspinlock_unlock(&config_lock);
+		return -1;
+	}
+	int previous	 = sinks[id].header;
+	sinks[id].header = enabled != 0;
+	cspinlock_unlock(&config_lock);
+	return previous;
+}
+
+void log_set_location(int enabled)
+{
+	cspinlock_lock(&config_lock);
+	location_enabled = enabled != 0;
+	cspinlock_unlock(&config_lock);
 }
 
 const char *log_level_str(int level)
 {
-	return level_strs[level];
+	return level >= LOG_TRACE && level <= LOG_FATAL ? level_strs[level] : "UNKNOWN";
 }
 
-int log_set_level(int cb, int level)
+int log_write(int level, const char *component, const char *file, const char *func, int line, const char *fmt, ...)
 {
-	if (s_log == NULL || cb >= LOG_MAX_CALLBACKS || s_log->callbacks[cb].log == NULL) {
-		return -1;
-	}
-
-	const int cur = s_log->callbacks[cb].level;
-
-	s_log->callbacks[cb].level = level;
-
-	return cur;
-}
-
-int log_set_quiet(int cb, int quiet)
-{
-	if (s_log == NULL || cb >= LOG_MAX_CALLBACKS || s_log->callbacks[cb].log == NULL) {
-		return -1;
-	}
-
-	const int cur = s_log->callbacks[cb].quiet;
-
-	s_log->callbacks[cb].quiet = quiet;
-
-	return cur;
-}
-
-int log_set_header(int cb, int enable)
-{
-	if (s_log == NULL || cb >= LOG_MAX_CALLBACKS || s_log->callbacks[cb].log == NULL) {
-		return -1;
-	}
-
-	const int header = s_log->callbacks[cb].header;
-
-	s_log->callbacks[cb].header = enable;
-
-	return header;
-}
-
-int log_add_callback(log_cb log, dst_t dst, int level, int header, int colors)
-{
-	if (s_log == NULL) {
-		return -1;
-	}
-
-	for (int i = 0; i < LOG_MAX_CALLBACKS; i++) {
-		if (s_log->callbacks[i].log) {
-			continue;
-		}
-
-		s_log->callbacks[i] = (log_callback_t){
-			.log	= log,
-			.dst	= dst,
-			.level	= level,
-			.header = header,
-			.colors = colors,
-			.quiet	= 0,
-		};
-
-		return i;
-	}
-
-	return -1;
-}
-
-int log_remove_callback(int cb)
-{
-	if (s_log == NULL || cb < 0 || cb >= LOG_MAX_CALLBACKS || s_log->callbacks[cb].log == NULL) {
+	if (level < LOG_TRACE || level > LOG_FATAL || component == NULL || fmt == NULL) {
 		return 1;
 	}
-
-	s_log->callbacks[cb].log = NULL;
-
-	return 0;
-}
-
-static int init_event(log_event_t *ev, dst_t dst, int header, int colors)
-{
-	if (!ev->time[0]) {
-		c_time_str(ev->time);
-	}
-
-	ev->dst	   = dst;
-	ev->header = header;
-	ev->colors = colors;
-
-	return 0;
-}
-
-int log_log(int level, const char *pkg, const char *file, const char *func, int line, const char *tag, const char *fmt, ...)
-{
-	if (s_log == NULL || file == NULL || fmt == NULL) {
-		return 1;
-	}
-
-	log_event_t ev = {
-		.pkg   = pkg,
-		.file  = file,
-		.func  = func,
-		.tag   = tag,
-		.fmt   = fmt,
-		.line  = line,
-		.level = level,
+	va_list args;
+	va_start(args, fmt);
+	log_event_t base = {
+		.component = component,
+		.file	   = file,
+		.func	   = func,
+		.line	   = line,
+		.fmt	   = fmt,
+		.timestamp = c_time(),
+		.level	   = level,
 	};
 
-	for (int i = 0; i < LOG_MAX_CALLBACKS && s_log->callbacks[i].log; i++) {
-		log_callback_t *cb = &s_log->callbacks[i];
-		if (cb->quiet || level < cb->level) {
+	for (int i = 0; i < LOG_MAX_CALLBACKS; i++) {
+		cspinlock_lock(&config_lock);
+		log_sink_t sink = sinks[i];
+		int location	= location_enabled;
+		cspinlock_unlock(&config_lock);
+		if (sink.kind == LOG_SINK_NONE || sink.quiet || level < sink.level) {
 			continue;
 		}
 
-		init_event(&ev, cb->dst, cb->header, cb->colors);
-		va_start(ev.ap, fmt);
-		cb->dst.off += cb->log(&ev);
-		va_end(ev.ap);
+		log_event_t ev = base;
+		va_copy(ev.args, args);
+		if (sink.kind == LOG_SINK_CALLBACK) {
+			sink.callback(&ev, sink.user);
+		} else {
+			cspinlock_lock(&output_lock);
+			cspinlock_lock(&config_lock);
+			sink	 = sinks[i];
+			location = location_enabled;
+			cspinlock_unlock(&config_lock);
+			if (sink.kind == LOG_SINK_OUTPUT && !sink.quiet && level >= sink.level) {
+				size_t written = log_format(sink.dst, &ev, sink.header, sink.colors, location);
+				cspinlock_lock(&config_lock);
+				sinks[i].dst.off += written;
+				cspinlock_unlock(&config_lock);
+			} else if (sink.kind == LOG_SINK_FILE && !sink.quiet && level >= sink.level) {
+				dst_t dst = {.putv = file_putv, .dst = sink.file};
+				log_format(dst, &ev, sink.header, c_term_color(sink.file), location);
+			}
+			cspinlock_unlock(&output_lock);
+		}
+		va_end(ev.args);
 	}
-
+	va_end(args);
 	return 0;
 }
 

@@ -69,7 +69,7 @@ int mem_check()
 		return 0;
 	}
 
-	log_warn("cutils", "mem", NULL, "%d bytes not freed", stats->mem);
+	log_warn("cutils.mem", "%d bytes not freed", stats->mem);
 	return 1;
 }
 
@@ -78,13 +78,13 @@ int mem_check()
 void *mem_alloc(size_t size)
 {
 	if (size == 0) {
-		log_warn("cutils", "mem", NULL, "malloc 0 bytes");
+		log_warn("cutils.mem", "malloc 0 bytes");
 	}
 
 	void *ptr = size > 0 && s_oom ? NULL : malloc(size);
 
 	if (ptr == NULL) {
-		log_error("cutils", "mem", NULL, "out of memory");
+		log_error("cutils.mem", "out of memory");
 		return NULL;
 	}
 
@@ -96,13 +96,13 @@ void *mem_alloc(size_t size)
 void *mem_calloc(size_t count, size_t size)
 {
 	if (size == 0) {
-		log_warn("cutils", "mem", NULL, "calloc 0 bytes");
+		log_warn("cutils.mem", "calloc 0 bytes");
 	}
 
 	void *ptr = count * size > 0 && s_oom ? NULL : calloc(count, size);
 
 	if (ptr == NULL) {
-		log_error("cutils", "mem", NULL, "out of memory");
+		log_error("cutils.mem", "out of memory");
 		return NULL;
 	}
 
@@ -114,14 +114,14 @@ void *mem_calloc(size_t count, size_t size)
 void *mem_realloc(void *memory, size_t new_size, size_t old_size)
 {
 	if (memory == NULL) {
-		log_error("cutils", "mem", NULL, "realloc NULL");
+		log_error("cutils.mem", "realloc NULL");
 		return NULL;
 	}
 
 	if (new_size == 0 || new_size == old_size) {
-		log_warn("cutils", "mem", NULL, "realloc %zu -> %zu bytes", old_size, new_size);
+		log_warn("cutils.mem", "realloc %zu -> %zu bytes", old_size, new_size);
 	} else {
-		log_trace("cutils", "mem", NULL, "realloc %zu -> %zu bytes", old_size, new_size);
+		log_trace("cutils.mem", "realloc %zu -> %zu bytes", old_size, new_size);
 	}
 
 	if (new_size == 0) {
@@ -135,7 +135,7 @@ void *mem_realloc(void *memory, size_t new_size, size_t old_size)
 	void *ptr = new_size > old_size && s_oom ? NULL : realloc(memory, new_size);
 
 	if (ptr == NULL) {
-		log_error("cutils", "mem", NULL, "out of memory");
+		log_error("cutils.mem", "out of memory");
 		return NULL;
 	}
 
@@ -156,7 +156,7 @@ void *mem_set(void *dst, int val, size_t size)
 void *mem_copy(void *dst, size_t size, const void *src, size_t len)
 {
 	if (len > size) {
-		log_error("cutils", "mem", NULL, "destination too small: %d/%d", size, len);
+		log_error("cutils.mem", "destination too small: %d/%d", size, len);
 		return NULL;
 	}
 #if defined(C_WIN)
@@ -169,7 +169,7 @@ void *mem_copy(void *dst, size_t size, const void *src, size_t len)
 void *mem_move(void *dst, size_t size, const void *src, size_t len)
 {
 	if (len > size) {
-		log_error("cutils", "mem", NULL, "destination too small: %d/%d", size, len);
+		log_error("cutils.mem", "destination too small: %d/%d", size, len);
 		return NULL;
 	}
 #if defined(C_WIN)
@@ -186,7 +186,7 @@ void *mem_replace(void *dst, size_t size, size_t len, const void *src, size_t ol
 	}
 
 	if (new_len > old_len && len + (new_len - old_len) > size) {
-		log_error("cutils", "mem", NULL, "destination too small: %d/%d", size, len + (new_len - old_len));
+		log_error("cutils.mem", "destination too small: %d/%d", size, len + (new_len - old_len));
 		return NULL;
 	}
 

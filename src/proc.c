@@ -97,7 +97,7 @@ int op_cmd(proc_t *proc, strv_t cmd)
 	(void)proc;
 	int ret = cproc_system(cmd.data);
 	if (ret) {
-		log_error("cutils", "proc", NULL, "\"%.*s\": exited with code %d", cmd.len, cmd.data, ret);
+		log_error("cutils.proc", "\"%.*s\": exited with code %d", cmd.len, cmd.data, ret);
 	}
 	return ret;
 }

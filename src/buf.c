@@ -17,7 +17,7 @@ void *buf_init(buf_t *buf, size_t size, alloc_t alloc)
 
 	void *data = alloc_alloc(&alloc, size);
 	if (data == NULL) {
-		log_error("cutils", "buf", NULL, "failed to allocate data");
+		log_error("cutils.buf", "failed to allocate data");
 		return NULL;
 	}
 
@@ -64,7 +64,7 @@ int buf_resize(buf_t *buf, size_t size)
 	}
 
 	if (alloc_realloc(&buf->alloc, &buf->data, &buf->size, size)) {
-		log_error("cutils", "buf", NULL, "failed to resize buffer");
+		log_error("cutils.buf", "failed to resize buffer");
 		return 1;
 	}
 
@@ -359,7 +359,7 @@ void *buf_get(const buf_t *buf, size_t off)
 	}
 
 	if (off >= buf->used) {
-		log_error("cutils", "buf", NULL, "invalid offset: %zu/%zu", off, buf->used);
+		log_error("cutils.buf", "invalid offset: %zu/%zu", off, buf->used);
 		return NULL;
 	}
 

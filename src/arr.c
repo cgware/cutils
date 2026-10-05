@@ -11,7 +11,7 @@ arr_t *arr_init(arr_t *arr, uint cap, size_t size, alloc_t alloc)
 
 	void *data = alloc_alloc(&alloc, cap * size);
 	if (data == NULL) {
-		log_error("cutils", "arr", NULL, "failed to allocate memory");
+		log_error("cutils.arr", "failed to allocate memory");
 		return NULL;
 	}
 
@@ -62,7 +62,7 @@ int arr_resize(arr_t *arr, uint cap)
 
 	size_t old_size = arr->cap * arr->size;
 	if (alloc_realloc(&arr->alloc, &arr->data, &old_size, cap * arr->size)) {
-		log_error("cutils", "arr", NULL, "failed to resize array");
+		log_error("cutils.arr", "failed to resize array");
 		return 1;
 	}
 
@@ -80,7 +80,7 @@ void *arr_add(arr_t *arr, uint *id)
 	}
 
 	if (arr->cnt >= arr->cap && arr_resize(arr, MAX(1, arr->cap * 2))) {
-		log_error("cutils", "arr", NULL, "failed to add element");
+		log_error("cutils.arr", "failed to add element");
 		return NULL;
 	}
 
@@ -98,7 +98,7 @@ void *arr_get(const arr_t *arr, uint id)
 	}
 
 	if (id >= arr->cnt) {
-		log_error("cutils", "arr", NULL, "invalid id: %d", id);
+		log_error("cutils.arr", "invalid id: %d", id);
 		return NULL;
 	}
 

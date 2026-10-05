@@ -726,7 +726,7 @@ int fs_open(fs_t *fs, strv_t path, const char *mode, void **file)
 
 	cerr_t err = s_fs_ops[fs->virt].open(fs, STRVS(buf), mode, file);
 	if (err) {
-		log_error("cutils", "file", NULL, "failed to open file for %s: %s: \"%s\"", mode, cerr_str(err), buf.data);
+		log_error("cutils.file", "failed to open file for %s: %s: \"%s\"", mode, cerr_str(err), buf.data);
 	}
 
 	return err;
@@ -740,7 +740,7 @@ int fs_close(fs_t *fs, void *file)
 
 	cerr_t err = s_fs_ops[fs->virt].close(fs, file);
 	if (err) {
-		log_error("cutils", "file", NULL, "failed to close file: %s", cerr_str(err));
+		log_error("cutils.file", "failed to close file: %s", cerr_str(err));
 		return err;
 	}
 
@@ -755,7 +755,7 @@ int fs_writeb(fs_t *fs, void *file, buf_t buf)
 
 	cerr_t err = s_fs_ops[fs->virt].writeb(fs, file, buf);
 	if (err) {
-		log_error("cutils", "file", NULL, "failed to write file: %s", cerr_str(err));
+		log_error("cutils.file", "failed to write file: %s", cerr_str(err));
 		return err;
 	}
 
@@ -770,7 +770,7 @@ int fs_writes(fs_t *fs, void *file, strv_t str)
 
 	cerr_t err = s_fs_ops[fs->virt].writes(fs, file, str);
 	if (err) {
-		log_error("cutils", "file", NULL, "failed to write file: %s", cerr_str(err));
+		log_error("cutils.file", "failed to write file: %s", cerr_str(err));
 		return err;
 	}
 
@@ -795,7 +795,8 @@ int fs_readb(fs_t *fs, strv_t path, buf_t *buf)
 	size_t size;
 	err = fs_du(fs, file, &size);
 	if (err) {
-		return err; // LCOV_EXCL_LINE
+		fs_close(fs, file);
+		return err;
 	}
 
 	if (buf_resize(buf, size)) {
@@ -829,7 +830,8 @@ int fs_reads(fs_t *fs, strv_t path, str_t *str)
 	size_t size;
 	err = fs_du(fs, file, &size);
 	if (err) {
-		return err; // LCOV_EXCL_LINE
+		fs_close(fs, file);
+		return err;
 	}
 
 	if (str_resize(str, size + 1)) {
@@ -861,7 +863,7 @@ int fs_du(fs_t *fs, void *file, size_t *size)
 
 	cerr_t err = s_fs_ops[fs->virt].du(fs, file, size);
 	if (err) {
-		log_error("cutils", "file", NULL, "failed to get file size: %s", cerr_str(err));
+		log_error("cutils.file", "failed to get file size: %s", cerr_str(err));
 	}
 
 	return err;
@@ -896,7 +898,7 @@ int fs_mkdir(fs_t *fs, strv_t path)
 
 	cerr_t err = s_fs_ops[fs->virt].mkdir(fs, path_trim(STRVS(buf)));
 	if (err) {
-		log_error("cutils", "file", NULL, "failed to create directory: %s: \"%s\"", cerr_str(err), buf.data);
+		log_error("cutils.file", "failed to create directory: %s: \"%s\"", cerr_str(err), buf.data);
 	}
 
 	return err;
@@ -911,7 +913,7 @@ int fs_mkfile(fs_t *fs, strv_t path)
 
 	cerr_t err = s_fs_ops[fs->virt].mkfile(fs, STRVS(buf));
 	if (err) {
-		log_error("cutils", "file", NULL, "failed to create file: %s: \"%s\"", cerr_str(err), buf.data);
+		log_error("cutils.file", "failed to create file: %s: \"%s\"", cerr_str(err), buf.data);
 	}
 
 	return err;
@@ -927,7 +929,7 @@ int fs_mkpath(fs_t *fs, strv_t base, strv_t path)
 	cerr_t err;
 	if (base.data && !fs_isdir(fs, base)) {
 		err = CERR_NOT_FOUND;
-		log_error("cutils", "file", NULL, "failed to create path: %s: \"%s\"", cerr_str(err), buf.data);
+		log_error("cutils.file", "failed to create path: %s: \"%s\"", cerr_str(err), buf.data);
 		return err;
 	}
 
@@ -956,7 +958,7 @@ int fs_rmdir(fs_t *fs, strv_t path)
 
 	cerr_t err = s_fs_ops[fs->virt].rmdir(fs, path_trim(STRVS(buf)));
 	if (err) {
-		log_error("cutils", "file", NULL, "failed to remove directory: %s: \"%s\"", cerr_str(err), buf.data);
+		log_error("cutils.file", "failed to remove directory: %s: \"%s\"", cerr_str(err), buf.data);
 	}
 
 	return err;
@@ -971,7 +973,7 @@ int fs_rmfile(fs_t *fs, strv_t path)
 
 	cerr_t err = s_fs_ops[fs->virt].rmfile(fs, STRVS(buf));
 	if (err) {
-		log_error("cutils", "file", NULL, "failed to remove file: %s: \"%s\"", cerr_str(err), buf.data);
+		log_error("cutils.file", "failed to remove file: %s: \"%s\"", cerr_str(err), buf.data);
 	}
 
 	return err;
@@ -987,7 +989,7 @@ int fs_rmpath(fs_t *fs, strv_t base, strv_t path)
 	cerr_t err;
 	if (base.data && !fs_isdir(fs, base)) {
 		err = CERR_NOT_FOUND;
-		log_error("cutils", "file", NULL, "failed to remove path: %s: \"%s\"", cerr_str(err), buf.data);
+		log_error("cutils.file", "failed to remove path: %s: \"%s\"", cerr_str(err), buf.data);
 		return err;
 	}
 
@@ -1033,7 +1035,7 @@ int fs_getcwd(fs_t *fs, str_t *path)
 
 	cerr_t err = s_fs_ops[fs->virt].getcwd(fs, path);
 	if (err) {
-		log_error("cutils", "file", NULL, "failed to get cwd: %s", cerr_str(err));
+		log_error("cutils.file", "failed to get cwd: %s", cerr_str(err));
 	}
 
 	return err;
@@ -1050,7 +1052,7 @@ int fs_lsdir(fs_t *fs, strv_t path, strbuf_t *dirs)
 
 	cerr_t err = s_fs_ops[fs->virt].lsdir(fs, STRVS(buf), dirs);
 	if (err) {
-		log_error("cutils", "file", NULL, "failed to list directories: %s: \"%s\"", cerr_str(err), buf.data);
+		log_error("cutils.file", "failed to list directories: %s: \"%s\"", cerr_str(err), buf.data);
 		return err;
 	}
 
@@ -1070,7 +1072,7 @@ int fs_lsfile(fs_t *fs, strv_t path, strbuf_t *files)
 
 	cerr_t err = s_fs_ops[fs->virt].lsfile(fs, STRVS(buf), files);
 	if (err) {
-		log_error("cutils", "file", NULL, "failed to list files: %s: \"%s\"", cerr_str(err), buf.data);
+		log_error("cutils.file", "failed to list files: %s: \"%s\"", cerr_str(err), buf.data);
 		return err;
 	}
 

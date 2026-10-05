@@ -186,7 +186,7 @@ static int parse_param(opt_t *opt, int opt_long, strv_t param, dst_t dst)
 		}
 		opt->set = 1;
 		break;
-	default: log_error("cutils", "args", NULL, "unknown type: %d", opt->type); break;
+	default: log_error("cutils.args", "unknown type: %d", opt->type); break;
 	}
 
 	return 0;

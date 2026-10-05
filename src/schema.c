@@ -130,7 +130,7 @@ const schema_field_t *schema_get_field(const schema_t *schema, uint field)
 
 	const schema_field_t *f = arr_get(&schema->fields, field);
 	if (f == NULL) {
-		log_error("cutils", "schema", NULL, "failed to get definition: %d", field);
+		log_error("cutils.schema", "failed to get definition: %d", field);
 		return NULL;
 	}
 
@@ -146,7 +146,7 @@ int schema_add_layout(schema_t *schema, schema_member_desc_t *members, size_t si
 	uint layouts_cnt;
 	schema_layout_t *l = arr_add(&schema->layouts, &layouts_cnt);
 	if (l == NULL) {
-		log_error("cutils", "schema", NULL, "failed to add layout");
+		log_error("cutils.schema", "failed to add layout");
 		return 1;
 	}
 
@@ -161,21 +161,21 @@ int schema_add_layout(schema_t *schema, schema_member_desc_t *members, size_t si
 	for (uint i = 0; i < size / sizeof(schema_member_desc_t); i++) {
 		const schema_field_t *f = schema_get_field(schema, members[i].field);
 		if (f == NULL) {
-			log_error("cutils", "schema", NULL, "invalid field: %d", members[i].field);
+			log_error("cutils.schema", "invalid field: %d", members[i].field);
 			ret = 1;
 			continue;
 		}
 
 		schema_member_t *member = arr_add(&schema->members, NULL);
 		if (member == NULL) {
-			log_error("cutils", "schema", NULL, "failed to add field");
+			log_error("cutils.schema", "failed to add field");
 			ret = 1;
 			continue;
 		}
 
 		field_map_t *fm = arr_add(&schema->field_maps, NULL);
 		if (fm == NULL) {
-			log_error("cutils", "schema", NULL, "failed to add field map");
+			log_error("cutils.schema", "failed to add field map");
 			ret = 1;
 			continue;
 		}
@@ -225,7 +225,7 @@ const schema_layout_t *schema_get_layout(const schema_t *schema, uint layout)
 
 	const schema_layout_t *l = arr_get(&schema->layouts, layout);
 	if (l == NULL) {
-		log_error("cutils", "schema", NULL, "failed to get layout: %d", layout);
+		log_error("cutils.schema", "failed to get layout: %d", layout);
 		return NULL;
 	}
 
@@ -245,7 +245,7 @@ const schema_member_t *schema_get_member(const schema_t *schema, uint layout, ui
 
 	const schema_member_t *m = arr_get(&schema->members, l->members + member);
 	if (m == NULL) {
-		log_error("cutils", "layout", NULL, "failed to get field");
+		log_error("cutils.layout", "failed to get field");
 		return NULL;
 	}
 
@@ -269,13 +269,13 @@ int schema_set_val(const schema_t *schema, uint layout, uint member, void *data,
 
 	const schema_layout_t *l = arr_get(&schema->layouts, layout);
 	if (l == NULL) {
-		log_error("cutils", "schema", NULL, "invalid layout: %d", layout);
+		log_error("cutils.schema", "invalid layout: %d", layout);
 		return 1;
 	}
 
 	const field_map_t *map = arr_get(&schema->field_maps, l->members + member);
 	if (map == NULL) {
-		log_error("cutils", "schema", NULL, "invalid member: %d", member);
+		log_error("cutils.schema", "invalid member: %d", member);
 		return 1;
 	}
 
@@ -306,13 +306,13 @@ const void *schema_get_val(const schema_t *schema, uint member, const void *data
 
 	const schema_layout_t *l = schema_get_layout(schema, 0);
 	if (l == NULL) {
-		log_error("cutils", "schema", NULL, "invalid layout: %d", 0);
+		log_error("cutils.schema", "invalid layout: %d", 0);
 		return NULL;
 	}
 
 	const schema_member_t *m = schema_get_member(schema, 0, l->members + member);
 	if (m == NULL) {
-		log_error("cutils", "schema", NULL, "invalid member: %d", member);
+		log_error("cutils.schema", "invalid member: %d", member);
 		return NULL;
 	}
 
@@ -337,19 +337,19 @@ size_t schema_print_val(const schema_t *schema, uint layout, uint member, const 
 
 	const schema_layout_t *l = schema_get_layout(schema, layout);
 	if (l == NULL) {
-		log_error("cutils", "schema", NULL, "invalid layout: %d", layout);
+		log_error("cutils.schema", "invalid layout: %d", layout);
 		return 0;
 	}
 
 	const schema_member_t *m = schema_get_member(schema, layout, member);
 	if (m == NULL) {
-		log_error("cutils", "schema", NULL, "invalid field: %d", member);
+		log_error("cutils.schema", "invalid field: %d", member);
 		return 0;
 	}
 
 	const schema_field_t *f = schema_get_field(schema, m->field);
 	if (f == NULL) {
-		log_error("cutils", "schema", NULL, "invalid field: %d", m->field);
+		log_error("cutils.schema", "invalid field: %d", m->field);
 		return 0;
 	}
 

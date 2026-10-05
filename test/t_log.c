@@ -2,488 +2,336 @@
 
 #include "test.h"
 
-TEST(log_set_get)
-{
-	START;
-
-	const log_t *log = log_get();
-
-	EXPECT_PTR(log_set(NULL), log);
-
-	log_set((log_t *)log);
-
-	END;
-}
-
-TEST(log_print_header)
-{
-	START;
-
-	log_t tmp  = {0};
-	log_t *log = log_set(&tmp);
-
-	char buf[1024] = {0};
-
-	int cb = log_add_callback(log_std_cb, DST_BUF(buf), LOG_DEBUG, 1, 0);
-
-	log_debug("test", "log", NULL, "file test %d", 1);
-	uint exp_line = __LINE__ - 1;
-
-	uint y, m, d, H, M, S, U, line, x;
-
-	// clang-format off
-	EXPECT_FMT(buf, 9, "%4u-%2u-%2u %2u:%2u:%2u.%3u DEBUG [test:log] test_log_print_header:%u: file test %u\n",
-		   &y, &m, &d, &H, &M, &S, &U, &line, &x);
-	// clang-format on
-
-	EXPECT_EQ(line, exp_line);
-	EXPECT_EQ(x, 1);
-
-	log_remove_callback(cb);
-	log_set(log);
-
-	END;
-}
-
-TEST(log_print_header_tag)
-{
-	START;
-
-	log_t tmp  = {0};
-	log_t *log = log_set(&tmp);
-
-	char buf[1024] = {0};
-
-	int cb = log_add_callback(log_std_cb, DST_BUF(buf), LOG_DEBUG, 1, 0);
-
-	log_debug("test", "log", "file", "file test %d", 2);
-	uint exp_line = __LINE__ - 1;
-
-	uint y, m, d, H, M, S, U, line, x;
-
-	// clang-format off
-	EXPECT_FMT(buf, 9, "%4u-%2u-%2u %2u:%2u:%2u.%3u DEBUG [test:log] test_log_print_header_tag:%u: [file] file test %u\n",
-		   &y, &m, &d, &H, &M, &S, &U, &line, &x);
-	// clang-format on
-
-	EXPECT_EQ(line, exp_line);
-	EXPECT_EQ(x, 2);
-
-	log_remove_callback(cb);
-	log_set(log);
-
-	END;
-}
-
-TEST(log_print_header_color)
-{
-	START;
-
-	log_t tmp  = {0};
-	log_t *log = log_set(&tmp);
-
-	char buf[1024] = {0};
-
-	int cb = log_add_callback(log_std_cb, DST_BUF(buf), LOG_DEBUG, 1, 1);
-
-	log_debug("test", "log", NULL, "file test %d", 2);
-	uint exp_line = __LINE__ - 1;
-
-	uint y, m, d, H, M, S, U, line, x;
-
-	// clang-format off
-	EXPECT_FMT(buf, 9, "\033[90m%4u-%2u-%2u %2u:%2u:%2u.%3u \033[36mDEBUG\033[0m [test:log] \033[90mtest_log_print_header_color:%u:\033[0m file test %u\n",
-		   &y, &m, &d, &H, &M, &S, &U, &line, &x);
-	// clang-format on
-
-	EXPECT_EQ(line, exp_line);
-	EXPECT_EQ(x, 2);
-
-	log_remove_callback(cb);
-	log_set(log);
-
-	END;
-}
-
-TEST(log_print_no_header)
-{
-	START;
-
-	log_t tmp  = {0};
-	log_t *log = log_set(&tmp);
-
-	char buf[1024] = {0};
-
-	int cb = log_add_callback(log_std_cb, DST_BUF(buf), LOG_DEBUG, 0, 0);
-
-	log_debug("test", "log", NULL, "file test %d", 3);
-
-	uint x;
-
-	EXPECT_FMT(buf, 1, "file test %u\n", &x);
-
-	EXPECT_EQ(x, 3);
-
-	log_remove_callback(cb);
-	log_set(log);
-
-	END;
-}
-
-TEST(log_print_no_header_tag)
-{
-	START;
-
-	log_t tmp  = {0};
-	log_t *log = log_set(&tmp);
-
-	char buf[1024] = {0};
-
-	int cb = log_add_callback(log_std_cb, DST_BUF(buf), LOG_DEBUG, 0, 0);
-
-	log_debug("test", "log", "file", "file test %d", 4);
-
-	uint x;
-
-	EXPECT_FMT(buf, 1, "[file] file test %u\n", &x);
-
-	EXPECT_EQ(x, 4);
-
-	log_remove_callback(cb);
-	log_set(log);
-
-	END;
-}
+#include <string.h>
 
 TEST(log_print)
 {
-	SSTART;
-	RUN(log_print_header);
-	RUN(log_print_header_tag);
-	RUN(log_print_header_color);
-	RUN(log_print_no_header);
-	RUN(log_print_no_header_tag);
-	SEND;
-}
-
-TEST(log_level_str)
-{
 	START;
-
-	EXPECT_STR(log_level_str(LOG_TRACE), "TRACE");
-	EXPECT_STR(log_level_str(LOG_DEBUG), "DEBUG");
-
+	char plain[256]	  = {0};
+	char colored[256] = {0};
+	char message[64]  = {0};
+	int plain_id	  = log_add_output(DST_BUF(plain), LOG_DEBUG, 1, 0);
+	int color_id	  = log_add_output(DST_BUF(colored), LOG_DEBUG, 1, 1);
+	int message_id	  = log_add_output(DST_BUF(message), LOG_DEBUG, 0, 0);
+	EXPECT_EQ(plain_id >= 0 && color_id >= 0 && message_id >= 0, 1);
+	log_debug("test", "value %d", 7);
+	uint y, m, d, H, M, S, U, x;
+	EXPECT_FMT(plain, 8, "%4u-%2u-%2u %2u:%2u:%2u.%3u DEBUG test             value %u\n", &y, &m, &d, &H, &M, &S, &U, &x);
+	EXPECT_EQ(x, 7);
+	EXPECT_FMT(colored,
+		   8,
+		   "\033[90m%4u-%2u-%2u %2u:%2u:%2u.%3u\033[0m \033[36mDEBUG\033[0m test             value %u\n",
+		   &y,
+		   &m,
+		   &d,
+		   &H,
+		   &M,
+		   &S,
+		   &U,
+		   &x);
+	EXPECT_STR(message, "value 7\n");
+	EXPECT_EQ(log_remove_callback(plain_id), 0);
+	EXPECT_EQ(log_remove_callback(color_id), 0);
+	EXPECT_EQ(log_remove_callback(message_id), 0);
 	END;
 }
 
-TEST(log_set_level)
+TEST(log_file)
 {
 	START;
-
-	char buf[1024] = {0};
-
-	int cb = log_add_callback(log_std_cb, DST_BUF(buf), LOG_DEBUG, 0, 0);
-
-	log_t *log = log_set(NULL);
-	EXPECT_EQ(log_set_level(cb, LOG_WARN), -1);
-
-	log_set(log);
-	EXPECT_EQ(log_set_level(cb, log_set_level(cb, LOG_DEBUG)), LOG_DEBUG);
-
-	log_remove_callback(cb);
-
+	FILE *file = tmpfile();
+	if (file == NULL) {
+		END;
+	}
+	char buffer[256] = {0};
+	int output_id	 = log_add_output(DST_BUF(buffer), LOG_INFO, 1, 0);
+	int file_id	 = log_add_file(file, LOG_INFO);
+	EXPECT_EQ(output_id >= 0 && file_id >= 0, 1);
+	log_info("test", "shared %d", 5);
+	fflush(file);
+	rewind(file);
+	char from_file[256] = {0};
+	fgets(from_file, sizeof(from_file), file);
+	EXPECT_STR(buffer, from_file);
+	EXPECT_EQ(log_remove_callback(output_id), 0);
+	EXPECT_EQ(log_remove_callback(file_id), 0);
+	fclose(file);
 	END;
 }
 
-TEST(log_set_quiet)
+TEST(log_output_controls)
 {
 	START;
-
-	char buf[1024] = {0};
-
-	int cb = log_add_callback(log_std_cb, DST_BUF(buf), LOG_DEBUG, 0, 0);
-
-	log_t *log = log_set(NULL);
-	EXPECT_EQ(log_set_quiet(cb, 0), -1);
-
-	log_set(log);
-	EXPECT_EQ(log_set_quiet(cb, log_set_quiet(cb, 1)), 1);
-
-	log_remove_callback(cb);
-
+	char buffer[256] = {0};
+	int id		 = log_add_output(DST_BUF(buffer), LOG_INFO, 0, 0);
+	EXPECT_EQ(id >= 0, 1);
+	log_info("test", "first");
+	EXPECT_STR(buffer, "first\n");
+	EXPECT_EQ(log_set_header(id, 1), 0);
+	EXPECT_EQ(log_set_level(id, LOG_WARN), LOG_INFO);
+	log_info("test", "filtered");
+	EXPECT_STR(buffer, "first\n");
+	int quiet = log_set_quiet(0, 1);
+	log_warn("test", "second");
+	EXPECT_EQ(strstr(buffer, "WARN  test             second\n") != NULL, 1);
+	EXPECT_EQ(log_set_quiet(id, 1), 0);
+	size_t length = strlen(buffer);
+	log_error("test", "quiet");
+	log_set_quiet(0, quiet);
+	EXPECT_EQ(strlen(buffer), length);
+	log_remove_callback(id);
 	END;
 }
 
-TEST(log_set_header)
+TEST(log_location)
 {
 	START;
-
-	char buf[1024] = {0};
-
-	int cb = log_add_callback(log_std_cb, DST_BUF(buf), LOG_DEBUG, 0, 0);
-
-	log_t *log = log_set(NULL);
-	EXPECT_EQ(log_set_header(cb, 1), -1);
-
-	log_set(log);
-	EXPECT_EQ(log_set_header(cb, log_set_header(cb, 0)), 0);
-
-	log_remove_callback(cb);
-
+	char plain[256]	  = {0};
+	char colored[256] = {0};
+	int plain_id	  = log_add_output(DST_BUF(plain), LOG_INFO, 0, 0);
+	int color_id	  = log_add_output(DST_BUF(colored), LOG_INFO, 0, 1);
+	log_set_location(1);
+	int line = __LINE__ + 1;
+	log_info("test", "located");
+	char expected[160];
+	snprintf(expected, sizeof(expected), "%s:%d:%s located\n", __FILE__, line, __func__);
+	EXPECT_STR(plain, expected);
+	snprintf(expected, sizeof(expected), "\033[90m%s:%d:%s\033[0m located\n", __FILE__, line, __func__);
+	EXPECT_STR(colored, expected);
+	log_set_location(0);
+	log_remove_callback(plain_id);
+	log_remove_callback(color_id);
 	END;
 }
 
-static size_t print_callback(log_event_t *ev)
+typedef struct capture_s {
+	int id;
+	int count;
+	int level;
+	char message[128];
+	char file[128];
+	char function[64];
+	int line;
+} capture_t;
+
+static void capture_event(log_event_t *ev, void *user)
+{
+	capture_t *capture = user;
+	capture->count++;
+	capture->level = ev->level;
+	capture->line  = ev->line;
+	snprintf(capture->file, sizeof(capture->file), "%s", ev->file);
+	snprintf(capture->function, sizeof(capture->function), "%s", ev->func);
+	va_list args;
+	va_copy(args, ev->args);
+	vsnprintf(capture->message, sizeof(capture->message), ev->fmt, args);
+	va_end(args);
+	if (capture->count == 1) {
+		log_set_level(capture->id, LOG_ERROR);
+	}
+}
+
+TEST(log_callback)
+{
+	START;
+	capture_t capture = {0};
+	capture.id	  = log_add_callback(capture_event, &capture, LOG_INFO);
+	EXPECT_EQ(capture.id >= 0, 1);
+	log_debug("test", "filtered");
+	EXPECT_EQ(capture.count, 0);
+	int line = __LINE__ + 1;
+	log_info("test", "first %d", 1);
+	EXPECT_EQ(capture.count, 1);
+	EXPECT_EQ(capture.level, LOG_INFO);
+	EXPECT_EQ(capture.line, line);
+	EXPECT_STR(capture.file, __FILE__);
+	EXPECT_STR(capture.function, __func__);
+	EXPECT_STR(capture.message, "first 1");
+	log_info("test", "filtered again");
+	EXPECT_EQ(capture.count, 1);
+	int quiet = log_set_quiet(0, 1);
+	log_error("test", "second %d", 2);
+	log_set_quiet(0, quiet);
+	EXPECT_EQ(capture.count, 2);
+	EXPECT_STR(capture.message, "second 2");
+	log_remove_callback(capture.id);
+	END;
+}
+
+static void count_event(log_event_t *ev, void *user)
 {
 	(void)ev;
-	return 0;
+	int *count = user;
+	(*count)++;
 }
 
-TEST(log_add_callback)
+typedef struct remove_state_s {
+	int target;
+	int calls;
+} remove_state_t;
+
+static void remove_later(log_event_t *ev, void *user)
+{
+	(void)ev;
+	remove_state_t *state = user;
+	state->calls++;
+	log_remove_callback(state->target);
+}
+
+TEST(log_remove_during_callback)
 {
 	START;
+	remove_state_t state = {0};
+	int count	     = 0;
+	int first	     = log_add_callback(remove_later, &state, LOG_INFO);
+	state.target	     = log_add_callback(count_event, &count, LOG_INFO);
+	EXPECT_EQ(first >= 0 && state.target > first, 1);
+	log_info("test", "remove next");
+	EXPECT_EQ(state.calls, 1);
+	EXPECT_EQ(count, 0);
+	log_remove_callback(first);
+	END;
+}
 
-	const log_t *log = log_get();
+typedef struct replace_state_s {
+	int target;
+	int replacement;
+	int calls;
+} replace_state_t;
 
-	log_set(NULL);
+static void replace_later(log_event_t *ev, void *user)
+{
+	(void)ev;
+	replace_state_t *state = user;
+	state->calls++;
+	log_remove_callback(state->target);
+	state->replacement = log_add_callback(count_event, &state->calls, LOG_INFO);
+}
 
-	EXPECT_EQ(log_add_callback(print_callback, DST_NONE(), LOG_TRACE, 1, 0), -1);
+TEST(log_replace_during_callback)
+{
+	START;
+	replace_state_t state = {.replacement = -1};
+	int old_calls	      = 0;
+	int first	      = log_add_callback(replace_later, &state, LOG_INFO);
+	state.target	      = log_add_callback(count_event, &old_calls, LOG_INFO);
+	EXPECT_EQ(first >= 0 && state.target > first, 1);
+	log_info("test", "replace next");
+	EXPECT_EQ(state.replacement, state.target);
+	EXPECT_EQ(state.calls, 2);
+	EXPECT_EQ(old_calls, 0);
+	log_remove_callback(first);
+	log_remove_callback(state.replacement);
+	END;
+}
 
-	log_t tmp = {0};
-	log_set(&tmp);
+TEST(log_controls)
+{
+	START;
+	int count = 0;
+	int id	  = log_add_callback(count_event, &count, LOG_INFO);
+	EXPECT_EQ(id >= 0, 1);
+	EXPECT_EQ(log_set_quiet(id, 1), 0);
+	log_info("test", "quiet");
+	EXPECT_EQ(count, 0);
+	EXPECT_EQ(log_set_quiet(id, 0), 1);
+	EXPECT_EQ(log_set_level(id, LOG_ERROR), LOG_INFO);
+	log_info("test", "filtered");
+	EXPECT_EQ(count, 0);
+	int quiet = log_set_quiet(0, 1);
+	log_error("test", "called");
+	log_set_quiet(0, quiet);
+	EXPECT_EQ(count, 1);
+	EXPECT_EQ(log_set_header(id, 0), 0);
+	EXPECT_EQ(log_remove_callback(id), 0);
+	EXPECT_EQ(log_remove_callback(id), 1);
+	EXPECT_EQ(log_set_level(id, LOG_INFO), -1);
+	EXPECT_EQ(log_set_quiet(id, 1), -1);
+	EXPECT_EQ(log_set_header(id, 1), -1);
+	EXPECT_EQ(log_remove_callback(-1), 1);
+	EXPECT_EQ(log_set_level(-1, LOG_INFO), -1);
+	EXPECT_EQ(log_set_quiet(-1, 1), -1);
+	EXPECT_EQ(log_set_header(-1, 1), -1);
+	END;
+}
 
-	int cb;
-
-	for (int i = 0; i < LOG_MAX_CALLBACKS; i++) {
-		EXPECT_EQ(cb = log_add_callback(print_callback, DST_NONE(), LOG_TRACE, 1, 0), i);
+TEST(log_registry)
+{
+	START;
+	EXPECT_EQ(log_add_callback(NULL, NULL, LOG_INFO), -1);
+	EXPECT_EQ(log_add_output(DST_NONE(), LOG_INFO, 1, 0), -1);
+	EXPECT_EQ(log_add_file(NULL, LOG_INFO), -1);
+	EXPECT_EQ(log_add_callback(count_event, NULL, -1), -1);
+	int count = 0;
+	int ids[LOG_MAX_CALLBACKS];
+	while (count < LOG_MAX_CALLBACKS) {
+		int id = log_add_callback(count_event, NULL, LOG_TRACE);
+		if (id < 0) {
+			break;
+		}
+		ids[count++] = id;
 	}
-
-	EXPECT_EQ(log_add_callback(print_callback, DST_NONE(), LOG_TRACE, 1, 0), -1);
-
-	log_debug("test", "log", NULL, "trace");
-
-	log_remove_callback(-1);
-	log_remove_callback(cb);
-
-	log_set((log_t *)log);
-
+	EXPECT_EQ(count, LOG_MAX_CALLBACKS - 1);
+	EXPECT_EQ(log_add_callback(count_event, NULL, LOG_TRACE), -1);
+	for (int i = 0; i < count; i++) {
+		log_remove_callback(ids[i]);
+	}
 	END;
 }
 
-TEST(log_log)
+TEST(log_write_invalid)
 {
 	START;
-
-	log_t *log = log_set(NULL);
-	EXPECT_EQ(log_log(LOG_TRACE, "test", "log", NULL, 0, NULL, NULL), 1);
-
-	log_t tmp = {0};
-	log_set(&tmp);
-
-	EXPECT_EQ(log_log(LOG_TRACE, "test", "log", NULL, 0, NULL, NULL), 1);
-
-	log_set((log_t *)log);
-
+	EXPECT_EQ(log_format(DST_NONE(), NULL, 0, 0, 0), 0);
+	EXPECT_EQ(log_write(LOG_INFO, "test", __FILE__, __func__, __LINE__, NULL), 1);
+	EXPECT_EQ(log_write(-1, "test", __FILE__, __func__, __LINE__, "invalid"), 1);
+	EXPECT_EQ(log_write(LOG_INFO, NULL, __FILE__, __func__, __LINE__, "invalid"), 1);
+	EXPECT_STR(log_level_str(LOG_TRACE), "TRACE");
+	EXPECT_STR(log_level_str(LOG_FATAL), "FATAL");
+	EXPECT_STR(log_level_str(-1), "UNKNOWN");
 	END;
 }
 
-TEST(log_trace)
+static void format_invalid_time(log_event_t *ev, void *user)
 {
-	START;
-
-	log_t tmp  = {0};
-	log_t *log = log_set(&tmp);
-
-	char buf[1024] = {0};
-
-	int cb = log_add_callback(log_std_cb, DST_BUF(buf), LOG_TRACE, 1, 0);
-
-	log_trace("test", "log", NULL, "trace%d", 1);
-	uint exp_line = __LINE__ - 1;
-
-	uint y, m, d, H, M, S, U, line, x;
-
-	EXPECT_FMT(
-		buf, 9, "%4u-%2u-%2u %2u:%2u:%2u.%3u TRACE [test:log] test_log_trace:%u: trace%u\n", &y, &m, &d, &H, &M, &S, &U, &line, &x);
-
-	EXPECT_EQ(line, exp_line);
-	EXPECT_EQ(x, 1);
-
-	log_remove_callback(cb);
-	log_set(log);
-
-	END;
+	char *buffer  = user;
+	ev->timestamp = UINT64_MAX;
+	log_format(DST_BUFN(buffer, 128), ev, 1, 0, 0);
 }
 
-TEST(log_debug)
+TEST(log_format_failure)
 {
 	START;
-
-	log_t tmp  = {0};
-	log_t *log = log_set(&tmp);
-
-	char buf[1024] = {0};
-
-	int cb = log_add_callback(log_std_cb, DST_BUF(buf), LOG_DEBUG, 1, 0);
-
-	log_debug("test", "log", NULL, "debug%d", 1);
-	uint exp_line = __LINE__ - 1;
-
-	uint y, m, d, H, M, S, U, line, x;
-
-	EXPECT_FMT(
-		buf, 9, "%4u-%2u-%2u %2u:%2u:%2u.%3u DEBUG [test:log] test_log_debug:%u: debug%u\n", &y, &m, &d, &H, &M, &S, &U, &line, &x);
-
-	EXPECT_EQ(line, exp_line);
-	EXPECT_EQ(x, 1);
-
-	log_remove_callback(cb);
-	log_set(log);
-
-	END;
-}
-
-TEST(log_info)
-{
-	START;
-
-	log_t tmp  = {0};
-	log_t *log = log_set(&tmp);
-
-	char buf[1024] = {0};
-
-	int cb = log_add_callback(log_std_cb, DST_BUF(buf), LOG_INFO, 1, 0);
-
-	log_info("test", "log", NULL, "info%d", 1);
-	uint exp_line = __LINE__ - 1;
-
-	uint y, m, d, H, M, S, U, line, x;
-
-	EXPECT_FMT(
-		buf, 9, "%4u-%2u-%2u %2u:%2u:%2u.%3u INFO  [test:log] test_log_info:%u: info%u\n", &y, &m, &d, &H, &M, &S, &U, &line, &x);
-
-	EXPECT_EQ(line, exp_line);
-	EXPECT_EQ(x, 1);
-
-	log_remove_callback(cb);
-	log_set(log);
-
-	END;
-}
-
-TEST(log_warn)
-{
-	START;
-
-	log_t tmp  = {0};
-	log_t *log = log_set(&tmp);
-
-	char buf[1024] = {0};
-
-	int cb = log_add_callback(log_std_cb, DST_BUF(buf), LOG_WARN, 1, 0);
-
-	log_warn("test", "log", NULL, "warn%d", 1);
-	uint exp_line = __LINE__ - 1;
-
-	uint y, m, d, H, M, S, U, line, x;
-
-	EXPECT_FMT(
-		buf, 9, "%4u-%2u-%2u %2u:%2u:%2u.%3u WARN  [test:log] test_log_warn:%u: warn%u\n", &y, &m, &d, &H, &M, &S, &U, &line, &x);
-
-	EXPECT_EQ(line, exp_line);
-	EXPECT_EQ(x, 1);
-
-	log_remove_callback(cb);
-	log_set(log);
-
-	END;
-}
-
-TEST(log_error)
-{
-	START;
-
-	log_t tmp  = {0};
-	log_t *log = log_set(&tmp);
-
-	char buf[1024] = {0};
-
-	int cb = log_add_callback(log_std_cb, DST_BUF(buf), LOG_ERROR, 1, 0);
-
-	log_error("test", "log", NULL, "error%d", 1);
-	uint exp_line = __LINE__ - 1;
-
-	uint y, m, d, H, M, S, U, line, x;
-
-	EXPECT_FMT(
-		buf, 9, "%4u-%2u-%2u %2u:%2u:%2u.%3u ERROR [test:log] test_log_error:%u: error%u\n", &y, &m, &d, &H, &M, &S, &U, &line, &x);
-
-	EXPECT_EQ(line, exp_line);
-	EXPECT_EQ(x, 1);
-
-	log_remove_callback(cb);
-	log_set(log);
-
-	END;
-}
-
-TEST(log_fatal)
-{
-	START;
-
-	log_t tmp  = {0};
-	log_t *log = log_set(&tmp);
-
-	char buf[1024] = {0};
-
-	int cb = log_add_callback(log_std_cb, DST_BUF(buf), LOG_FATAL, 1, 0);
-
-	log_fatal("test", "log", NULL, "fatal%d", 1);
-	uint exp_line = __LINE__ - 1;
-
-	uint y, m, d, H, M, S, U, line, x;
-
-	EXPECT_FMT(
-		buf, 9, "%4u-%2u-%2u %2u:%2u:%2u.%3u FATAL [test:log] test_log_fatal:%u: fatal%u\n", &y, &m, &d, &H, &M, &S, &U, &line, &x);
-
-	EXPECT_EQ(line, exp_line);
-	EXPECT_EQ(x, 1);
-
-	log_remove_callback(cb);
-	log_set(log);
-
+	char buffer[128] = {0};
+	int id		 = log_add_callback(format_invalid_time, buffer, LOG_INFO);
+	log_info("test", "bad time");
+	EXPECT_STR(buffer, "0000-00-00 00:00:00.000 INFO  test             bad time\n");
+	log_remove_callback(id);
 	END;
 }
 
 TEST(log_strerror)
 {
 	START;
-
 	EXPECT_STR(log_strerror(-1), "Unknown error");
 	EXPECT_STR(log_strerror(0), "No error information");
-
 	END;
 }
 
 STEST(log)
 {
 	SSTART;
-
-	RUN(log_set_get);
 	RUN(log_print);
-	RUN(log_level_str);
-	RUN(log_set_level);
-	RUN(log_set_quiet);
-	RUN(log_set_header);
-	RUN(log_add_callback);
-	RUN(log_log);
-	RUN(log_trace);
-	RUN(log_debug);
-	RUN(log_info);
-	RUN(log_warn);
-	RUN(log_error);
-	RUN(log_fatal);
+	RUN(log_file);
+	RUN(log_output_controls);
+	RUN(log_location);
+	RUN(log_callback);
+	RUN(log_remove_during_callback);
+	RUN(log_replace_during_callback);
+	RUN(log_controls);
+	RUN(log_registry);
+	RUN(log_write_invalid);
+	RUN(log_format_failure);
 	RUN(log_strerror);
-
 	SEND;
 }

@@ -59,7 +59,7 @@ void *tbl_add_row(tbl_t *tbl, uint *id)
 	uint tmp;
 	void *row = arr_add(&tbl->rows, &tmp);
 	if (row == NULL) {
-		log_error("cutils", "tbl", NULL, "failed to add row");
+		log_error("cutils.tbl", "failed to add row");
 		return NULL;
 	}
 
@@ -78,12 +78,12 @@ int tbl_set_cell(tbl_t *tbl, uint row, uint col, uint layout, void *val)
 
 	void *data = arr_get(&tbl->rows, row);
 	if (data == NULL) {
-		log_error("cutils", "tbl", NULL, "failed to get row");
+		log_error("cutils.tbl", "failed to get row");
 		return 1;
 	}
 
 	if (schema_set_val(&tbl->schema, layout, col, data, val)) {
-		log_error("cutils", "tbl", NULL, "failed to set cell");
+		log_error("cutils.tbl", "failed to set cell");
 		return 1;
 	}
 
@@ -98,18 +98,18 @@ int tbl_set_cell_str(tbl_t *tbl, uint row, uint col, uint layout, strv_t val)
 
 	void *data = arr_get(&tbl->rows, row);
 	if (data == NULL) {
-		log_error("cutils", "tbl", NULL, "failed to get row");
+		log_error("cutils.tbl", "failed to get row");
 		return 1;
 	}
 
 	size_t strs_cnt;
 	if (strvbuf_add(&tbl->strs, val, &strs_cnt)) {
-		log_error("cutils", "tbl", NULL, "failed to add string");
+		log_error("cutils.tbl", "failed to add string");
 		return 1;
 	}
 
 	if (schema_set_val(&tbl->schema, layout, col, data, &strs_cnt)) {
-		log_error("cutils", "tbl", NULL, "failed to set cell");
+		log_error("cutils.tbl", "failed to set cell");
 		return 1;
 	}
 
@@ -130,7 +130,7 @@ const void *tbl_get_cell(tbl_t *tbl, uint row, uint col)
 
 	void *ptr = arr_get(&tbl->rows, row);
 	if (ptr == NULL) {
-		log_error("cutils", "tbl", NULL, "failed to get cell row");
+		log_error("cutils.tbl", "failed to get cell row");
 		return NULL;
 	}
 
