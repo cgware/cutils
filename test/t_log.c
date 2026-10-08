@@ -40,6 +40,7 @@ TEST(log_file)
 {
 	START;
 	FILE *file = tmpfile();
+	EXPECT(file != NULL);
 	if (file == NULL) {
 		END;
 	}
@@ -48,10 +49,10 @@ TEST(log_file)
 	int file_id	 = log_add_file(file, LOG_INFO);
 	EXPECT_EQ(output_id >= 0 && file_id >= 0, 1);
 	log_info("test", "shared %d", 5);
-	fflush(file);
+	EXPECT_EQ(fflush(file), 0);
 	rewind(file);
 	char from_file[256] = {0};
-	fgets(from_file, sizeof(from_file), file);
+	EXPECT_EQ(fgets(from_file, sizeof(from_file), file) != NULL, 1);
 	EXPECT_STR(buffer, from_file);
 	EXPECT_EQ(log_remove_callback(output_id), 0);
 	EXPECT_EQ(log_remove_callback(file_id), 0);
