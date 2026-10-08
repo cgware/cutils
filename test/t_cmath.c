@@ -34,6 +34,12 @@
 		}                                                                                                                          \
 	} while (0)
 
+static int float_near(float value, float expected, float tolerance)
+{
+	float difference = value - expected;
+	return difference >= -tolerance && difference <= tolerance;
+}
+
 TEST(cmath_float)
 {
 	START;
@@ -41,6 +47,10 @@ TEST(cmath_float)
 	EXPECT_EQ(float_clamp(2.0f, 0.0f, 1.0f), 1.0f);
 	EXPECT_EQ(float_clamp(-1.0f, 0.0f, 1.0f), 0.0f);
 	EXPECT_EQ(float_clamp(0.5f, 0.0f, 1.0f), 0.5f);
+	EXPECT_EQ(float_mod(7.0f, 3.0f), 1.0f);
+	EXPECT_EQ(float_mod(-7.0f, 3.0f), -1.0f);
+	EXPECT_EQ(float_deg_to_rad(0.0f), 0.0f);
+	EXPECT_EQ(float_deg_to_rad(180.0f), CMATH_PI);
 	EXPECT_EQ(float_wrap_angle(7.0f), 0.7168145f);
 	EXPECT_EQ(float_wrap_angle(-7.0f), -0.7168145f);
 	EXPECT_EQ(float_sin(0.0f), 0.0f);
@@ -49,6 +59,8 @@ TEST(cmath_float)
 	EXPECT_EQ(float_cos(0.0f), 1.0f);
 	EXPECT_EQ(float_cos(3.1415927f), -1.0f);
 	EXPECT_EQ(float_cos(-3.1415927f), -1.0f);
+	EXPECT_EQ(float_tan(0.0f), 0.0f);
+	EXPECT_EQ(float_near(float_tan(CMATH_PI / 4.0f), 1.0f, 0.01f), 1);
 	EXPECT_EQ(float_sqrt(0.0f), 0.0f);
 	EXPECT_EQ(float_sqrt(4.0f), 2.0f);
 
@@ -221,6 +233,79 @@ TEST(cmath_mat4f_look_to)
 	END;
 }
 
+TEST(cmath_mat4f_transform_normal)
+{
+	START;
+
+	// clang-format off
+	const float transform[] = {
+		2.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 4.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 8.0f, 0.0f,
+		3.0f, 5.0f, 7.0f, 1.0f,
+	};
+	const float normal[] = {
+		0.5f, 0.0f, 0.0f, 0.0f,
+		0.0f, 0.25f, 0.0f, 0.0f,
+		0.0f, 0.0f, 0.125f, 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f,
+	};
+	// clang-format on
+
+	vec3f_t translation    = vec3f(3.0f, 5.0f, 7.0f);
+	vec3f_t rotation       = vec3f(0.0f, 0.0f, 0.0f);
+	vec3f_t scale	       = vec3f(2.0f, 4.0f, 8.0f);
+	mat4f_t rotation_basis = mat4f_rotation(rotation);
+
+	EXPECT_MAT4F(mat4f_transform(translation, rotation_basis, scale), transform);
+	EXPECT_MAT4F(mat4f_normal(rotation_basis, scale), normal);
+
+	END;
+}
+
+TEST(cmath_mat4f_perspective)
+{
+	START;
+
+	mat4f_t perspective = mat4f_perspective(CMATH_PI / 2.0f, 2.0f, 1.0f, 3.0f);
+
+	EXPECT_EQ(float_near(perspective.m[0], 0.5f, 0.01f), 1);
+	EXPECT_EQ(float_near(perspective.m[5], 1.0f, 0.01f), 1);
+	EXPECT_EQ(perspective.m[10], 1.5f);
+	EXPECT_EQ(perspective.m[11], 1.0f);
+	EXPECT_EQ(perspective.m[14], -1.5f);
+	EXPECT_EQ(perspective.m[15], 0.0f);
+
+	END;
+}
+
+TEST(cmath_mat4f_view_rotation)
+{
+	START;
+
+	vec3f_t position       = vec3f(2.0f, 3.0f, 4.0f);
+	vec3f_t rotation       = vec3f(0.0f, 0.0f, 0.0f);
+	mat4f_t rotation_basis = mat4f_rotation(rotation);
+	mat4f_t view	       = mat4f_view(position, rotation_basis);
+	mat4f_t inverse	       = mat4f_inverse_view(position, rotation_basis);
+
+	EXPECT_VEC4F(mat4f_mul_vec4(view, vec4f(2.0f, 3.0f, 4.0f, 1.0f)), 0.0f, 0.0f, 0.0f, 1.0f);
+	EXPECT_VEC4F(mat4f_mul_vec4(inverse, vec4f(0.0f, 0.0f, 0.0f, 1.0f)), 2.0f, 3.0f, 4.0f, 1.0f);
+
+	rotation.z     = CMATH_PI / 2.0f;
+	rotation_basis = mat4f_rotation(rotation);
+	view	       = mat4f_view(position, rotation_basis);
+	inverse	       = mat4f_inverse_view(position, rotation_basis);
+
+	EXPECT_EQ(float_near(inverse.m[1], 1.0f, 0.01f), 1);
+	EXPECT_EQ(float_near(inverse.m[4], -1.0f, 0.01f), 1);
+	EXPECT_EQ(view.m[1], inverse.m[4]);
+	EXPECT_EQ(view.m[4], inverse.m[1]);
+	EXPECT_EQ(view.m[12], -(inverse.m[0] * position.x + inverse.m[1] * position.y + inverse.m[2] * position.z));
+
+	END;
+}
+
 STEST(cmath)
 {
 	SSTART;
@@ -234,6 +319,9 @@ STEST(cmath)
 	RUN(cmath_mat4f_rotate);
 	RUN(cmath_mat4f_projection);
 	RUN(cmath_mat4f_look_to);
+	RUN(cmath_mat4f_transform_normal);
+	RUN(cmath_mat4f_perspective);
+	RUN(cmath_mat4f_view_rotation);
 
 	SEND;
 }

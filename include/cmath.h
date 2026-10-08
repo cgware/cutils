@@ -1,6 +1,9 @@
 #ifndef CMATH_H
 #define CMATH_H
 
+#define CMATH_PI     3.14159265358979323846f
+#define CMATH_TWO_PI 6.28318530717958647692f
+
 typedef struct vec2f_s {
 	float x, y;
 } vec2f_t;
@@ -18,9 +21,12 @@ typedef struct mat4f_s {
 } mat4f_t;
 
 float float_clamp(float value, float min, float max);
+float float_mod(float value, float modulus);
+float float_deg_to_rad(float degrees);
 float float_wrap_angle(float angle);
 float float_sin(float angle);
 float float_cos(float angle);
+float float_tan(float angle);
 float float_sqrt(float value);
 
 vec2f_t vec2f(float x, float y);
@@ -65,5 +71,11 @@ mat4f_t mat4f_rotate_z(float c, float s);
 mat4f_t mat4f_ortho(float left, float right, float bottom, float top, float near, float far);
 mat4f_t mat4f_frustum(float left, float right, float bottom, float top, float near, float far);
 mat4f_t mat4f_look_to(vec3f_t eye, vec3f_t forward, vec3f_t up);
+mat4f_t mat4f_rotation(vec3f_t rotation);
+mat4f_t mat4f_transform(vec3f_t translation, mat4f_t rotation_basis, vec3f_t scale);
+mat4f_t mat4f_normal(mat4f_t rotation_basis, vec3f_t scale);
+mat4f_t mat4f_perspective(float fovy, float aspect, float near, float far);
+mat4f_t mat4f_view(vec3f_t position, mat4f_t rotation_basis);
+mat4f_t mat4f_inverse_view(vec3f_t position, mat4f_t rotation_basis);
 
 #endif

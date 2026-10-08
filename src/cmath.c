@@ -11,10 +11,21 @@ float float_clamp(float value, float min, float max)
 	return value;
 }
 
+float float_mod(float value, float modulus)
+{
+	int quotient = (int)(value / modulus);
+	return value - (float)quotient * modulus;
+}
+
+float float_deg_to_rad(float degrees)
+{
+	return degrees * (CMATH_PI / 180.0f);
+}
+
 float float_wrap_angle(float angle)
 {
-	const float pi	   = 3.14159265358979323846f;
-	const float two_pi = 6.28318530717958647692f;
+	const float pi	   = CMATH_PI;
+	const float two_pi = CMATH_TWO_PI;
 	while (angle > pi) {
 		angle -= two_pi;
 	}
@@ -38,7 +49,7 @@ static float float_cos_poly(float x)
 
 float float_sin(float angle)
 {
-	const float pi	    = 3.14159265358979323846f;
+	const float pi	    = CMATH_PI;
 	const float half_pi = 1.57079632679489661923f;
 	float x		    = float_wrap_angle(angle);
 	if (x > half_pi) {
@@ -51,7 +62,7 @@ float float_sin(float angle)
 
 float float_cos(float angle)
 {
-	const float pi	    = 3.14159265358979323846f;
+	const float pi	    = CMATH_PI;
 	const float half_pi = 1.57079632679489661923f;
 	float x		    = float_wrap_angle(angle);
 	float sign	    = 1.0f;
@@ -63,6 +74,11 @@ float float_cos(float angle)
 		sign = -1.0f;
 	}
 	return sign * float_cos_poly(x);
+}
+
+float float_tan(float angle)
+{
+	return float_sin(angle) / float_cos(angle);
 }
 
 float float_sqrt(float value)
@@ -355,4 +371,90 @@ mat4f_t mat4f_look_to(vec3f_t eye, vec3f_t forward, vec3f_t up)
 	view.m[10]   = back.z;
 	view.m[14]   = -vec3f_dot(back, eye);
 	return view;
+}
+
+mat4f_t mat4f_rotation(vec3f_t rotation)
+{
+	const float c3 = float_cos(rotation.z);
+	const float s3 = float_sin(rotation.z);
+	const float c2 = float_cos(rotation.x);
+	const float s2 = float_sin(rotation.x);
+	const float c1 = float_cos(rotation.y);
+	const float s1 = float_sin(rotation.y);
+
+	// clang-format off
+	return (mat4f_t){.m = {
+		c1 * c3 + s1 * s2 * s3, c2 * s3, c1 * s2 * s3 - c3 * s1, 0.0f,
+		c3 * s1 * s2 - c1 * s3, c2 * c3, c1 * c3 * s2 + s1 * s3, 0.0f,
+		c2 * s1, -s2, c1 * c2, 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f,
+	}};
+	// clang-format on
+}
+
+mat4f_t mat4f_transform(vec3f_t translation, mat4f_t rotation_basis, vec3f_t scale)
+{
+	mat4f_t transform = rotation_basis;
+
+	for (int row = 0; row < 3; row++) {
+		transform.m[row] *= scale.x;
+		transform.m[4 + row] *= scale.y;
+		transform.m[8 + row] *= scale.z;
+	}
+
+	transform.m[12] = translation.x;
+	transform.m[13] = translation.y;
+	transform.m[14] = translation.z;
+
+	return transform;
+}
+
+mat4f_t mat4f_normal(mat4f_t rotation_basis, vec3f_t scale)
+{
+	mat4f_t normal	      = rotation_basis;
+	vec3f_t inverse_scale = {1.0f / scale.x, 1.0f / scale.y, 1.0f / scale.z};
+
+	for (int row = 0; row < 3; row++) {
+		normal.m[row] *= inverse_scale.x;
+		normal.m[4 + row] *= inverse_scale.y;
+		normal.m[8 + row] *= inverse_scale.z;
+	}
+
+	return normal;
+}
+
+mat4f_t mat4f_perspective(float fovy, float aspect, float near, float far)
+{
+	const float tan_half_fovy = float_tan(fovy / 2.0f);
+
+	mat4f_t perspective = {0};
+	perspective.m[0]    = 1.0f / (aspect * tan_half_fovy);
+	perspective.m[5]    = 1.0f / tan_half_fovy;
+	perspective.m[10]   = far / (far - near);
+	perspective.m[11]   = 1.0f;
+	perspective.m[14]   = -(far * near) / (far - near);
+
+	return perspective;
+}
+
+mat4f_t mat4f_view(vec3f_t position, mat4f_t rotation_basis)
+{
+	mat4f_t view = mat4f_transpose(rotation_basis);
+
+	view.m[12] = -(rotation_basis.m[0] * position.x + rotation_basis.m[1] * position.y + rotation_basis.m[2] * position.z);
+	view.m[13] = -(rotation_basis.m[4] * position.x + rotation_basis.m[5] * position.y + rotation_basis.m[6] * position.z);
+	view.m[14] = -(rotation_basis.m[8] * position.x + rotation_basis.m[9] * position.y + rotation_basis.m[10] * position.z);
+
+	return view;
+}
+
+mat4f_t mat4f_inverse_view(vec3f_t position, mat4f_t rotation_basis)
+{
+	mat4f_t inverse_view = rotation_basis;
+
+	inverse_view.m[12] = position.x;
+	inverse_view.m[13] = position.y;
+	inverse_view.m[14] = position.z;
+
+	return inverse_view;
 }
