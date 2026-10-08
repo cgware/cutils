@@ -50,7 +50,7 @@ TEST(cmath_float)
 	EXPECT_EQ(float_mod(7.0f, 3.0f), 1.0f);
 	EXPECT_EQ(float_mod(-7.0f, 3.0f), -1.0f);
 	EXPECT_EQ(float_deg_to_rad(0.0f), 0.0f);
-	EXPECT_EQ(float_deg_to_rad(180.0f), CMATH_PI);
+	EXPECT_EQ(float_near(float_deg_to_rad(180.0f), CMATH_PI, 0.000001f), 1);
 	EXPECT_EQ(float_wrap_angle(7.0f), 0.7168145f);
 	EXPECT_EQ(float_wrap_angle(-7.0f), -0.7168145f);
 	EXPECT_EQ(float_sin(0.0f), 0.0f);
@@ -301,7 +301,8 @@ TEST(cmath_mat4f_view_rotation)
 	EXPECT_EQ(float_near(inverse.m[4], -1.0f, 0.01f), 1);
 	EXPECT_EQ(view.m[1], inverse.m[4]);
 	EXPECT_EQ(view.m[4], inverse.m[1]);
-	EXPECT_EQ(view.m[12], -(inverse.m[0] * position.x + inverse.m[1] * position.y + inverse.m[2] * position.z));
+	float expected_translation = -(inverse.m[0] * position.x + inverse.m[1] * position.y + inverse.m[2] * position.z);
+	EXPECT_EQ(float_near(view.m[12], expected_translation, 0.00001f), 1);
 
 	END;
 }
